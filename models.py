@@ -58,6 +58,8 @@ class Workout(db.Model):
     plan_id = db.Column(db.Integer, db.ForeignKey("training_plan.id"), nullable=False)
     date = db.Column(db.Date, nullable=False)
     workout_type = db.Column(db.String(50), nullable=False)  # Easy, Long, Tempo, Interval, Rest, Race...
+    # Despite the column name, the UI now displays/collects these in miles, not km
+    # (kept as-is to avoid a production schema change since Render's table already exists).
     target_distance_km = db.Column(db.Float)
     target_duration_min = db.Column(db.Integer)
     description = db.Column(db.Text)
