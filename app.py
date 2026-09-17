@@ -344,6 +344,11 @@ def plan_detail(plan_id):
             current_week_index = wk["index"]
             break
 
+    current_month_label = None
+    current_week = next((wk for wk in weeks if wk["index"] == current_week_index), None)
+    if current_week:
+        current_month_label = date(current_week["start"].year, current_week["start"].month, 1).strftime("%B %Y")
+
     return render_template(
         "plan_detail.html",
         plan=plan,
@@ -355,6 +360,7 @@ def plan_detail(plan_id):
         percent_complete=percent_complete,
         total_km=total_km,
         current_week_index=current_week_index,
+        current_month_label=current_month_label,
         strava_error=strava_error,
     )
 

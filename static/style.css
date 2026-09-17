@@ -240,8 +240,14 @@ hr { border-color: var(--border); opacity: 1; }
 .cal-dot.race { background: var(--accent-grad); }
 .cal-dot.strava { background: #fc4c02; }
 
-.cal-month { border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1.5rem; }
+.cal-month { border-radius: var(--radius); padding: 1.25rem; margin-bottom: .9rem; }
+.cal-month-header { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+.cal-month-header .chevron { color: var(--text-faint); transition: transform .2s ease; }
+.cal-month.collapsed .cal-month-header .chevron { transform: rotate(-90deg); }
+.cal-month.collapsed .cal-month-body { display: none; }
+.cal-month-body { margin-top: 1rem; }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.cal-grid-detailed .cal-cell { min-height: 108px; }
 .cal-dow { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); font-weight: 700; text-align: center; padding-bottom: .3rem; }
 .cal-cell {
   position: relative;
@@ -257,6 +263,11 @@ hr { border-color: var(--border); opacity: 1; }
 .cal-icon { font-size: 1rem; line-height: 1; margin-top: .15rem; }
 .cal-type { font-size: .62rem; font-weight: 700; margin-top: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cal-dist { font-size: .6rem; color: var(--text-faint); }
+.cal-desc {
+  font-size: .6rem; color: var(--text-dim); margin-top: .2rem; line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.cal-race .cal-desc { color: rgba(255, 255, 255, .85); }
 .cal-strava-badge { position: absolute; top: 4px; right: 5px; font-size: .6rem; line-height: 1; }
 
 .cal-status-done { border-color: var(--success); background: var(--success-bg); }
@@ -284,6 +295,7 @@ hr { border-color: var(--border); opacity: 1; }
   .mini-form input { flex: 1; width: auto; min-width: 0; }
   .cal-grid { gap: 3px; }
   .cal-cell { min-height: 44px; padding: .2rem; }
-  .cal-type, .cal-dist { display: none; }
+  .cal-grid-detailed .cal-cell { min-height: 56px; }
+  .cal-type, .cal-dist, .cal-desc { display: none; }
   .cal-icon { font-size: .8rem; }
 }
