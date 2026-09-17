@@ -66,55 +66,52 @@
   <div class="connect-prompt mb-3">{{ strava_error }}</div>
 {% endif %}
 
-{% for month in months %}
-  {% set is_current_month = month.label == current_month_label %}
-  <div class="cal-month card-surface {{ '' if is_current_month else 'collapsed' }}" data-month>
-    <div class="cal-month-header" data-month-toggle>
-      <h5 class="mb-0">{{ month.label }}</h5>
-      <span class="chevron">&#9660;</span>
-    </div>
-    <div class="cal-month-body">
-      <div class="cal-grid {{ 'cal-grid-detailed' if is_current_month else '' }}">
-        <div class="cal-dow">Mon</div>
-        <div class="cal-dow">Tue</div>
-        <div class="cal-dow">Wed</div>
-        <div class="cal-dow">Thu</div>
-        <div class="cal-dow">Fri</div>
-        <div class="cal-dow">Sat</div>
-        <div class="cal-dow">Sun</div>
-        {% for wk in month.weeks %}
-          {% for cell in wk %}
-            {% if not cell.in_month %}
-              <div class="cal-cell cal-empty"></div>
-            {% elif cell.workout %}
-              {% set w = cell.workout %}
-              {% set is_long = w.workout_type == 'Long Run' %}
-              {% set is_tempo = w.workout_type in ['Tempo', 'Intervals'] %}
-              {% set is_race = w.workout_type == 'Race' %}
-              {% set is_rest = w.workout_type == 'Rest' %}
-              {% set icon = '🏁' if is_race else ('🏔️' if is_long else ('⚡' if is_tempo else ('😴' if is_rest else '🏃'))) %}
-              {% set status = 'done' if w.completed else ('today' if w.date == today else ('missed' if w.date < today else 'upcoming')) %}
-              <div class="cal-cell cal-status-{{ status }} {{ 'cal-race' if is_race else '' }}"
-                   data-jump-to-week="{{ cell.week_index }}"
-                   title="{{ w.workout_type }}{% if w.target_distance_km %} - {{ w.target_distance_km }}mi{% endif %}{% if w.description %} - {{ w.description }}{% endif %}">
-                {% if w.strava_activity_id %}<div class="cal-strava-badge" title="Auto-synced from Strava">⚡</div>{% endif %}
-                <div class="cal-daynum">{{ cell.date.day }}</div>
-                <div class="cal-icon">{{ icon }}</div>
-                <div class="cal-type">{{ w.workout_type }}</div>
-                {% if w.target_distance_km %}<div class="cal-dist">{{ w.target_distance_km }}mi{% if w.target_duration_min and is_current_month %} &middot; {{ w.target_duration_min }} min{% endif %}</div>{% endif %}
-                {% if is_current_month and w.description %}<div class="cal-desc">{{ w.description }}</div>{% endif %}
-              </div>
-            {% else %}
-              <div class="cal-cell">
-                <div class="cal-daynum">{{ cell.date.day }}</div>
-              </div>
-            {% endif %}
-          {% endfor %}
+{% if current_month %}
+  <div class="cal-month card-surface">
+    <a class="cal-month-header" href="{{ url_for('plan_calendar', plan_id=plan.id) }}" title="View the full plan calendar">
+      <h5 class="mb-0">{{ current_month.label }}</h5>
+      <span class="cal-month-link">Full plan calendar &rarr;</span>
+    </a>
+    <div class="cal-grid cal-grid-detailed mt-3">
+      <div class="cal-dow">Mon</div>
+      <div class="cal-dow">Tue</div>
+      <div class="cal-dow">Wed</div>
+      <div class="cal-dow">Thu</div>
+      <div class="cal-dow">Fri</div>
+      <div class="cal-dow">Sat</div>
+      <div class="cal-dow">Sun</div>
+      {% for wk in current_month.weeks %}
+        {% for cell in wk %}
+          {% if not cell.in_month %}
+            <div class="cal-cell cal-empty"></div>
+          {% elif cell.workout %}
+            {% set w = cell.workout %}
+            {% set is_long = w.workout_type == 'Long Run' %}
+            {% set is_tempo = w.workout_type in ['Tempo', 'Intervals'] %}
+            {% set is_race = w.workout_type == 'Race' %}
+            {% set is_rest = w.workout_type == 'Rest' %}
+            {% set icon = '🏁' if is_race else ('🏔️' if is_long else ('⚡' if is_tempo else ('😴' if is_rest else '🏃'))) %}
+            {% set status = 'done' if w.completed else ('today' if w.date == today else ('missed' if w.date < today else 'upcoming')) %}
+            <div class="cal-cell cal-status-{{ status }} {{ 'cal-race' if is_race else '' }}"
+                 data-jump-to-week="{{ cell.week_index }}"
+                 title="{{ w.workout_type }}{% if w.target_distance_km %} - {{ w.target_distance_km }}mi{% endif %}{% if w.description %} - {{ w.description }}{% endif %}">
+              {% if w.strava_activity_id %}<div class="cal-strava-badge" title="Auto-synced from Strava">⚡</div>{% endif %}
+              <div class="cal-daynum">{{ cell.date.day }}</div>
+              <div class="cal-icon">{{ icon }}</div>
+              <div class="cal-type">{{ w.workout_type }}</div>
+              {% if w.target_distance_km %}<div class="cal-dist">{{ w.target_distance_km }}mi{% if w.target_duration_min %} &middot; {{ w.target_duration_min }} min{% endif %}</div>{% endif %}
+              {% if w.description %}<div class="cal-desc">{{ w.description }}</div>{% endif %}
+            </div>
+          {% else %}
+            <div class="cal-cell">
+              <div class="cal-daynum">{{ cell.date.day }}</div>
+            </div>
+          {% endif %}
         {% endfor %}
-      </div>
+      {% endfor %}
     </div>
   </div>
-{% endfor %}
+{% endif %}
 {% endif %}
 
 {% for wk in weeks %}
@@ -235,12 +232,6 @@
 document.querySelectorAll('[data-week-toggle]').forEach(function (header) {
   header.addEventListener('click', function () {
     header.closest('[data-week]').classList.toggle('collapsed');
-  });
-});
-
-document.querySelectorAll('[data-month-toggle]').forEach(function (header) {
-  header.addEventListener('click', function () {
-    header.closest('[data-month]').classList.toggle('collapsed');
   });
 });
 

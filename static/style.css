@@ -241,11 +241,10 @@ hr { border-color: var(--border); opacity: 1; }
 .cal-dot.strava { background: #fc4c02; }
 
 .cal-month { border-radius: var(--radius); padding: 1.25rem; margin-bottom: .9rem; }
-.cal-month-header { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
-.cal-month-header .chevron { color: var(--text-faint); transition: transform .2s ease; }
-.cal-month.collapsed .cal-month-header .chevron { transform: rotate(-90deg); }
-.cal-month.collapsed .cal-month-body { display: none; }
-.cal-month-body { margin-top: 1rem; }
+.cal-month-header { display: flex; align-items: center; justify-content: space-between; text-decoration: none; color: inherit; }
+.cal-month-header:hover .cal-month-link { color: var(--accent-dark); }
+.cal-month-header:hover h5 { color: var(--accent); }
+.cal-month-link { font-size: .8rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 .cal-grid-detailed .cal-cell { min-height: 108px; }
 .cal-dow { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); font-weight: 700; text-align: center; padding-bottom: .3rem; }
@@ -256,8 +255,8 @@ hr { border-color: var(--border); opacity: 1; }
   color: var(--text); text-decoration: none; overflow: hidden;
   transition: border-color .12s ease, transform .12s ease;
 }
-.cal-cell[data-jump-to-week] { cursor: pointer; }
-.cal-cell[data-jump-to-week]:hover { border-color: var(--accent); transform: translateY(-1px); }
+.cal-cell[data-jump-to-week], a.cal-cell { cursor: pointer; }
+.cal-cell[data-jump-to-week]:hover, a.cal-cell:hover { border-color: var(--accent); color: var(--text); transform: translateY(-1px); }
 .cal-empty { background: transparent; border-color: transparent; }
 .cal-daynum { font-size: .7rem; font-weight: 700; color: var(--text-faint); }
 .cal-icon { font-size: 1rem; line-height: 1; margin-top: .15rem; }

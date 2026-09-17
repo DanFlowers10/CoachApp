@@ -348,21 +348,48 @@ def plan_detail(plan_id):
     current_week = next((wk for wk in weeks if wk["index"] == current_week_index), None)
     if current_week:
         current_month_label = date(current_week["start"].year, current_week["start"].month, 1).strftime("%B %Y")
+    current_month = next((m for m in months if m["label"] == current_month_label), months[0] if months else None)
 
     return render_template(
         "plan_detail.html",
         plan=plan,
         today=today,
         weeks=weeks,
-        months=months,
+        current_month=current_month,
         total_workouts=total_workouts,
         done_workouts=done_workouts,
         percent_complete=percent_complete,
         total_km=total_km,
         current_week_index=current_week_index,
-        current_month_label=current_month_label,
         strava_error=strava_error,
     )
+
+
+@app.route("/plan/<int:plan_id>/calendar")
+@login_required
+def plan_calendar(plan_id):
+    plan = db.session.get(TrainingPlan, plan_id)
+    if plan is None:
+        abort(404)
+
+    if current_user.is_coach():
+        if plan.coach_id != current_user.id:
+            abort(403)
+    else:
+        if plan.client_id != current_user.id:
+            abort(403)
+
+    today = date.today()
+    workouts = plan.workouts
+
+    if not current_user.is_coach() and current_user.strava_token:
+        _sync_strava_completions(workouts, current_user.strava_token)
+
+    weeks = _plan_weeks(workouts)
+    date_to_week = {w.date: wk["index"] for wk in weeks for w in wk["workouts"]}
+    months = _plan_months(workouts, date_to_week)
+
+    return render_template("plan_calendar.html", plan=plan, months=months, today=today)
 
 
 @app.route("/plan/<int:plan_id>/workouts/new", methods=["POST"])
