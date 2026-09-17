@@ -229,7 +229,49 @@ def plan_detail(plan_id):
         if plan.client_id != current_user.id:
             abort(403)
 
-    return render_template("plan_detail.html", plan=plan, today=date.today())
+    today = date.today()
+    workouts = plan.workouts  # ordered by date
+
+    weeks = []
+    if workouts:
+        start = workouts[0].date
+        buckets = {}
+        for w in workouts:
+            idx = (w.date - start).days // 7
+            buckets.setdefault(idx, []).append(w)
+        for idx in range(max(buckets.keys()) + 1):
+            wk_workouts = buckets.get(idx, [])
+            weeks.append({
+                "index": idx + 1,
+                "workouts": wk_workouts,
+                "start": start + timedelta(days=idx * 7),
+                "end": start + timedelta(days=idx * 7 + 6),
+                "done": sum(1 for w in wk_workouts if w.completed),
+                "total": len(wk_workouts),
+            })
+
+    total_workouts = len(workouts)
+    done_workouts = sum(1 for w in workouts if w.completed)
+    percent_complete = round(done_workouts / total_workouts * 100) if total_workouts else 0
+    total_km = sum(w.target_distance_km for w in workouts if w.target_distance_km)
+
+    current_week_index = weeks[-1]["index"] if weeks else None
+    for wk in weeks:
+        if wk["end"] >= today and wk["done"] < wk["total"]:
+            current_week_index = wk["index"]
+            break
+
+    return render_template(
+        "plan_detail.html",
+        plan=plan,
+        today=today,
+        weeks=weeks,
+        total_workouts=total_workouts,
+        done_workouts=done_workouts,
+        percent_complete=percent_complete,
+        total_km=total_km,
+        current_week_index=current_week_index,
+    )
 
 
 @app.route("/plan/<int:plan_id>/workouts/new", methods=["POST"])

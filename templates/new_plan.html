@@ -4,21 +4,23 @@
 <h2 class="mb-3">New plan for {{ client.name }}</h2>
 <div class="row">
   <div class="col-md-6">
-    <form method="post">
-      <div class="mb-3">
-        <label class="form-label">Plan title</label>
-        <input type="text" name="title" class="form-control" placeholder="e.g. 16-week marathon build" required>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Goal race</label>
-        <input type="text" name="goal_race" class="form-control" placeholder="e.g. London Marathon, April 2027">
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Notes</label>
-        <textarea name="notes" class="form-control" rows="3"></textarea>
-      </div>
-      <button class="btn btn-primary">Create plan</button>
-    </form>
+    <div class="auth-card">
+      <form method="post">
+        <div class="mb-3">
+          <label class="form-label">Plan title</label>
+          <input type="text" name="title" class="form-control" placeholder="e.g. 16-week marathon build" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Goal race</label>
+          <input type="text" name="goal_race" class="form-control" placeholder="e.g. London Marathon, April 2027">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Notes</label>
+          <textarea name="notes" class="form-control" rows="3"></textarea>
+        </div>
+        <button class="btn btn-accent">Create plan</button>
+      </form>
+    </div>
   </div>
 </div>
 {% endblock %}

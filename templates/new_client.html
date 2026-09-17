@@ -4,24 +4,25 @@
 <h2 class="mb-3">Add a client</h2>
 <div class="row">
   <div class="col-md-6">
-    <form method="post">
-      <div class="mb-3">
-        <label class="form-label">Client name</label>
-        <input type="text" name="name" class="form-control" required>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Client email</label>
-        <input type="email" name="email" class="form-control" required>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Temporary password</label>
-        <input type="text" name="temp_password" class="form-control" required minlength="6">
-        <div class="form-text">Share this with your client so they can log in and change it later
-          (this prototype doesn't yet have a "change password" screen — see README).</div>
-      </div>
-      <button class="btn btn-primary">Create client account</button>
-      <a href="{{ url_for('coach_dashboard') }}" class="btn btn-link">Cancel</a>
-    </form>
+    <div class="auth-card">
+      <form method="post">
+        <div class="mb-3">
+          <label class="form-label">Client name</label>
+          <input type="text" name="name" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Client email</label>
+          <input type="email" name="email" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Temporary password</label>
+          <input type="text" name="temp_password" class="form-control" required minlength="6">
+          <div class="form-text">Share this with your client so they can log in — they can change it themselves afterwards under "Change password".</div>
+        </div>
+        <button class="btn btn-accent">Create client account</button>
+        <a href="{{ url_for('coach_dashboard') }}" class="btn btn-link">Cancel</a>
+      </form>
+    </div>
   </div>
 </div>
 {% endblock %}

@@ -4,7 +4,7 @@
 <a href="{{ url_for('coach_dashboard') }}" class="small">&larr; All clients</a>
 <div class="d-flex justify-content-between align-items-center mt-2 mb-3">
   <h2>{{ client.name }}</h2>
-  <a href="{{ url_for('new_plan', client_id=client.id) }}" class="btn btn-primary">+ New plan</a>
+  <a href="{{ url_for('new_plan', client_id=client.id) }}" class="btn btn-accent">+ New plan</a>
 </div>
 <p class="text-muted">{{ client.email }}</p>
 

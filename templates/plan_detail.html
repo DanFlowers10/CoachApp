@@ -8,114 +8,156 @@
   <a href="{{ url_for('client_dashboard') }}" class="small">&larr; My plans</a>
 {% endif %}
 
-<h2 class="mt-2">{{ plan.title }}</h2>
-{% if plan.goal_race %}<p class="text-muted">Goal: {{ plan.goal_race }}</p>{% endif %}
-{% if plan.notes %}<p>{{ plan.notes }}</p>{% endif %}
+<h2 class="mt-2 mb-1">{{ plan.title }}</h2>
+{% if plan.goal_race %}<p class="text-muted mb-3">Goal: {{ plan.goal_race }}</p>{% endif %}
+{% if plan.notes %}<p class="mb-3">{{ plan.notes }}</p>{% endif %}
 
-<table class="table align-middle">
-  <thead>
-    <tr>
-      <th>Date</th>
-      <th>Type</th>
-      <th>Target</th>
-      <th>Description</th>
-      <th>Status</th>
-      {% if current_user.is_coach() %}<th></th>{% endif %}
-    </tr>
-  </thead>
-  <tbody>
-    {% for w in plan.workouts %}
-      <tr class="{{ 'table-success' if w.completed else ('table-warning' if w.date < today else '') }}">
-        <td>{{ w.date.strftime('%a %d %b') }}</td>
-        <td>{{ w.workout_type }}</td>
-        <td>
-          {% if w.target_distance_km %}{{ w.target_distance_km }} km{% endif %}
-          {% if w.target_duration_min %} / {{ w.target_duration_min }} min{% endif %}
-        </td>
-        <td class="small">{{ w.description }}</td>
-        <td>
-          {% if w.completed %}
-            ✅ Done{% if w.actual_distance_km %} ({{ w.actual_distance_km }} km){% endif %}
-          {% elif not current_user.is_coach() %}
-            <form method="post" action="{{ url_for('complete_workout', workout_id=w.id) }}" class="d-flex gap-1">
-              <input type="number" step="0.1" name="actual_distance_km" class="form-control form-control-sm"
-                     placeholder="km" style="width:80px">
-              <button class="btn btn-sm btn-outline-success">Mark done</button>
+<div class="stat-row">
+  <div class="stat-tile card-surface">
+    <div class="stat-label">Progress</div>
+    <div class="stat-value accent">{{ percent_complete }}%</div>
+  </div>
+  <div class="stat-tile card-surface">
+    <div class="stat-label">Workouts done</div>
+    <div class="stat-value">{{ done_workouts }}<span class="text-muted" style="font-size:1rem;"> / {{ total_workouts }}</span></div>
+  </div>
+  <div class="stat-tile card-surface">
+    <div class="stat-label">Planned distance</div>
+    <div class="stat-value">{{ total_km|round(0, 'floor')|int }}<span class="text-muted" style="font-size:1rem;"> km</span></div>
+  </div>
+  <div class="stat-tile card-surface">
+    <div class="stat-label">Weeks</div>
+    <div class="stat-value">{{ weeks|length }}</div>
+  </div>
+</div>
+
+<div class="progress-track mb-4">
+  <div class="progress-fill" style="width: {{ percent_complete }}%;"></div>
+</div>
+
+{% if not weeks %}
+  <p class="text-muted">No workouts added yet.</p>
+{% endif %}
+
+{% for wk in weeks %}
+  <div class="week-card card-surface {{ '' if wk.index == current_week_index else 'collapsed' }}" data-week>
+    <div class="week-header" data-week-toggle>
+      <div>
+        <div class="week-title">Week {{ wk.index }}</div>
+        <div class="week-meta">{{ wk.start.strftime('%d %b') }} &ndash; {{ wk.end.strftime('%d %b') }} &middot; {{ wk.done }}/{{ wk.total }} done</div>
+      </div>
+      <span class="chevron">&#9660;</span>
+    </div>
+    <div class="week-body">
+      {% for w in wk.workouts %}
+        {% set is_long = w.workout_type == 'Long Run' %}
+        {% set is_tempo = w.workout_type in ['Tempo', 'Intervals'] %}
+        {% set is_race = w.workout_type == 'Race' %}
+        {% set is_rest = w.workout_type == 'Rest' %}
+        {% set icon = '🏁' if is_race else ('🏔️' if is_long else ('⚡' if is_tempo else ('😴' if is_rest else '🏃'))) %}
+        {% set icon_class = 'type-race' if is_race else ('type-long' if is_long else ('type-tempo' if is_tempo else ('type-rest' if is_rest else 'type-easy'))) %}
+        {% set status = 'done' if w.completed else ('today' if w.date == today else ('missed' if w.date < today else 'upcoming')) %}
+        <div class="workout-card {{ 'is-done' if status == 'done' else '' }} {{ 'is-today' if status == 'today' else '' }} {{ 'is-missed' if status == 'missed' else '' }}">
+          <div class="workout-icon {{ icon_class }}">{{ icon }}</div>
+          <div class="workout-main">
+            <div class="w-type">{{ w.workout_type }} &middot; <span class="text-muted" style="font-weight:600;">{{ w.date.strftime('%a %d %b') }}</span></div>
+            <div class="w-meta">
+              {% if w.completed %}
+                {% if w.actual_distance_km %}{{ w.actual_distance_km }} km logged{% endif %}
+              {% else %}
+                {% if w.target_distance_km %}{{ w.target_distance_km }} km{% endif %}
+                {% if w.target_duration_min %} &middot; {{ w.target_duration_min }} min{% endif %}
+              {% endif %}
+            </div>
+            {% if w.description %}<div class="w-desc">{{ w.description }}</div>{% endif %}
+          </div>
+
+          {% if not current_user.is_coach() and not w.completed %}
+            <form method="post" action="{{ url_for('complete_workout', workout_id=w.id) }}" class="mini-form">
+              <input type="number" step="0.1" name="actual_distance_km" class="form-control form-control-sm" placeholder="km">
+              <button class="btn btn-sm btn-accent">Done</button>
             </form>
           {% else %}
-            <span class="text-muted small">Not done yet</span>
+            <span class="status-pill {{ status }}">{{ status }}</span>
           {% endif %}
-        </td>
-        {% if current_user.is_coach() %}
-          <td>
+
+          {% if current_user.is_coach() %}
             <form method="post" action="{{ url_for('delete_workout', workout_id=w.id) }}"
                   onsubmit="return confirm('Delete this workout?');">
-              <button class="btn btn-sm btn-outline-danger">Delete</button>
+              <button class="btn btn-sm btn-outline-danger">&times;</button>
             </form>
-          </td>
-        {% endif %}
-      </tr>
-    {% else %}
-      <tr><td colspan="6" class="text-muted">No workouts added yet.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endfor %}
 
 {% if current_user.is_coach() %}
-<hr>
-<div class="d-flex justify-content-between align-items-center">
-  <h5>Add a workout</h5>
-  <a href="{{ url_for('bulk_add_workouts', plan_id=plan.id) }}" class="btn btn-sm btn-outline-primary">
-    Bulk add a weekly pattern &rarr;
-  </a>
+<div class="card-surface mt-4" style="border-radius: var(--radius); padding: 1.25rem 1.25rem 1.5rem;">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Add a workout</h5>
+    <a href="{{ url_for('bulk_add_workouts', plan_id=plan.id) }}" class="btn btn-sm btn-outline-primary">
+      Bulk add a weekly pattern &rarr;
+    </a>
+  </div>
+  <form method="post" action="{{ url_for('new_workout', plan_id=plan.id) }}" class="row g-2 align-items-end">
+    <div class="col-auto">
+      <label class="form-label small">Date</label>
+      <input type="date" name="date" class="form-control form-control-sm" required>
+    </div>
+    <div class="col-auto">
+      <label class="form-label small">Type</label>
+      <select name="workout_type" class="form-select form-select-sm">
+        <option>Easy Run</option>
+        <option>Long Run</option>
+        <option>Tempo</option>
+        <option>Intervals</option>
+        <option>Rest</option>
+        <option>Race</option>
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label small">Distance (km)</label>
+      <input type="number" step="0.1" name="target_distance_km" class="form-control form-control-sm" style="width:100px">
+    </div>
+    <div class="col-auto">
+      <label class="form-label small">Duration (min)</label>
+      <input type="number" name="target_duration_min" class="form-control form-control-sm" style="width:100px">
+    </div>
+    <div class="col">
+      <label class="form-label small">Notes</label>
+      <input type="text" name="description" class="form-control form-control-sm" placeholder="e.g. keep HR in Z2">
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-sm btn-accent">Add</button>
+    </div>
+  </form>
 </div>
-<form method="post" action="{{ url_for('new_workout', plan_id=plan.id) }}" class="row g-2 align-items-end">
-  <div class="col-auto">
-    <label class="form-label small">Date</label>
-    <input type="date" name="date" class="form-control form-control-sm" required>
-  </div>
-  <div class="col-auto">
-    <label class="form-label small">Type</label>
-    <select name="workout_type" class="form-select form-select-sm">
-      <option>Easy Run</option>
-      <option>Long Run</option>
-      <option>Tempo</option>
-      <option>Intervals</option>
-      <option>Rest</option>
-      <option>Race</option>
-    </select>
-  </div>
-  <div class="col-auto">
-    <label class="form-label small">Distance (km)</label>
-    <input type="number" step="0.1" name="target_distance_km" class="form-control form-control-sm" style="width:100px">
-  </div>
-  <div class="col-auto">
-    <label class="form-label small">Duration (min)</label>
-    <input type="number" name="target_duration_min" class="form-control form-control-sm" style="width:100px">
-  </div>
-  <div class="col">
-    <label class="form-label small">Notes</label>
-    <input type="text" name="description" class="form-control form-control-sm" placeholder="e.g. keep HR in Z2">
-  </div>
-  <div class="col-auto">
-    <button class="btn btn-sm btn-primary">Add</button>
-  </div>
-</form>
 {% endif %}
 
 {% if not current_user.is_coach() %}
-<hr>
-<h5>Strava</h5>
-{% if current_user.strava_token %}
-  <p class="small text-muted">Strava connected.</p>
-  <a href="{{ url_for('strava_activities') }}" class="btn btn-outline-success btn-sm">View recent Strava activities</a>
-  <form method="post" action="{{ url_for('strava_disconnect') }}" class="d-inline" onsubmit="return confirm('Disconnect Strava?');">
-    <button type="submit" class="btn btn-outline-danger btn-sm">Disconnect Strava</button>
-  </form>
-{% else %}
-  <a href="{{ url_for('strava_connect') }}" class="btn btn-outline-success btn-sm">Connect Strava</a>
+<div class="card-surface mt-4" style="border-radius: var(--radius); padding: 1.25rem;">
+  <h5 class="mb-2">Strava</h5>
+  {% if current_user.strava_token %}
+    <p class="small text-muted mb-2">Strava connected.</p>
+    <a href="{{ url_for('strava_activities') }}" class="btn btn-outline-success btn-sm">View recent Strava activities</a>
+    <form method="post" action="{{ url_for('strava_disconnect') }}" class="d-inline" onsubmit="return confirm('Disconnect Strava?');">
+      <button type="submit" class="btn btn-outline-danger btn-sm">Disconnect Strava</button>
+    </form>
+  {% else %}
+    <a href="{{ url_for('strava_connect') }}" class="btn btn-outline-success btn-sm">Connect Strava</a>
+  {% endif %}
+  <div class="text-muted small mt-2">Garmin: coming soon &mdash; requires Garmin's approved developer program.</div>
+</div>
 {% endif %}
-<span class="text-muted small ms-2">Garmin: coming soon — requires Garmin's approved developer program.</span>
-{% endif %}
+
+<script>
+document.querySelectorAll('[data-week-toggle]').forEach(function (header) {
+  header.addEventListener('click', function () {
+    header.closest('[data-week]').classList.toggle('collapsed');
+  });
+});
+</script>
 
 {% endblock %}
