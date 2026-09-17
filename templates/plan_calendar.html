@@ -22,7 +22,7 @@
 {% for month in months %}
 <div class="cal-month card-surface">
   <h5 class="mb-3">{{ month.label }}</h5>
-  <div class="cal-grid">
+  <div class="cal-grid cal-grid-detailed">
     <div class="cal-dow">Mon</div>
     <div class="cal-dow">Tue</div>
     <div class="cal-dow">Wed</div>
@@ -49,7 +49,8 @@
             <div class="cal-daynum">{{ cell.date.day }}</div>
             <div class="cal-icon">{{ icon }}</div>
             <div class="cal-type">{{ w.workout_type }}</div>
-            {% if w.target_distance_km %}<div class="cal-dist">{{ w.target_distance_km }}mi</div>{% endif %}
+            {% if w.target_distance_km %}<div class="cal-dist">{{ w.target_distance_km }}mi{% if w.target_duration_min %} &middot; {{ w.target_duration_min }} min{% endif %}</div>{% endif %}
+            {% if w.description %}<div class="cal-desc">{{ w.description }}</div>{% endif %}
           </a>
         {% else %}
           <div class="cal-cell">
