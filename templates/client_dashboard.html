@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}My plans{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>My training plans</h2>
+  {% if current_user.strava_token %}
+    <a href="{{ url_for('strava_activities') }}" class="btn btn-outline-success btn-sm">My Strava activities</a>
+  {% else %}
+    <a href="{{ url_for('strava_connect') }}" class="btn btn-outline-success btn-sm">Connect Strava</a>
+  {% endif %}
+</div>
+
+{% if not plans %}
+  <p class="text-muted">Your coach hasn't assigned you a plan yet.</p>
+{% else %}
+  <div class="list-group">
+    {% for p in plans %}
+      <a href="{{ url_for('plan_detail', plan_id=p.id) }}" class="list-group-item list-group-item-action">
+        <div class="d-flex justify-content-between">
+          <strong>{{ p.title }}</strong>
+          <span class="small text-muted">{{ p.created_at.strftime('%d %b %Y') }}</span>
+        </div>
+        {% if p.goal_race %}<div class="small text-muted">Goal: {{ p.goal_race }}</div>{% endif %}
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

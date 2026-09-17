@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}{{ client.name }}{% endblock %}
+{% block content %}
+<a href="{{ url_for('coach_dashboard') }}" class="small">&larr; All clients</a>
+<div class="d-flex justify-content-between align-items-center mt-2 mb-3">
+  <h2>{{ client.name }}</h2>
+  <a href="{{ url_for('new_plan', client_id=client.id) }}" class="btn btn-primary">+ New plan</a>
+</div>
+<p class="text-muted">{{ client.email }}</p>
+
+{% if not plans %}
+  <p class="text-muted">No training plans yet.</p>
+{% else %}
+  <div class="list-group">
+    {% for p in plans %}
+      <a href="{{ url_for('plan_detail', plan_id=p.id) }}" class="list-group-item list-group-item-action">
+        <div class="d-flex justify-content-between">
+          <strong>{{ p.title }}</strong>
+          <span class="small text-muted">{{ p.created_at.strftime('%d %b %Y') }}</span>
+        </div>
+        {% if p.goal_race %}<div class="small text-muted">Goal: {{ p.goal_race }}</div>{% endif %}
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

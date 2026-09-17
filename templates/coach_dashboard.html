@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Your clients{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Your clients</h2>
+  <a href="{{ url_for('new_client') }}" class="btn btn-primary">+ Add client</a>
+</div>
+
+{% if not clients %}
+  <p class="text-muted">No clients yet. Add your first one to get started.</p>
+{% else %}
+  <div class="list-group">
+    {% for c in clients %}
+      <a href="{{ url_for('client_detail', client_id=c.id) }}"
+         class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+        <div>
+          <strong>{{ c.name }}</strong>
+          <div class="small text-muted">{{ c.email }}</div>
+        </div>
+        <span class="badge bg-secondary">{{ c.plans|length }} plan(s)</span>
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}
