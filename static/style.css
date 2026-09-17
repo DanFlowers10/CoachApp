@@ -293,8 +293,9 @@ hr { border-color: var(--border); opacity: 1; }
   .mini-form { flex-basis: 100%; margin-top: .6rem; justify-content: flex-end; }
   .mini-form input { flex: 1; width: auto; min-width: 0; }
   .cal-grid { gap: 3px; }
-  .cal-cell { min-height: 44px; padding: .2rem; }
-  .cal-grid-detailed .cal-cell { min-height: 56px; }
-  .cal-type, .cal-dist, .cal-desc { display: none; }
+  .cal-cell { min-height: 56px; padding: .2rem; }
+  .cal-grid-detailed .cal-cell { min-height: 64px; }
+  .cal-dist, .cal-desc { display: none; }
+  .cal-type { font-size: .52rem; }
   .cal-icon { font-size: .8rem; }
 }
