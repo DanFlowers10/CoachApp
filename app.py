@@ -240,7 +240,7 @@ def _plan_weeks(workouts):
     return weeks
 
 
-def _plan_months(workouts, date_to_week):
+def _plan_months(workouts):
     """One Mon-Sun grid per calendar month the plan spans, using stdlib calendar for correct padding."""
     months = []
     if not workouts:
@@ -257,7 +257,6 @@ def _plan_months(workouts, date_to_week):
                     "date": d,
                     "in_month": d.month == m,
                     "workout": workouts_by_date.get(d),
-                    "week_index": date_to_week.get(d),
                 }
                 for d in wk_dates
             ])
@@ -330,8 +329,7 @@ def plan_detail(plan_id):
         strava_error = _sync_strava_completions(workouts, current_user.strava_token)
 
     weeks = _plan_weeks(workouts)
-    date_to_week = {w.date: wk["index"] for wk in weeks for w in wk["workouts"]}
-    months = _plan_months(workouts, date_to_week)
+    months = _plan_months(workouts)
 
     total_workouts = len(workouts)
     done_workouts = sum(1 for w in workouts if w.completed)
@@ -385,9 +383,7 @@ def plan_calendar(plan_id):
     if not current_user.is_coach() and current_user.strava_token:
         _sync_strava_completions(workouts, current_user.strava_token)
 
-    weeks = _plan_weeks(workouts)
-    date_to_week = {w.date: wk["index"] for wk in weeks for w in wk["workouts"]}
-    months = _plan_months(workouts, date_to_week)
+    months = _plan_months(workouts)
 
     return render_template("plan_calendar.html", plan=plan, months=months, today=today)
 

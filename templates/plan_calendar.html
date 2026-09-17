@@ -43,7 +43,7 @@
           {% set icon = '🏁' if is_race else ('🏔️' if is_long else ('⚡' if is_tempo else ('😴' if is_rest else '🏃'))) %}
           {% set status = 'done' if w.completed else ('today' if w.date == today else ('missed' if w.date < today else 'upcoming')) %}
           <a class="cal-cell cal-status-{{ status }} {{ 'cal-race' if is_race else '' }}"
-             href="{{ url_for('plan_detail', plan_id=plan.id) }}#week-{{ cell.week_index }}"
+             href="{{ url_for('plan_detail', plan_id=plan.id) }}#workout-{{ w.id }}"
              title="{{ w.workout_type }}{% if w.target_distance_km %} - {{ w.target_distance_km }}mi{% endif %}{% if w.description %} - {{ w.description }}{% endif %}">
             {% if w.strava_activity_id %}<div class="cal-strava-badge" title="Auto-synced from Strava">⚡</div>{% endif %}
             <div class="cal-daynum">{{ cell.date.day }}</div>

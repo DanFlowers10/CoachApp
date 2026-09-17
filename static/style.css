@@ -202,6 +202,12 @@ p, .text-muted, .small.text-muted { color: var(--text-dim) !important; }
 .workout-card.is-done { opacity: .7; }
 .workout-card.is-missed { border-color: var(--danger); }
 
+.workout-card.jump-highlight { animation: jump-highlight-pulse 2s ease-out; }
+@keyframes jump-highlight-pulse {
+  0% { box-shadow: 0 0 0 3px var(--accent); border-color: var(--accent); background: var(--surface-hover); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
 .workout-icon {
   width: 40px; height: 40px; border-radius: 12px; flex: none;
   display: flex; align-items: center; justify-content: center;
@@ -255,8 +261,8 @@ hr { border-color: var(--border); opacity: 1; }
   color: var(--text); text-decoration: none; overflow: hidden;
   transition: border-color .12s ease, transform .12s ease;
 }
-.cal-cell[data-jump-to-week], a.cal-cell { cursor: pointer; }
-.cal-cell[data-jump-to-week]:hover, a.cal-cell:hover { border-color: var(--accent); color: var(--text); transform: translateY(-1px); }
+.cal-cell[data-jump-to-workout], a.cal-cell { cursor: pointer; }
+.cal-cell[data-jump-to-workout]:hover, a.cal-cell:hover { border-color: var(--accent); color: var(--text); transform: translateY(-1px); }
 .cal-empty { background: transparent; border-color: transparent; }
 .cal-daynum { font-size: .7rem; font-weight: 700; color: var(--text-faint); }
 .cal-icon { font-size: 1rem; line-height: 1; margin-top: .15rem; }

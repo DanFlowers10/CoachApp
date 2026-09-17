@@ -93,7 +93,7 @@
             {% set icon = '🏁' if is_race else ('🏔️' if is_long else ('⚡' if is_tempo else ('😴' if is_rest else '🏃'))) %}
             {% set status = 'done' if w.completed else ('today' if w.date == today else ('missed' if w.date < today else 'upcoming')) %}
             <div class="cal-cell cal-status-{{ status }} {{ 'cal-race' if is_race else '' }}"
-                 data-jump-to-week="{{ cell.week_index }}"
+                 data-jump-to-workout="{{ w.id }}"
                  title="{{ w.workout_type }}{% if w.target_distance_km %} - {{ w.target_distance_km }}mi{% endif %}{% if w.description %} - {{ w.description }}{% endif %}">
               {% if w.strava_activity_id %}<div class="cal-strava-badge" title="Auto-synced from Strava">⚡</div>{% endif %}
               <div class="cal-daynum">{{ cell.date.day }}</div>
@@ -132,7 +132,7 @@
         {% set icon = '🏁' if is_race else ('🏔️' if is_long else ('⚡' if is_tempo else ('😴' if is_rest else '🏃'))) %}
         {% set icon_class = 'type-race' if is_race else ('type-long' if is_long else ('type-tempo' if is_tempo else ('type-rest' if is_rest else 'type-easy'))) %}
         {% set status = 'done' if w.completed else ('today' if w.date == today else ('missed' if w.date < today else 'upcoming')) %}
-        <div class="workout-card {{ 'is-done' if status == 'done' else '' }} {{ 'is-today' if status == 'today' else '' }} {{ 'is-missed' if status == 'missed' else '' }}">
+        <div class="workout-card {{ 'is-done' if status == 'done' else '' }} {{ 'is-today' if status == 'today' else '' }} {{ 'is-missed' if status == 'missed' else '' }}" id="workout-{{ w.id }}">
           <div class="workout-icon {{ icon_class }}">{{ icon }}</div>
           <div class="workout-main">
             <div class="w-type">{{ w.workout_type }} &middot; <span class="text-muted" style="font-weight:600;">{{ w.date.strftime('%a %d %b') }}</span>{% if w.strava_activity_id %}<span class="strava-tag" title="Auto-synced from Strava">⚡ Strava</span>{% endif %}</div>
@@ -235,22 +235,27 @@ document.querySelectorAll('[data-week-toggle]').forEach(function (header) {
   });
 });
 
-document.querySelectorAll('[data-jump-to-week]').forEach(function (bar) {
-  bar.addEventListener('click', function () {
-    var card = document.getElementById('week-' + bar.dataset.jumpToWeek);
-    if (!card) return;
-    card.classList.remove('collapsed');
-    card.scrollIntoView({behavior: 'smooth', block: 'start'});
+function jumpToWorkout(workoutId, smooth) {
+  var card = document.getElementById('workout-' + workoutId);
+  if (!card) return;
+  var week = card.closest('[data-week]');
+  if (week) week.classList.remove('collapsed');
+  card.scrollIntoView({behavior: smooth ? 'smooth' : 'auto', block: 'center'});
+  card.classList.remove('jump-highlight');
+  void card.offsetWidth; // restart the animation if it's already been triggered once
+  card.classList.add('jump-highlight');
+  setTimeout(function () { card.classList.remove('jump-highlight'); }, 2000);
+}
+
+document.querySelectorAll('[data-jump-to-workout]').forEach(function (cell) {
+  cell.addEventListener('click', function () {
+    jumpToWorkout(cell.dataset.jumpToWorkout, true);
   });
 });
 
-// Coming from the calendar view (a #week-N link): expand that week and scroll to it.
-if (location.hash.startsWith('#week-')) {
-  var target = document.querySelector(location.hash);
-  if (target) {
-    target.classList.remove('collapsed');
-    target.scrollIntoView({block: 'start'});
-  }
+// Coming from the full calendar page (a #workout-N link): expand its week and highlight it.
+if (location.hash.startsWith('#workout-')) {
+  jumpToWorkout(location.hash.replace('#workout-', ''), false);
 }
 </script>
 
