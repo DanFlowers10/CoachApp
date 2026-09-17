@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Bulk add workouts{% endblock %}
+{% block content %}
+<a href="{{ url_for('plan_detail', plan_id=plan.id) }}" class="small">&larr; Back to {{ plan.title }}</a>
+<h2 class="mt-2 mb-3">Bulk add workouts</h2>
+<p class="text-muted">
+  Define one week's pattern below, then it'll repeat for as many weeks as you choose.
+  Set a day to <strong>None</strong> to skip creating a workout on that day (rest days can
+  either be "None" or an explicit "Rest" entry — up to you).
+</p>
+
+<form method="post">
+  <div class="row g-3 mb-4">
+    <div class="col-auto">
+      <label class="form-label">Start date (should be a Monday)</label>
+      <input type="date" name="start_date" class="form-control" required>
+    </div>
+    <div class="col-auto">
+      <label class="form-label">Number of weeks</label>
+      <input type="number" name="num_weeks" class="form-control" value="1" min="1" max="52" required>
+    </div>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Day</th>
+        <th>Type</th>
+        <th>Distance (km)</th>
+        <th>Duration (min)</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for day in days %}
+        <tr>
+          <td class="align-middle">{{ day }}</td>
+          <td>
+            <select name="type_{{ loop.index0 }}" class="form-select form-select-sm">
+              <option>None</option>
+              <option>Easy Run</option>
+              <option>Long Run</option>
+              <option>Tempo</option>
+              <option>Intervals</option>
+              <option>Rest</option>
+              <option>Race</option>
+            </select>
+          </td>
+          <td><input type="number" step="0.1" name="distance_{{ loop.index0 }}" class="form-control form-control-sm" style="width:100px"></td>
+          <td><input type="number" name="duration_{{ loop.index0 }}" class="form-control form-control-sm" style="width:100px"></td>
+          <td><input type="text" name="description_{{ loop.index0 }}" class="form-control form-control-sm"></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <button class="btn btn-primary">Generate workouts</button>
+  <a href="{{ url_for('plan_detail', plan_id=plan.id) }}" class="btn btn-link">Cancel</a>
+</form>
+{% endblock %}

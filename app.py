@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 from flask import Flask, render_template, redirect, url_for, request, flash, abort
 from flask_login import (
@@ -15,7 +15,11 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///coach.db")
+db_url = os.environ.get("DATABASE_URL", "sqlite:///coach.db")
+if db_url.startswith("postgres://"):
+    # Some hosts (Render, Heroku) hand back the old-style scheme; SQLAlchemy needs the new one.
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 STRAVA_CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID")
@@ -109,6 +113,29 @@ def login():
         flash("Incorrect email or password.", "error")
 
     return render_template("login.html")
+
+
+@app.route("/account/password", methods=["GET", "POST"])
+@login_required
+def change_password():
+    if request.method == "POST":
+        current_password = request.form["current_password"]
+        new_password = request.form["new_password"]
+        confirm_password = request.form["confirm_password"]
+
+        if not check_password_hash(current_user.password_hash, current_password):
+            flash("Current password is incorrect.", "error")
+        elif len(new_password) < 6:
+            flash("New password must be at least 6 characters.", "error")
+        elif new_password != confirm_password:
+            flash("New password and confirmation don't match.", "error")
+        else:
+            current_user.password_hash = generate_password_hash(new_password)
+            db.session.commit()
+            flash("Password updated.", "success")
+            return redirect(url_for("index"))
+
+    return render_template("change_password.html")
 
 
 @app.route("/logout")
@@ -226,6 +253,45 @@ def new_workout(plan_id):
     return redirect(url_for("plan_detail", plan_id=plan.id))
 
 
+@app.route("/plan/<int:plan_id>/workouts/bulk", methods=["GET", "POST"])
+@login_required
+@coach_required
+def bulk_add_workouts(plan_id):
+    plan = db.session.get(TrainingPlan, plan_id)
+    if plan is None or plan.coach_id != current_user.id:
+        abort(404)
+
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+    if request.method == "POST":
+        start_date = datetime.strptime(request.form["start_date"], "%Y-%m-%d").date()
+        num_weeks = int(request.form["num_weeks"])
+        created = 0
+
+        for week in range(num_weeks):
+            for i in range(7):
+                workout_type = request.form.get(f"type_{i}")
+                if not workout_type or workout_type == "None":
+                    continue
+
+                w = Workout(
+                    plan_id=plan.id,
+                    date=start_date + timedelta(days=week * 7 + i),
+                    workout_type=workout_type,
+                    target_distance_km=request.form.get(f"distance_{i}") or None,
+                    target_duration_min=request.form.get(f"duration_{i}") or None,
+                    description=request.form.get(f"description_{i}", "").strip(),
+                )
+                db.session.add(w)
+                created += 1
+
+        db.session.commit()
+        flash(f"Added {created} workouts across {num_weeks} week(s).", "success")
+        return redirect(url_for("plan_detail", plan_id=plan.id))
+
+    return render_template("bulk_add.html", plan=plan, days=days)
+
+
 @app.route("/workout/<int:workout_id>/complete", methods=["POST"])
 @login_required
 @client_required
@@ -328,7 +394,10 @@ def not_found(e):
     return render_template("error.html", code=404, message="Not found."), 404
 
 
+with app.app_context():
+    db.create_all()
+
+
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True, port=5000)
+    debug_mode = os.environ.get("FLASK_DEBUG", "true").lower() == "true"
+    app.run(debug=debug_mode, port=int(os.environ.get("PORT", 5000)), host="0.0.0.0")
