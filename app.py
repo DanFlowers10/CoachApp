@@ -240,6 +240,73 @@ def _plan_weeks(workouts):
     return weeks
 
 
+def _plan_months(workouts, date_to_week):
+    """One Mon-Sun grid per calendar month the plan spans, using stdlib calendar for correct padding."""
+    months = []
+    if not workouts:
+        return months
+    workouts_by_date = {w.date: w for w in workouts}
+    y, m = workouts[0].date.year, workouts[0].date.month
+    end_y, end_m = workouts[-1].date.year, workouts[-1].date.month
+    grid = cal_module.Calendar(firstweekday=0)
+    while (y, m) <= (end_y, end_m):
+        month_weeks = []
+        for wk_dates in grid.monthdatescalendar(y, m):
+            month_weeks.append([
+                {
+                    "date": d,
+                    "in_month": d.month == m,
+                    "workout": workouts_by_date.get(d),
+                    "week_index": date_to_week.get(d),
+                }
+                for d in wk_dates
+            ])
+        months.append({"label": date(y, m, 1).strftime("%B %Y"), "weeks": month_weeks})
+        m += 1
+        if m > 12:
+            m = 1
+            y += 1
+    return months
+
+
+def _sync_strava_completions(workouts, strava_token):
+    """Match same-day Strava runs to not-yet-done workouts and auto-complete them with the
+    real distance/time. Returns an error string, if any."""
+    if not workouts:
+        return None
+    try:
+        access_token = strava.get_valid_access_token(
+            strava_token, STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, db
+        )
+        plan_start_epoch = int(datetime.combine(workouts[0].date, datetime.min.time()).timestamp())
+        activities = strava.fetch_activities_since(access_token, plan_start_epoch)
+
+        runs_by_date = {}
+        for a in activities:
+            if a.get("type") not in ("Run", "TrailRun"):
+                continue
+            d = date.fromisoformat(a["start_date_local"][:10])
+            if d not in runs_by_date or a["distance"] > runs_by_date[d]["distance"]:
+                runs_by_date[d] = a
+
+        changed = False
+        for w in workouts:
+            if w.completed or w.workout_type == "Rest":
+                continue
+            activity = runs_by_date.get(w.date)
+            if activity:
+                w.completed = True
+                w.actual_distance_km = round(activity["distance"] / 1609.34, 1)
+                w.actual_duration_min = round(activity["moving_time"] / 60)
+                w.strava_activity_id = str(activity["id"])
+                changed = True
+        if changed:
+            db.session.commit()
+        return None
+    except Exception:
+        return "Couldn't sync Strava activities right now."
+
+
 @app.route("/plan/<int:plan_id>")
 @login_required
 def plan_detail(plan_id):
@@ -257,13 +324,19 @@ def plan_detail(plan_id):
 
     today = date.today()
     workouts = plan.workouts  # ordered by date
+
+    strava_error = None
+    if not current_user.is_coach() and current_user.strava_token:
+        strava_error = _sync_strava_completions(workouts, current_user.strava_token)
+
     weeks = _plan_weeks(workouts)
+    date_to_week = {w.date: wk["index"] for wk in weeks for w in wk["workouts"]}
+    months = _plan_months(workouts, date_to_week)
 
     total_workouts = len(workouts)
     done_workouts = sum(1 for w in workouts if w.completed)
     percent_complete = round(done_workouts / total_workouts * 100) if total_workouts else 0
     total_km = sum(w.target_distance_km for w in workouts if w.target_distance_km)
-    max_weekly_mi = max((wk["planned_mi"] for wk in weeks), default=0)
 
     current_week_index = weeks[-1]["index"] if weeks else None
     for wk in weeks:
@@ -271,85 +344,19 @@ def plan_detail(plan_id):
             current_week_index = wk["index"]
             break
 
-    # Strava weekly comparison: only for the client's own login, if they've connected Strava.
-    strava_error = None
-    if not current_user.is_coach() and current_user.strava_token and weeks:
-        try:
-            access_token = strava.get_valid_access_token(
-                current_user.strava_token, STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, db
-            )
-            plan_start_epoch = int(datetime.combine(weeks[0]["start"], datetime.min.time()).timestamp())
-            activities = strava.fetch_activities_since(access_token, plan_start_epoch)
-            runs = [a for a in activities if a.get("type") in ("Run", "TrailRun")]
-            for wk in weeks:
-                wk_meters = sum(
-                    a["distance"] for a in runs
-                    if wk["start"] <= date.fromisoformat(a["start_date_local"][:10]) <= wk["end"]
-                )
-                wk["actual_mi"] = round(wk_meters / 1609.34, 1)
-            max_weekly_mi = max(max_weekly_mi, max((wk["actual_mi"] for wk in weeks), default=0))
-        except Exception:
-            strava_error = "Couldn't load Strava activities right now."
-
     return render_template(
         "plan_detail.html",
         plan=plan,
         today=today,
         weeks=weeks,
+        months=months,
         total_workouts=total_workouts,
         done_workouts=done_workouts,
         percent_complete=percent_complete,
         total_km=total_km,
         current_week_index=current_week_index,
-        max_weekly_mi=max_weekly_mi,
         strava_error=strava_error,
     )
-
-
-@app.route("/plan/<int:plan_id>/calendar")
-@login_required
-def plan_calendar(plan_id):
-    plan = db.session.get(TrainingPlan, plan_id)
-    if plan is None:
-        abort(404)
-
-    if current_user.is_coach():
-        if plan.coach_id != current_user.id:
-            abort(403)
-    else:
-        if plan.client_id != current_user.id:
-            abort(403)
-
-    today = date.today()
-    workouts = plan.workouts
-    weeks = _plan_weeks(workouts)
-    date_to_week = {w.date: wk["index"] for wk in weeks for w in wk["workouts"]}
-    workouts_by_date = {w.date: w for w in workouts}
-
-    months = []
-    if workouts:
-        y, m = workouts[0].date.year, workouts[0].date.month
-        end_y, end_m = workouts[-1].date.year, workouts[-1].date.month
-        grid = cal_module.Calendar(firstweekday=0)
-        while (y, m) <= (end_y, end_m):
-            month_weeks = []
-            for wk_dates in grid.monthdatescalendar(y, m):
-                month_weeks.append([
-                    {
-                        "date": d,
-                        "in_month": d.month == m,
-                        "workout": workouts_by_date.get(d),
-                        "week_index": date_to_week.get(d),
-                    }
-                    for d in wk_dates
-                ])
-            months.append({"label": date(y, m, 1).strftime("%B %Y"), "weeks": month_weeks})
-            m += 1
-            if m > 12:
-                m = 1
-                y += 1
-
-    return render_template("plan_calendar.html", plan=plan, months=months, today=today)
 
 
 @app.route("/plan/<int:plan_id>/workouts/new", methods=["POST"])

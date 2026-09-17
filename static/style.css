@@ -228,28 +228,9 @@ p, .text-muted, .small.text-muted { color: var(--text-dim) !important; }
 
 hr { border-color: var(--border); opacity: 1; }
 
-/* ---------- plan overview chart ---------- */
-.overview-card { border-radius: var(--radius); padding: 1.25rem 1.25rem 1rem; margin-bottom: 1.5rem; }
-.overview-legend { display: flex; gap: 1.25rem; font-size: .75rem; color: var(--text-dim); margin-bottom: .75rem; }
-.overview-legend .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: .4rem; vertical-align: middle; }
-.overview-legend .swatch.planned { background: var(--accent-grad); }
-.overview-legend .swatch.actual { background: var(--accent-2); }
+.connect-prompt { font-size: .8rem; color: var(--text-faint); }
 
-.overview-bars { display: flex; align-items: flex-end; gap: 6px; height: 150px; overflow-x: auto; padding-bottom: 2px; }
-.overview-bar-group {
-  flex: 1 0 auto; min-width: 34px; display: flex; flex-direction: column; align-items: center;
-  justify-content: flex-end; height: 100%; cursor: pointer; border-radius: 8px; padding-top: 4px;
-  transition: background .12s ease;
-}
-.overview-bar-group:hover { background: var(--surface-hover); }
-.overview-bar-group.is-current .overview-bar-label { color: var(--accent); }
-.overview-bar-stack { display: flex; align-items: flex-end; gap: 3px; height: 100%; }
-.overview-bar { width: 10px; border-radius: 4px 4px 0 0; background: var(--accent-grad); min-height: 3px; }
-.overview-bar.actual { background: var(--accent-2); }
-.overview-bar-label { font-size: .68rem; color: var(--text-faint); font-weight: 700; margin-top: .4rem; }
-.overview-connect-prompt { font-size: .8rem; color: var(--text-faint); margin-top: .5rem; }
-
-/* ---------- calendar view ---------- */
+/* ---------- calendar view (the plan overview) ---------- */
 .cal-legend { display: flex; gap: 1rem; font-size: .75rem; color: var(--text-dim); flex-wrap: wrap; }
 .cal-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: .35rem; vertical-align: middle; }
 .cal-dot.done { background: var(--success); }
@@ -257,28 +238,37 @@ hr { border-color: var(--border); opacity: 1; }
 .cal-dot.missed { background: var(--danger); }
 .cal-dot.upcoming { background: var(--text-faint); }
 .cal-dot.race { background: var(--accent-grad); }
+.cal-dot.strava { background: #fc4c02; }
 
 .cal-month { border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1.5rem; }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 .cal-dow { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); font-weight: 700; text-align: center; padding-bottom: .3rem; }
 .cal-cell {
+  position: relative;
   min-height: 72px; border-radius: 10px; border: 1px solid var(--border);
   background: var(--bg-elevated); padding: .35rem; display: flex; flex-direction: column;
   color: var(--text); text-decoration: none; overflow: hidden;
   transition: border-color .12s ease, transform .12s ease;
 }
-a.cal-cell:hover { border-color: var(--accent); color: var(--text); transform: translateY(-1px); }
+.cal-cell[data-jump-to-week] { cursor: pointer; }
+.cal-cell[data-jump-to-week]:hover { border-color: var(--accent); transform: translateY(-1px); }
 .cal-empty { background: transparent; border-color: transparent; }
 .cal-daynum { font-size: .7rem; font-weight: 700; color: var(--text-faint); }
 .cal-icon { font-size: 1rem; line-height: 1; margin-top: .15rem; }
 .cal-type { font-size: .62rem; font-weight: 700; margin-top: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cal-dist { font-size: .6rem; color: var(--text-faint); }
+.cal-strava-badge { position: absolute; top: 4px; right: 5px; font-size: .6rem; line-height: 1; }
 
 .cal-status-done { border-color: var(--success); background: var(--success-bg); }
 .cal-status-today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .cal-status-missed { border-color: var(--danger); background: var(--danger-bg); }
 .cal-race { background: var(--accent-grad) !important; border-color: transparent !important; }
 .cal-race .cal-daynum, .cal-race .cal-type, .cal-race .cal-dist { color: #fff; }
+
+.strava-tag {
+  display: inline-block; font-size: .65rem; font-weight: 700; color: #fc4c02;
+  background: rgba(252, 76, 2, .14); border-radius: 999px; padding: .1rem .5rem; margin-left: .4rem;
+}
 
 @media (max-width: 576px) {
   .app-nav .container { flex-wrap: nowrap; }
