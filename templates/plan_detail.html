@@ -63,7 +63,12 @@
 
 {% if current_user.is_coach() %}
 <hr>
-<h5>Add a workout</h5>
+<div class="d-flex justify-content-between align-items-center">
+  <h5>Add a workout</h5>
+  <a href="{{ url_for('bulk_add_workouts', plan_id=plan.id) }}" class="btn btn-sm btn-outline-primary">
+    Bulk add a weekly pattern &rarr;
+  </a>
+</div>
 <form method="post" action="{{ url_for('new_workout', plan_id=plan.id) }}" class="row g-2 align-items-end">
   <div class="col-auto">
     <label class="form-label small">Date</label>
