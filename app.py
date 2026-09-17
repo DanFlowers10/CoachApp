@@ -1,4 +1,5 @@
 import os
+import calendar as cal_module
 from datetime import datetime, date, timedelta
 
 from flask import Flask, render_template, redirect, url_for, request, flash, abort
@@ -214,6 +215,31 @@ def new_plan(client_id):
     return render_template("new_plan.html", client=client)
 
 
+def _plan_weeks(workouts):
+    """Group workouts (already ordered by date) into Mon-Sun buckets relative to the plan's first workout."""
+    weeks = []
+    if not workouts:
+        return weeks
+    start = workouts[0].date
+    buckets = {}
+    for w in workouts:
+        idx = (w.date - start).days // 7
+        buckets.setdefault(idx, []).append(w)
+    for idx in range(max(buckets.keys()) + 1):
+        wk_workouts = buckets.get(idx, [])
+        weeks.append({
+            "index": idx + 1,
+            "workouts": wk_workouts,
+            "start": start + timedelta(days=idx * 7),
+            "end": start + timedelta(days=idx * 7 + 6),
+            "done": sum(1 for w in wk_workouts if w.completed),
+            "total": len(wk_workouts),
+            "planned_mi": sum(w.target_distance_km for w in wk_workouts if w.target_distance_km),
+            "actual_mi": None,
+        })
+    return weeks
+
+
 @app.route("/plan/<int:plan_id>")
 @login_required
 def plan_detail(plan_id):
@@ -231,26 +257,7 @@ def plan_detail(plan_id):
 
     today = date.today()
     workouts = plan.workouts  # ordered by date
-
-    weeks = []
-    if workouts:
-        start = workouts[0].date
-        buckets = {}
-        for w in workouts:
-            idx = (w.date - start).days // 7
-            buckets.setdefault(idx, []).append(w)
-        for idx in range(max(buckets.keys()) + 1):
-            wk_workouts = buckets.get(idx, [])
-            weeks.append({
-                "index": idx + 1,
-                "workouts": wk_workouts,
-                "start": start + timedelta(days=idx * 7),
-                "end": start + timedelta(days=idx * 7 + 6),
-                "done": sum(1 for w in wk_workouts if w.completed),
-                "total": len(wk_workouts),
-                "planned_mi": sum(w.target_distance_km for w in wk_workouts if w.target_distance_km),
-                "actual_mi": None,
-            })
+    weeks = _plan_weeks(workouts)
 
     total_workouts = len(workouts)
     done_workouts = sum(1 for w in workouts if w.completed)
@@ -297,6 +304,52 @@ def plan_detail(plan_id):
         max_weekly_mi=max_weekly_mi,
         strava_error=strava_error,
     )
+
+
+@app.route("/plan/<int:plan_id>/calendar")
+@login_required
+def plan_calendar(plan_id):
+    plan = db.session.get(TrainingPlan, plan_id)
+    if plan is None:
+        abort(404)
+
+    if current_user.is_coach():
+        if plan.coach_id != current_user.id:
+            abort(403)
+    else:
+        if plan.client_id != current_user.id:
+            abort(403)
+
+    today = date.today()
+    workouts = plan.workouts
+    weeks = _plan_weeks(workouts)
+    date_to_week = {w.date: wk["index"] for wk in weeks for w in wk["workouts"]}
+    workouts_by_date = {w.date: w for w in workouts}
+
+    months = []
+    if workouts:
+        y, m = workouts[0].date.year, workouts[0].date.month
+        end_y, end_m = workouts[-1].date.year, workouts[-1].date.month
+        grid = cal_module.Calendar(firstweekday=0)
+        while (y, m) <= (end_y, end_m):
+            month_weeks = []
+            for wk_dates in grid.monthdatescalendar(y, m):
+                month_weeks.append([
+                    {
+                        "date": d,
+                        "in_month": d.month == m,
+                        "workout": workouts_by_date.get(d),
+                        "week_index": date_to_week.get(d),
+                    }
+                    for d in wk_dates
+                ])
+            months.append({"label": date(y, m, 1).strftime("%B %Y"), "weeks": month_weeks})
+            m += 1
+            if m > 12:
+                m = 1
+                y += 1
+
+    return render_template("plan_calendar.html", plan=plan, months=months, today=today)
 
 
 @app.route("/plan/<int:plan_id>/workouts/new", methods=["POST"])

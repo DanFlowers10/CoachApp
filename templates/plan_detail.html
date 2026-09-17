@@ -10,12 +10,15 @@
 
 <div class="d-flex justify-content-between align-items-start mt-2 mb-1">
   <h2 class="mb-0">{{ plan.title }}</h2>
-  {% if current_user.is_coach() %}
-    <form method="post" action="{{ url_for('delete_plan', plan_id=plan.id) }}"
-          onsubmit="return confirm('Delete &quot;{{ plan.title }}&quot;? This removes all its workouts too.');">
-      <button type="submit" class="btn btn-sm btn-outline-danger">Delete plan</button>
-    </form>
-  {% endif %}
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('plan_calendar', plan_id=plan.id) }}" class="btn btn-sm btn-outline-primary">📅 Calendar view</a>
+    {% if current_user.is_coach() %}
+      <form method="post" action="{{ url_for('delete_plan', plan_id=plan.id) }}"
+            onsubmit="return confirm('Delete &quot;{{ plan.title }}&quot;? This removes all its workouts too.');">
+        <button type="submit" class="btn btn-sm btn-outline-danger">Delete plan</button>
+      </form>
+    {% endif %}
+  </div>
 </div>
 {% if plan.goal_race %}<p class="text-muted mb-3">Goal: {{ plan.goal_race }}</p>{% endif %}
 {% if plan.notes %}<p class="mb-3">{{ plan.notes }}</p>{% endif %}
@@ -210,6 +213,15 @@ document.querySelectorAll('[data-jump-to-week]').forEach(function (bar) {
     card.scrollIntoView({behavior: 'smooth', block: 'start'});
   });
 });
+
+// Coming from the calendar view (a #week-N link): expand that week and scroll to it.
+if (location.hash.startsWith('#week-')) {
+  var target = document.querySelector(location.hash);
+  if (target) {
+    target.classList.remove('collapsed');
+    target.scrollIntoView({block: 'start'});
+  }
+}
 </script>
 
 {% endblock %}

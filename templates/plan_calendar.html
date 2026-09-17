@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ plan.title }} — Calendar{% endblock %}
+{% block content %}
+<a href="{{ url_for('plan_detail', plan_id=plan.id) }}" class="small">&larr; Back to {{ plan.title }}</a>
+<h2 class="mt-2 mb-3">{{ plan.title }} &mdash; Calendar</h2>
+
+<div class="cal-legend mb-4">
+  <span><span class="cal-dot done"></span>Done</span>
+  <span><span class="cal-dot today"></span>Today</span>
+  <span><span class="cal-dot missed"></span>Missed</span>
+  <span><span class="cal-dot upcoming"></span>Upcoming</span>
+  <span><span class="cal-dot race"></span>Race day</span>
+</div>
+
+{% if not months %}
+  <p class="text-muted">No workouts added yet.</p>
+{% endif %}
+
+{% for month in months %}
+<div class="cal-month card-surface">
+  <h5 class="mb-3">{{ month.label }}</h5>
+  <div class="cal-grid">
+    <div class="cal-dow">Mon</div>
+    <div class="cal-dow">Tue</div>
+    <div class="cal-dow">Wed</div>
+    <div class="cal-dow">Thu</div>
+    <div class="cal-dow">Fri</div>
+    <div class="cal-dow">Sat</div>
+    <div class="cal-dow">Sun</div>
+    {% for wk in month.weeks %}
+      {% for cell in wk %}
+        {% if not cell.in_month %}
+          <div class="cal-cell cal-empty"></div>
+        {% elif cell.workout %}
+          {% set w = cell.workout %}
+          {% set is_long = w.workout_type == 'Long Run' %}
+          {% set is_tempo = w.workout_type in ['Tempo', 'Intervals'] %}
+          {% set is_race = w.workout_type == 'Race' %}
+          {% set is_rest = w.workout_type == 'Rest' %}
+          {% set icon = '🏁' if is_race else ('🏔️' if is_long else ('⚡' if is_tempo else ('😴' if is_rest else '🏃'))) %}
+          {% set status = 'done' if w.completed else ('today' if w.date == today else ('missed' if w.date < today else 'upcoming')) %}
+          <a class="cal-cell cal-status-{{ status }} {{ 'cal-race' if is_race else '' }}"
+             href="{{ url_for('plan_detail', plan_id=plan.id) }}#week-{{ cell.week_index }}"
+             title="{{ w.workout_type }}{% if w.target_distance_km %} - {{ w.target_distance_km }}mi{% endif %}{% if w.description %} - {{ w.description }}{% endif %}">
+            <div class="cal-daynum">{{ cell.date.day }}</div>
+            <div class="cal-icon">{{ icon }}</div>
+            <div class="cal-type">{{ w.workout_type }}</div>
+            {% if w.target_distance_km %}<div class="cal-dist">{{ w.target_distance_km }}mi</div>{% endif %}
+          </a>
+        {% else %}
+          <div class="cal-cell">
+            <div class="cal-daynum">{{ cell.date.day }}</div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+{% endblock %}
