@@ -109,6 +109,9 @@
 {% if current_user.strava_token %}
   <p class="small text-muted">Strava connected.</p>
   <a href="{{ url_for('strava_activities') }}" class="btn btn-outline-success btn-sm">View recent Strava activities</a>
+  <form method="post" action="{{ url_for('strava_disconnect') }}" class="d-inline" onsubmit="return confirm('Disconnect Strava?');">
+    <button type="submit" class="btn btn-outline-danger btn-sm">Disconnect Strava</button>
+  </form>
 {% else %}
   <a href="{{ url_for('strava_connect') }}" class="btn btn-outline-success btn-sm">Connect Strava</a>
 {% endif %}

@@ -369,6 +369,17 @@ def strava_callback():
     return redirect(url_for("index"))
 
 
+@app.route("/strava/disconnect", methods=["POST"])
+@login_required
+def strava_disconnect():
+    token_row = current_user.strava_token
+    if token_row is not None:
+        db.session.delete(token_row)
+        db.session.commit()
+        flash("Strava disconnected.", "success")
+    return redirect(request.referrer or url_for("index"))
+
+
 @app.route("/strava/activities")
 @login_required
 def strava_activities():

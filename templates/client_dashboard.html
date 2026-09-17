@@ -5,6 +5,9 @@
   <h2>My training plans</h2>
   {% if current_user.strava_token %}
     <a href="{{ url_for('strava_activities') }}" class="btn btn-outline-success btn-sm">My Strava activities</a>
+    <form method="post" action="{{ url_for('strava_disconnect') }}" class="d-inline" onsubmit="return confirm('Disconnect Strava?');">
+      <button type="submit" class="btn btn-outline-danger btn-sm">Disconnect</button>
+    </form>
   {% else %}
     <a href="{{ url_for('strava_connect') }}" class="btn btn-outline-success btn-sm">Connect Strava</a>
   {% endif %}
