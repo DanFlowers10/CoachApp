@@ -362,6 +362,20 @@ def delete_workout(workout_id):
     return redirect(url_for("plan_detail", plan_id=plan_id))
 
 
+@app.route("/plan/<int:plan_id>/delete", methods=["POST"])
+@login_required
+@coach_required
+def delete_plan(plan_id):
+    plan = db.session.get(TrainingPlan, plan_id)
+    if plan is None or plan.coach_id != current_user.id:
+        abort(404)
+    client_id = plan.client_id
+    db.session.delete(plan)
+    db.session.commit()
+    flash(f'Deleted "{plan.title}".', "success")
+    return redirect(url_for("client_detail", client_id=client_id))
+
+
 # ----------------------------------------------------------- client views --
 
 @app.route("/client")

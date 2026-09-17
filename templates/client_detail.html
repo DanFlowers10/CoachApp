@@ -13,13 +13,19 @@
 {% else %}
   <div class="list-group">
     {% for p in plans %}
-      <a href="{{ url_for('plan_detail', plan_id=p.id) }}" class="list-group-item list-group-item-action">
-        <div class="d-flex justify-content-between">
-          <strong>{{ p.title }}</strong>
-          <span class="small text-muted">{{ p.created_at.strftime('%d %b %Y') }}</span>
-        </div>
-        {% if p.goal_race %}<div class="small text-muted">Goal: {{ p.goal_race }}</div>{% endif %}
-      </a>
+      <div class="list-group-item d-flex justify-content-between align-items-center gap-3">
+        <a href="{{ url_for('plan_detail', plan_id=p.id) }}" class="flex-grow-1 text-decoration-none">
+          <div class="d-flex justify-content-between">
+            <strong>{{ p.title }}</strong>
+            <span class="small text-muted">{{ p.created_at.strftime('%d %b %Y') }}</span>
+          </div>
+          {% if p.goal_race %}<div class="small text-muted">Goal: {{ p.goal_race }}</div>{% endif %}
+        </a>
+        <form method="post" action="{{ url_for('delete_plan', plan_id=p.id) }}"
+              onsubmit="return confirm('Delete &quot;{{ p.title }}&quot;? This removes all its workouts too.');">
+          <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+        </form>
+      </div>
     {% endfor %}
   </div>
 {% endif %}
