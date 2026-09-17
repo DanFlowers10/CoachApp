@@ -248,18 +248,41 @@ def plan_detail(plan_id):
                 "end": start + timedelta(days=idx * 7 + 6),
                 "done": sum(1 for w in wk_workouts if w.completed),
                 "total": len(wk_workouts),
+                "planned_mi": sum(w.target_distance_km for w in wk_workouts if w.target_distance_km),
+                "actual_mi": None,
             })
 
     total_workouts = len(workouts)
     done_workouts = sum(1 for w in workouts if w.completed)
     percent_complete = round(done_workouts / total_workouts * 100) if total_workouts else 0
     total_km = sum(w.target_distance_km for w in workouts if w.target_distance_km)
+    max_weekly_mi = max((wk["planned_mi"] for wk in weeks), default=0)
 
     current_week_index = weeks[-1]["index"] if weeks else None
     for wk in weeks:
         if wk["end"] >= today and wk["done"] < wk["total"]:
             current_week_index = wk["index"]
             break
+
+    # Strava weekly comparison: only for the client's own login, if they've connected Strava.
+    strava_error = None
+    if not current_user.is_coach() and current_user.strava_token and weeks:
+        try:
+            access_token = strava.get_valid_access_token(
+                current_user.strava_token, STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, db
+            )
+            plan_start_epoch = int(datetime.combine(weeks[0]["start"], datetime.min.time()).timestamp())
+            activities = strava.fetch_activities_since(access_token, plan_start_epoch)
+            runs = [a for a in activities if a.get("type") in ("Run", "TrailRun")]
+            for wk in weeks:
+                wk_meters = sum(
+                    a["distance"] for a in runs
+                    if wk["start"] <= date.fromisoformat(a["start_date_local"][:10]) <= wk["end"]
+                )
+                wk["actual_mi"] = round(wk_meters / 1609.34, 1)
+            max_weekly_mi = max(max_weekly_mi, max((wk["actual_mi"] for wk in weeks), default=0))
+        except Exception:
+            strava_error = "Couldn't load Strava activities right now."
 
     return render_template(
         "plan_detail.html",
@@ -271,6 +294,8 @@ def plan_detail(plan_id):
         percent_complete=percent_complete,
         total_km=total_km,
         current_week_index=current_week_index,
+        max_weekly_mi=max_weekly_mi,
+        strava_error=strava_error,
     )
 
 

@@ -76,3 +76,15 @@ def fetch_recent_activities(access_token, per_page=15):
     )
     resp.raise_for_status()
     return resp.json()
+
+
+def fetch_activities_since(access_token, after_epoch, per_page=200):
+    """All activities after a given unix timestamp (used to cover a whole training block)."""
+    resp = requests.get(
+        ACTIVITIES_URL,
+        headers={"Authorization": f"Bearer {access_token}"},
+        params={"after": after_epoch, "per_page": per_page},
+        timeout=10,
+    )
+    resp.raise_for_status()
+    return resp.json()

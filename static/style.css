@@ -228,6 +228,27 @@ p, .text-muted, .small.text-muted { color: var(--text-dim) !important; }
 
 hr { border-color: var(--border); opacity: 1; }
 
+/* ---------- plan overview chart ---------- */
+.overview-card { border-radius: var(--radius); padding: 1.25rem 1.25rem 1rem; margin-bottom: 1.5rem; }
+.overview-legend { display: flex; gap: 1.25rem; font-size: .75rem; color: var(--text-dim); margin-bottom: .75rem; }
+.overview-legend .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: .4rem; vertical-align: middle; }
+.overview-legend .swatch.planned { background: var(--accent-grad); }
+.overview-legend .swatch.actual { background: var(--accent-2); }
+
+.overview-bars { display: flex; align-items: flex-end; gap: 6px; height: 150px; overflow-x: auto; padding-bottom: 2px; }
+.overview-bar-group {
+  flex: 1 0 auto; min-width: 34px; display: flex; flex-direction: column; align-items: center;
+  justify-content: flex-end; height: 100%; cursor: pointer; border-radius: 8px; padding-top: 4px;
+  transition: background .12s ease;
+}
+.overview-bar-group:hover { background: var(--surface-hover); }
+.overview-bar-group.is-current .overview-bar-label { color: var(--accent); }
+.overview-bar-stack { display: flex; align-items: flex-end; gap: 3px; height: 100%; }
+.overview-bar { width: 10px; border-radius: 4px 4px 0 0; background: var(--accent-grad); min-height: 3px; }
+.overview-bar.actual { background: var(--accent-2); }
+.overview-bar-label { font-size: .68rem; color: var(--text-faint); font-weight: 700; margin-top: .4rem; }
+.overview-connect-prompt { font-size: .8rem; color: var(--text-faint); margin-top: .5rem; }
+
 @media (max-width: 576px) {
   .app-nav .container { flex-wrap: nowrap; }
   .app-nav .brand { font-size: .95rem; white-space: nowrap; }

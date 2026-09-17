@@ -43,12 +43,47 @@
   <div class="progress-fill" style="width: {{ percent_complete }}%;"></div>
 </div>
 
-{% if not weeks %}
+{% if weeks %}
+<div class="overview-card card-surface">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h5 class="mb-0">11-week overview</h5>
+    {% if not current_user.is_coach() and current_user.strava_token %}
+      <div class="overview-legend mb-0">
+        <span><span class="swatch planned"></span>Planned</span>
+        <span><span class="swatch actual"></span>Actual (Strava)</span>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if not current_user.is_coach() and not current_user.strava_token %}
+    <div class="overview-connect-prompt">
+      <a href="{{ url_for('strava_connect') }}">Connect Strava</a> to see actual mileage compared against the plan.
+    </div>
+  {% elif strava_error %}
+    <div class="overview-connect-prompt">{{ strava_error }}</div>
+  {% endif %}
+
+  <div class="overview-bars mt-3">
+    {% for wk in weeks %}
+      <div class="overview-bar-group {{ 'is-current' if wk.index == current_week_index else '' }}"
+           data-jump-to-week="{{ wk.index }}" title="Week {{ wk.index }}: {{ wk.planned_mi|round(1) }} mi planned{% if wk.actual_mi is not none %}, {{ wk.actual_mi }} mi actual{% endif %}">
+        <div class="overview-bar-stack">
+          <div class="overview-bar" style="height: {{ ((wk.planned_mi / max_weekly_mi * 100) if max_weekly_mi else 0)|round(0) }}%;"></div>
+          {% if wk.actual_mi is not none %}
+            <div class="overview-bar actual" style="height: {{ ((wk.actual_mi / max_weekly_mi * 100) if max_weekly_mi else 0)|round(0) }}%;"></div>
+          {% endif %}
+        </div>
+        <div class="overview-bar-label">{{ wk.index }}</div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% else %}
   <p class="text-muted">No workouts added yet.</p>
 {% endif %}
 
 {% for wk in weeks %}
-  <div class="week-card card-surface {{ '' if wk.index == current_week_index else 'collapsed' }}" data-week>
+  <div class="week-card card-surface {{ '' if wk.index == current_week_index else 'collapsed' }}" data-week id="week-{{ wk.index }}">
     <div class="week-header" data-week-toggle>
       <div>
         <div class="week-title">Week {{ wk.index }}</div>
@@ -164,6 +199,15 @@
 document.querySelectorAll('[data-week-toggle]').forEach(function (header) {
   header.addEventListener('click', function () {
     header.closest('[data-week]').classList.toggle('collapsed');
+  });
+});
+
+document.querySelectorAll('[data-jump-to-week]').forEach(function (bar) {
+  bar.addEventListener('click', function () {
+    var card = document.getElementById('week-' + bar.dataset.jumpToWeek);
+    if (!card) return;
+    card.classList.remove('collapsed');
+    card.scrollIntoView({behavior: 'smooth', block: 'start'});
   });
 });
 </script>
