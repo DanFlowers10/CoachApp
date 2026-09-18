@@ -18,7 +18,7 @@
       </a>
       {% if current_user.is_authenticated %}
         <div class="d-flex align-items-center gap-2">
-          <span class="user-chip d-none d-sm-inline">{{ current_user.name }} &middot; {{ current_user.role }}</span>
+          <span class="user-chip d-none d-sm-inline">{{ current_user.name }} &middot; {{ 'athlete' if current_user.role == 'client' else current_user.role }}</span>
           <a class="btn btn-outline-light btn-sm" href="{{ url_for('change_password') }}">Change password</a>
           <a class="btn btn-outline-light btn-sm" href="{{ url_for('logout') }}">Log out</a>
         </div>

@@ -94,7 +94,7 @@ def register():
         db.session.add(user)
         db.session.commit()
         login_user(user)
-        flash("Welcome! Start by adding your first client.", "success")
+        flash("Welcome! Start by adding your first athlete.", "success")
         return redirect(url_for("coach_dashboard"))
 
     return render_template("register.html")
@@ -178,7 +178,7 @@ def new_client():
         )
         db.session.add(client)
         db.session.commit()
-        flash(f"Client account created. Give {email} their temporary password to log in.", "success")
+        flash(f"Athlete account created. Give {email} their temporary password to log in.", "success")
         return redirect(url_for("coach_dashboard"))
 
     return render_template("new_client.html")
@@ -511,7 +511,7 @@ def delete_plan(plan_id):
 
 # ----------------------------------------------------------- client views --
 
-@app.route("/client")
+@app.route("/athlete")
 @login_required
 @client_required
 def client_dashboard():

@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Your clients{% endblock %}
+{% block title %}Your athletes{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h2>Your clients</h2>
-  <a href="{{ url_for('new_client') }}" class="btn btn-accent">+ Add client</a>
+  <h2>Your athletes</h2>
+  <a href="{{ url_for('new_client') }}" class="btn btn-accent">+ Add athlete</a>
 </div>
 
 {% if not clients %}
-  <p class="text-muted">No clients yet. Add your first one to get started.</p>
+  <p class="text-muted">No athletes yet. Add your first one to get started.</p>
 {% else %}
   <div class="list-group">
     {% for c in clients %}
