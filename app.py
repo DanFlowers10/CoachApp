@@ -582,6 +582,93 @@ def strava_activities():
     return render_template("strava_activities.html", activities=activities)
 
 
+def _build_strava_stats(runs):
+    """Fun/motivational rollup of a client's recent runs - streaks, weekly trend, personal bests."""
+    if not runs:
+        return None
+
+    total_mi = sum(r["distance"] for r in runs) / 1609.34
+    total_sec = sum(r["moving_time"] for r in runs)
+    avg_pace = (total_sec / 60) / total_mi if total_mi else None  # min per mile
+    longest_mi = max(r["distance"] for r in runs) / 1609.34
+
+    run_dates_set = {date.fromisoformat(r["start_date_local"][:10]) for r in runs}
+    run_dates = sorted(run_dates_set)
+
+    today = date.today()
+    this_monday = today - timedelta(days=today.weekday())
+    last_monday = this_monday - timedelta(days=7)
+
+    this_week_mi = sum(
+        r["distance"] for r in runs
+        if date.fromisoformat(r["start_date_local"][:10]) >= this_monday
+    ) / 1609.34
+    last_week_mi = sum(
+        r["distance"] for r in runs
+        if last_monday <= date.fromisoformat(r["start_date_local"][:10]) < this_monday
+    ) / 1609.34
+
+    streak_days = 0
+    if run_dates and (today - run_dates[-1]).days <= 1:
+        cursor = run_dates[-1]
+        while cursor in run_dates_set:
+            streak_days += 1
+            cursor -= timedelta(days=1)
+
+    weekly_bars = []
+    for i in range(7, -1, -1):
+        wk_start = this_monday - timedelta(days=7 * i)
+        wk_end = wk_start + timedelta(days=6)
+        mi = sum(
+            r["distance"] for r in runs
+            if wk_start <= date.fromisoformat(r["start_date_local"][:10]) <= wk_end
+        ) / 1609.34
+        weekly_bars.append({"label": wk_start.strftime("%d %b"), "mi": round(mi, 1)})
+    max_weekly_mi = max((b["mi"] for b in weekly_bars), default=0)
+
+    avg_pace_str = None
+    if avg_pace:
+        avg_pace_str = f"{int(avg_pace)}:{round((avg_pace % 1) * 60):02d}"
+
+    return {
+        "total_runs": len(runs),
+        "total_mi": round(total_mi, 1),
+        "total_hours": round(total_sec / 3600, 1),
+        "avg_pace_str": avg_pace_str,
+        "longest_mi": round(longest_mi, 1),
+        "this_week_mi": round(this_week_mi, 1),
+        "last_week_mi": round(last_week_mi, 1),
+        "week_trend_mi": round(this_week_mi - last_week_mi, 1),
+        "streak_days": streak_days,
+        "weekly_bars": weekly_bars,
+        "max_weekly_mi": max_weekly_mi,
+        "marathons_equivalent": round(total_mi / 26.2, 1),
+    }
+
+
+@app.route("/strava/overview")
+@login_required
+@client_required
+def strava_overview():
+    token_row = current_user.strava_token
+    if token_row is None:
+        flash("Connect Strava first.", "error")
+        return redirect(url_for("index"))
+
+    stats = None
+    error = None
+    try:
+        access_token = strava.get_valid_access_token(token_row, STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, db)
+        since_epoch = int(datetime.combine(date.today() - timedelta(days=90), datetime.min.time()).timestamp())
+        activities = strava.fetch_activities_since(access_token, since_epoch)
+        runs = [a for a in activities if a.get("type") in ("Run", "TrailRun")]
+        stats = _build_strava_stats(runs)
+    except Exception:
+        error = "Couldn't load your Strava stats right now."
+
+    return render_template("strava_overview.html", stats=stats, error=error)
+
+
 # ------------------------------------------------------------------- misc --
 
 @app.errorhandler(403)

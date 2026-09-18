@@ -241,6 +241,48 @@ hr { border-color: var(--border); opacity: 1; }
 
 .connect-prompt { font-size: .8rem; color: var(--text-faint); }
 
+/* ---------- Strava stats overview ---------- */
+.streak-banner {
+  display: flex; align-items: center; gap: 1rem; border-radius: var(--radius);
+  padding: 1.25rem 1.5rem; background: linear-gradient(120deg, rgba(255,106,85,.18), rgba(124,108,246,.12));
+  border: 1px solid var(--border);
+}
+.streak-flame { font-size: 2.5rem; line-height: 1; }
+.streak-days { font-size: 1.4rem; font-weight: 800; }
+.streak-sub { font-size: .85rem; color: var(--text-dim); }
+
+.week-trend { font-size: .8rem; font-weight: 700; color: var(--text-dim); }
+.week-trend.up { color: var(--success); }
+.week-trend.down { color: var(--text-faint); }
+
+.overview-bars { display: flex; align-items: flex-end; gap: 8px; height: 140px; overflow-x: auto; padding-bottom: 2px; }
+.overview-bar-group {
+  flex: 1 0 auto; min-width: 32px; display: flex; flex-direction: column; align-items: center;
+  justify-content: flex-end; height: 100%; border-radius: 8px; padding-top: 4px;
+}
+.overview-bar-stack { display: flex; align-items: flex-end; gap: 3px; height: 100%; width: 100%; justify-content: center; }
+.overview-bar { width: 14px; border-radius: 4px 4px 0 0; background: var(--accent-grad); min-height: 3px; }
+.overview-bar-label { font-size: .62rem; color: var(--text-faint); font-weight: 700; margin-top: .4rem; white-space: nowrap; }
+
+.fun-fact-card {
+  display: flex; align-items: center; gap: .9rem; border-radius: var(--radius);
+  padding: 1rem 1.25rem; background: var(--surface); border: 1px solid var(--border);
+  font-size: .9rem; color: var(--text-dim);
+}
+.fun-fact-card strong { color: var(--accent); }
+
+.strava-cta-card {
+  display: flex; align-items: center; gap: 1rem; border-radius: var(--radius);
+  padding: 1.1rem 1.4rem; text-decoration: none; color: var(--text);
+  background: linear-gradient(120deg, rgba(252,76,2,.16), rgba(255,106,85,.10));
+  border: 1px solid var(--border); transition: border-color .15s ease, transform .15s ease;
+}
+.strava-cta-card:hover { border-color: #fc4c02; color: var(--text); transform: translateY(-1px); }
+.strava-cta-emoji { font-size: 1.8rem; flex: none; }
+.strava-cta-title { font-weight: 800; font-size: 1rem; }
+.strava-cta-sub { font-size: .8rem; color: var(--text-dim); }
+.strava-cta-arrow { font-size: 1.3rem; color: #fc4c02; flex: none; }
+
 /* ---------- calendar view (the plan overview) ---------- */
 .cal-legend { display: flex; gap: 1rem; font-size: .75rem; color: var(--text-dim); flex-wrap: wrap; }
 .cal-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: .35rem; vertical-align: middle; }

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}My Strava Stats{% endblock %}
+{% block content %}
+<a href="{{ url_for('client_dashboard') }}" class="small">&larr; My plans</a>
+<h2 class="mt-2 mb-1">🔥 Your running, last 90 days</h2>
+<p class="text-muted mb-4">Pulled live from Strava every time you check.</p>
+
+{% if error %}
+  <div class="connect-prompt mb-3">{{ error }}</div>
+{% endif %}
+
+{% if not stats %}
+  <div class="auth-card text-center" style="max-width: 480px;">
+    <div style="font-size: 2.5rem;">👟</div>
+    <h5 class="mt-2">No runs in the last 90 days yet</h5>
+    <p class="text-muted mb-0">Get a run logged on Strava and this page comes alive.</p>
+  </div>
+{% else %}
+
+<div class="streak-banner mb-4">
+  <div class="streak-flame">{{ '🔥' if stats.streak_days >= 3 else '👟' }}</div>
+  <div>
+    <div class="streak-days">{{ stats.streak_days }}-day streak</div>
+    <div class="streak-sub">
+      {% if stats.streak_days == 0 %}Get out there today to start one!
+      {% elif stats.streak_days < 3 %}Keep it going!
+      {% elif stats.streak_days < 7 %}You're on fire!
+      {% else %}Unstoppable. Seriously impressive.{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="stat-row">
+  <div class="stat-tile card-surface">
+    <div class="stat-label">Total distance</div>
+    <div class="stat-value accent">{{ stats.total_mi }}<span class="text-muted" style="font-size:1rem;"> mi</span></div>
+  </div>
+  <div class="stat-tile card-surface">
+    <div class="stat-label">Runs logged</div>
+    <div class="stat-value">{{ stats.total_runs }}</div>
+  </div>
+  <div class="stat-tile card-surface">
+    <div class="stat-label">Longest run</div>
+    <div class="stat-value">{{ stats.longest_mi }}<span class="text-muted" style="font-size:1rem;"> mi</span></div>
+  </div>
+  <div class="stat-tile card-surface">
+    <div class="stat-label">Avg pace</div>
+    <div class="stat-value">{% if stats.avg_pace_str %}{{ stats.avg_pace_str }}<span class="text-muted" style="font-size:1rem;">/mi</span>{% else %}&mdash;{% endif %}</div>
+  </div>
+</div>
+
+<div class="card-surface mb-4" style="border-radius: var(--radius); padding: 1.25rem;">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <h5 class="mb-0">Last 8 weeks</h5>
+    <span class="week-trend {{ 'up' if stats.week_trend_mi >= 0 else 'down' }}">
+      {{ stats.this_week_mi }} mi this week
+      {% if stats.last_week_mi %}
+        ({{ '+' if stats.week_trend_mi >= 0 else '' }}{{ stats.week_trend_mi }} mi vs last week)
+      {% endif %}
+    </span>
+  </div>
+  <div class="overview-bars">
+    {% for bar in stats.weekly_bars %}
+      <div class="overview-bar-group" title="{{ bar.label }}: {{ bar.mi }} mi">
+        <div class="overview-bar-stack">
+          <div class="overview-bar" style="height: {{ ((bar.mi / stats.max_weekly_mi * 100) if stats.max_weekly_mi else 0)|round(0) }}%;"></div>
+        </div>
+        <div class="overview-bar-label">{{ bar.label }}</div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="fun-fact-card mb-4">
+  <div style="font-size: 1.6rem;">🏅</div>
+  <div>
+    {% if stats.marathons_equivalent >= 1 %}
+      That's <strong>{{ stats.marathons_equivalent }} marathons'</strong> worth of running in the last 90 days.
+    {% else %}
+      Every mile counts &mdash; keep stacking them up.
+    {% endif %}
+  </div>
+</div>
+
+<a href="{{ url_for('strava_activities') }}" class="btn btn-outline-success btn-sm">View raw activity list &rarr;</a>
+
+{% endif %}
+{% endblock %}
