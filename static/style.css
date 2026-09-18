@@ -186,7 +186,12 @@ p, .text-muted, .small.text-muted { color: var(--text-dim) !important; }
 .week-header:hover { background: var(--surface-hover); }
 .week-header .week-title { font-weight: 800; font-size: 1rem; }
 .week-header .week-meta { font-size: .78rem; color: var(--text-faint); font-weight: 600; }
-.week-header .chevron { transition: transform .2s ease; color: var(--text-faint); }
+.week-mileage { display: flex; align-items: center; gap: .6rem; margin-top: .4rem; max-width: 260px; }
+.week-mileage-figs { font-size: .74rem; color: var(--text-dim); font-weight: 700; white-space: nowrap; }
+.week-mileage-figs strong { color: var(--accent); font-weight: 800; }
+.week-mileage-track { flex: 1; height: 5px; border-radius: 999px; background: var(--bg-elevated); border: 1px solid var(--border); overflow: hidden; }
+.week-mileage-fill { height: 100%; background: var(--accent-grad); border-radius: 999px; transition: width .4s ease; }
+.week-header .chevron { transition: transform .2s ease; color: var(--text-faint); flex: none; margin-left: .75rem; }
 .week-card.collapsed .chevron { transform: rotate(-90deg); }
 .week-card.collapsed .week-body { display: none; }
 .week-body { padding: 0 1.1rem 1.1rem; display: flex; flex-direction: column; gap: .6rem; }
@@ -253,6 +258,14 @@ hr { border-color: var(--border); opacity: 1; }
 .cal-month-link { font-size: .8rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 .cal-grid-detailed .cal-cell { min-height: 108px; }
+.cal-week-summary {
+  grid-column: 1 / -1;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: .7rem; color: var(--text-faint); font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+  padding: .15rem .35rem .6rem;
+}
+.cal-week-summary-figs { color: var(--text-dim); text-transform: none; letter-spacing: 0; }
+.cal-week-summary-figs strong { color: var(--accent); font-weight: 800; }
 .cal-dow { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); font-weight: 700; text-align: center; padding-bottom: .3rem; }
 .cal-cell {
   position: relative;

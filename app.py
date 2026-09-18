@@ -215,6 +215,14 @@ def new_plan(client_id):
     return render_template("new_plan.html", client=client)
 
 
+def _week_mileage(wk_workouts):
+    """(planned_mi, actual_mi) for a set of workouts - actual is None until something's done."""
+    planned_mi = sum(w.target_distance_km for w in wk_workouts if w.target_distance_km)
+    done = [w for w in wk_workouts if w.completed]
+    actual_mi = round(sum(w.actual_distance_km for w in done if w.actual_distance_km), 1) if done else None
+    return round(planned_mi, 1), actual_mi
+
+
 def _plan_weeks(workouts):
     """Group workouts (already ordered by date) into Mon-Sun buckets relative to the plan's first workout."""
     weeks = []
@@ -227,6 +235,7 @@ def _plan_weeks(workouts):
         buckets.setdefault(idx, []).append(w)
     for idx in range(max(buckets.keys()) + 1):
         wk_workouts = buckets.get(idx, [])
+        planned_mi, actual_mi = _week_mileage(wk_workouts)
         weeks.append({
             "index": idx + 1,
             "workouts": wk_workouts,
@@ -234,8 +243,8 @@ def _plan_weeks(workouts):
             "end": start + timedelta(days=idx * 7 + 6),
             "done": sum(1 for w in wk_workouts if w.completed),
             "total": len(wk_workouts),
-            "planned_mi": sum(w.target_distance_km for w in wk_workouts if w.target_distance_km),
-            "actual_mi": None,
+            "planned_mi": planned_mi,
+            "actual_mi": actual_mi,
         })
     return weeks
 
@@ -252,14 +261,17 @@ def _plan_months(workouts):
     while (y, m) <= (end_y, end_m):
         month_weeks = []
         for wk_dates in grid.monthdatescalendar(y, m):
-            month_weeks.append([
+            days = [
                 {
                     "date": d,
                     "in_month": d.month == m,
                     "workout": workouts_by_date.get(d),
                 }
                 for d in wk_dates
-            ])
+            ]
+            wk_workouts = [c["workout"] for c in days if c["workout"] is not None]
+            planned_mi, actual_mi = _week_mileage(wk_workouts)
+            month_weeks.append({"days": days, "planned_mi": planned_mi, "actual_mi": actual_mi})
         months.append({"label": date(y, m, 1).strftime("%B %Y"), "weeks": month_weeks})
         m += 1
         if m > 12:

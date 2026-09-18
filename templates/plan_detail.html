@@ -81,7 +81,7 @@
       <div class="cal-dow">Sat</div>
       <div class="cal-dow">Sun</div>
       {% for wk in current_month.weeks %}
-        {% for cell in wk %}
+        {% for cell in wk.days %}
           {% if not cell.in_month %}
             <div class="cal-cell cal-empty"></div>
           {% elif cell.workout %}
@@ -108,6 +108,14 @@
             </div>
           {% endif %}
         {% endfor %}
+        {% if wk.planned_mi %}
+          <div class="cal-week-summary">
+            <span>Week total</span>
+            <span class="cal-week-summary-figs">
+              {% if wk.actual_mi is not none %}<strong>{{ wk.actual_mi }}</strong> / {% endif %}{{ wk.planned_mi }} mi
+            </span>
+          </div>
+        {% endif %}
       {% endfor %}
     </div>
   </div>
@@ -117,9 +125,17 @@
 {% for wk in weeks %}
   <div class="week-card card-surface {{ '' if wk.index == current_week_index else 'collapsed' }}" data-week id="week-{{ wk.index }}">
     <div class="week-header" data-week-toggle>
-      <div>
+      <div class="flex-grow-1">
         <div class="week-title">Week {{ wk.index }}</div>
         <div class="week-meta">{{ wk.start.strftime('%d %b') }} &ndash; {{ wk.end.strftime('%d %b') }} &middot; {{ wk.done }}/{{ wk.total }} done</div>
+        <div class="week-mileage">
+          <span class="week-mileage-figs">
+            {% if wk.actual_mi is not none %}<strong>{{ wk.actual_mi }}</strong> / {% endif %}{{ wk.planned_mi }} mi
+          </span>
+          <div class="week-mileage-track">
+            <div class="week-mileage-fill" style="width: {{ ((wk.actual_mi / wk.planned_mi * 100) if wk.actual_mi and wk.planned_mi else 0)|round(0) }}%;"></div>
+          </div>
+        </div>
       </div>
       <span class="chevron">&#9660;</span>
     </div>

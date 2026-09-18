@@ -31,7 +31,7 @@
     <div class="cal-dow">Sat</div>
     <div class="cal-dow">Sun</div>
     {% for wk in month.weeks %}
-      {% for cell in wk %}
+      {% for cell in wk.days %}
         {% if not cell.in_month %}
           <div class="cal-cell cal-empty"></div>
         {% elif cell.workout %}
@@ -58,6 +58,14 @@
           </div>
         {% endif %}
       {% endfor %}
+      {% if wk.planned_mi %}
+        <div class="cal-week-summary">
+          <span>Week total</span>
+          <span class="cal-week-summary-figs">
+            {% if wk.actual_mi is not none %}<strong>{{ wk.actual_mi }}</strong> / {% endif %}{{ wk.planned_mi }} mi
+          </span>
+        </div>
+      {% endif %}
     {% endfor %}
   </div>
 </div>
