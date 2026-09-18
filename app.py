@@ -290,15 +290,22 @@ def _sync_strava_completions(workouts, strava_token):
 
         changed = False
         for w in workouts:
-            if w.completed or w.workout_type == "Rest":
+            if w.completed:
                 continue
             activity = runs_by_date.get(w.date)
-            if activity:
-                w.completed = True
-                w.actual_distance_km = round(activity["distance"] / 1609.34, 1)
-                w.actual_duration_min = round(activity["moving_time"] / 60)
-                w.strava_activity_id = str(activity["id"])
-                changed = True
+            if not activity:
+                continue
+            was_rest = w.workout_type == "Rest"
+            w.completed = True
+            w.actual_distance_km = round(activity["distance"] / 1609.34, 1)
+            w.actual_duration_min = round(activity["moving_time"] / 60)
+            w.strava_activity_id = str(activity["id"])
+            if was_rest:
+                # They ran on a planned rest day - log it as a real (if unplanned) session
+                # rather than silently ignoring it, so the plan reflects what actually happened.
+                w.workout_type = "Easy Run"
+                w.description = "Unplanned run logged from Strava (originally a rest day)."
+            changed = True
         if changed:
             db.session.commit()
         return None
