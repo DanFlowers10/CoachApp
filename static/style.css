@@ -261,7 +261,7 @@ hr { border-color: var(--border); opacity: 1; }
   justify-content: flex-end; height: 100%; border-radius: 8px; padding-top: 4px;
 }
 .overview-bar-stack { display: flex; align-items: flex-end; gap: 3px; height: 100%; width: 100%; justify-content: center; }
-.overview-bar { width: 14px; border-radius: 4px 4px 0 0; background: var(--accent-grad); min-height: 3px; }
+.overview-bar { width: 14px; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, #ff8a4c 0%, #fc4c02 100%); min-height: 3px; }
 .overview-bar-label { font-size: .62rem; color: var(--text-faint); font-weight: 700; margin-top: .4rem; white-space: nowrap; }
 
 .fun-fact-card {
