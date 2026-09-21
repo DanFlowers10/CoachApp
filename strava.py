@@ -9,6 +9,7 @@ import requests
 
 AUTHORIZE_URL = "https://www.strava.com/oauth/authorize"
 TOKEN_URL = "https://www.strava.com/oauth/token"
+DEAUTHORIZE_URL = "https://www.strava.com/oauth/deauthorize"
 ACTIVITIES_URL = "https://www.strava.com/api/v3/athlete/activities"
 
 
@@ -65,6 +66,16 @@ def get_valid_access_token(token_row, client_id, client_secret, db):
     token_row.expires_at = data["expires_at"]
     db.session.commit()
     return token_row.access_token
+
+
+def deauthorize(access_token):
+    """Revokes the app's access on Strava's side, so it drops off strava.com/settings/apps."""
+    resp = requests.post(
+        DEAUTHORIZE_URL,
+        data={"access_token": access_token},
+        timeout=10,
+    )
+    resp.raise_for_status()
 
 
 def fetch_recent_activities(access_token, per_page=15):

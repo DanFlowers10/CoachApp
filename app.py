@@ -609,9 +609,15 @@ def strava_callback():
 def strava_disconnect():
     token_row = current_user.strava_token
     if token_row is not None:
+        try:
+            access_token = strava.get_valid_access_token(token_row, STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, db)
+            strava.deauthorize(access_token)
+        except Exception:
+            flash("Disconnected here, but couldn't reach Strava to revoke access there — you may want to remove it manually from strava.com/settings/apps.", "error")
+        else:
+            flash("Strava disconnected and access revoked.", "success")
         db.session.delete(token_row)
         db.session.commit()
-        flash("Strava disconnected.", "success")
     return redirect(request.referrer or url_for("index"))
 
 
