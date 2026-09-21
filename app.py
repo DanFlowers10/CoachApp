@@ -509,6 +509,121 @@ def delete_plan(plan_id):
     return redirect(url_for("client_detail", client_id=client_id))
 
 
+# One-time import of Connor's real Runna plan (PDF weeks 12-22 -> app weeks 1-11).
+# Each week is 7 days Mon-Sun: (workout_type, distance_mi_or_None, description).
+_CONNOR_REAL_PLAN_WEEKS = [
+    [("Rest", None, "Full rest, or light stretching/mobility."),
+     ("Intervals", 3.2, "Mile Repeats"),
+     ("Easy Run", 3.25, "Easy, conversational effort."),
+     ("Tempo", 4, "Over and Unders 1km"),
+     ("Rest", None, "Full rest, or light stretching/mobility."),
+     ("Easy Run", 5.5, "Easy, conversational effort."),
+     ("Long Run", 7, "Steady, easy effort throughout.")],
+    [("Rest", None, "Full rest, or light stretching/mobility."),
+     ("Tempo", 6, "Progression Run"),
+     ("Easy Run", 5.5, "Easy, conversational effort."),
+     ("Intervals", 4.5, "600m Madness"),
+     ("Easy Run", 4, "Easy, conversational effort."),
+     ("Easy Run", 3.25, "Easy, conversational effort."),
+     ("Long Run", 16, "Race Practice Long Run — race-pace miles included.")],
+    [("Rest", None, "Full rest, or light stretching/mobility."),
+     ("Tempo", 6, "Tempo 4 Miles"),
+     ("Easy Run", 4.5, "Easy, conversational effort."),
+     ("Intervals", 4.5, "Pyramid Intervals"),
+     ("Easy Run", 4.5, "Easy, conversational effort."),
+     ("Easy Run", 3, "Easy, conversational effort."),
+     ("Long Run", 18, "Steady, easy effort throughout.")],
+    [("Rest", None, "Full rest, or light stretching/mobility."),
+     ("Intervals", 6.5, "800m Repeats"),
+     ("Easy Run", 6.5, "Easy, conversational effort."),
+     ("Tempo", 5.5, "Tempo 3 Miles"),
+     ("Easy Run", 6.5, "Easy, conversational effort."),
+     ("Easy Run", 4, "Easy, conversational effort."),
+     ("Long Run", 14, "Race Practice Long Run — race-pace miles included.")],
+    [("Rest", None, "Full rest, or light stretching/mobility."),
+     ("Tempo", 6.5, "Over and Unders Miles"),
+     ("Easy Run", 5, "Easy, conversational effort."),
+     ("Intervals", 5.5, "1km Repeats"),
+     ("Easy Run", 4.5, "Easy, conversational effort."),
+     ("Easy Run", 4, "Easy, conversational effort."),
+     ("Long Run", 20, "Steady, easy effort throughout.")],
+    [("Rest", None, "Full rest, or light stretching/mobility."),
+     ("Tempo", 3.2, "Repeating Progressive Run"),
+     ("Easy Run", 3.25, "Easy, conversational effort."),
+     ("Intervals", 5.5, "Broken 600s"),
+     ("Rest", None, "Full rest, or light stretching/mobility."),
+     ("Easy Run", 6, "Easy, conversational effort."),
+     ("Long Run", 9.5, "Cutback week — steady, easy effort.")],
+    [("Easy Run", 3.25, "Easy, conversational effort."),
+     ("Intervals", 6.5, "Drop Set"),
+     ("Easy Run", 6, "Easy, conversational effort."),
+     ("Tempo", 6, "Tempo 2 Miles"),
+     ("Rest", None, "Full rest, or light stretching/mobility."),
+     ("Easy Run", 3.5, "Easy, conversational effort."),
+     ("Long Run", 22, "Race Practice Long Run — peak long run, race-pace miles included.")],
+    [("Rest", None, "Full rest, or light stretching/mobility."),
+     ("Intervals", 6.5, "400s into 200s"),
+     ("Easy Run", 5, "Easy, conversational effort."),
+     ("Tempo", 6.5, "Over and Unders 400m"),
+     ("Easy Run", 4.5, "Easy, conversational effort."),
+     ("Easy Run", 6.5, "Easy, conversational effort."),
+     ("Long Run", 20, "Steady, easy effort throughout.")],
+    [("Rest", None, "Full rest, or light stretching/mobility."),
+     ("Tempo", 5.5, "Mile Up & Overs"),
+     ("Easy Run", 7, "Easy, conversational effort."),
+     ("Tempo", 5.5, "Over and Unders Miles"),
+     ("Easy Run", 5, "Easy, conversational effort."),
+     ("Easy Run", 3.75, "Easy, conversational effort."),
+     ("Long Run", 14, "Race Practice Long Run — taper begins next week.")],
+    [("Easy Run", 6.5, "Easy, conversational effort."),
+     ("Rest", None, "Full rest, or light stretching/mobility."),
+     ("Tempo", 5.5, "Progressive Mile Repeats"),
+     ("Easy Run", 4, "Easy, conversational effort."),
+     ("Tempo", 3.5, "Progression Run"),
+     ("Rest", None, "Full rest, or light stretching/mobility."),
+     ("Long Run", 8.5, "Taper — steady, easy effort.")],
+    [("Rest", None, "Full rest, or light stretching/mobility."),
+     ("Easy Run", 3.25, "Easy, conversational effort."),
+     ("Tempo", 5, "Taper Fartlek"),
+     ("Rest", None, "Full rest, or light stretching/mobility."),
+     ("Easy Run", 5, "Short shakeout, legs fresh for race day."),
+     ("Rest", None, "Full rest — race tomorrow."),
+     ("Race", 26.2, "Valencia Trinidad Alfonso Zurich Marathon — goal 3:20:00 (~7:38/mi).")],
+]
+
+
+@app.route("/plan/<int:plan_id>/import-connor-real-plan", methods=["POST"])
+@login_required
+@coach_required
+def import_connor_real_plan(plan_id):
+    if plan_id != 2:
+        abort(404)
+    plan = db.session.get(TrainingPlan, plan_id)
+    if plan is None or plan.coach_id != current_user.id:
+        abort(404)
+
+    for workout in list(plan.workouts):
+        db.session.delete(workout)
+
+    start = date(2026, 9, 21)
+    day_index = 0
+    for week in _CONNOR_REAL_PLAN_WEEKS:
+        for workout_type, distance_mi, description in week:
+            db.session.add(Workout(
+                plan_id=plan.id,
+                date=start + timedelta(days=day_index),
+                workout_type=workout_type,
+                target_distance_km=distance_mi,
+                target_duration_min=None,
+                description=description,
+            ))
+            day_index += 1
+
+    db.session.commit()
+    flash("Imported Connor's real plan from the Runna PDF (weeks 1-11).", "success")
+    return redirect(url_for("plan_detail", plan_id=plan.id))
+
+
 # ----------------------------------------------------------- client views --
 
 @app.route("/athlete")

@@ -11,10 +11,18 @@
 <div class="d-flex justify-content-between align-items-start mt-2 mb-1">
   <h2 class="mb-0">{{ plan.title }}</h2>
   {% if current_user.is_coach() %}
-    <form method="post" action="{{ url_for('delete_plan', plan_id=plan.id) }}"
-          onsubmit="return confirm('Delete &quot;{{ plan.title }}&quot;? This removes all its workouts too.');">
-      <button type="submit" class="btn btn-sm btn-outline-danger">Delete plan</button>
-    </form>
+    <div class="d-flex gap-2">
+      {% if plan.id == 2 %}
+        <form method="post" action="{{ url_for('import_connor_real_plan', plan_id=plan.id) }}"
+              onsubmit="return confirm('Replace all 77 workouts with the real plan from the Runna PDF (weeks 1-11)? This cannot be undone.');">
+          <button type="submit" class="btn btn-sm btn-accent">Import real plan (PDF)</button>
+        </form>
+      {% endif %}
+      <form method="post" action="{{ url_for('delete_plan', plan_id=plan.id) }}"
+            onsubmit="return confirm('Delete &quot;{{ plan.title }}&quot;? This removes all its workouts too.');">
+        <button type="submit" class="btn btn-sm btn-outline-danger">Delete plan</button>
+      </form>
+    </div>
   {% endif %}
 </div>
 {% if plan.goal_race %}<p class="text-muted mb-3">Goal: {{ plan.goal_race }}</p>{% endif %}
