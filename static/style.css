@@ -81,6 +81,7 @@ p, .text-muted, .small.text-muted { color: var(--text-dim) !important; }
   align-items: center;
   justify-content: center;
   font-size: 16px;
+  color: #fff;
   flex: none;
 }
 
@@ -161,6 +162,25 @@ p, .text-muted, .small.text-muted { color: var(--text-dim) !important; }
 .alert-success { border-color: var(--success); color: var(--success); background: var(--success-bg); }
 .alert-danger { border-color: var(--danger); color: var(--danger); background: var(--danger-bg); }
 
+/* toasts */
+.toast-stack { position: fixed; top: 76px; right: 16px; z-index: 1050; display: flex; flex-direction: column; gap: .5rem; max-width: 340px; width: calc(100% - 32px); }
+.toast-item {
+  display: flex; align-items: center; gap: .6rem;
+  background: var(--bg-elevated); border: 1px solid var(--border); border-left: 3px solid var(--success);
+  border-radius: var(--radius-sm); padding: .7rem .9rem; font-size: .85rem; font-weight: 600; color: var(--text);
+  box-shadow: var(--shadow); animation: toast-in .25s cubic-bezier(.4,0,.2,1) both;
+}
+.toast-item.error { border-left-color: var(--danger); }
+.toast-item i:first-child { font-size: 1.05rem; color: var(--success); flex: none; }
+.toast-item.error i:first-child { color: var(--danger); }
+.toast-item span { flex: 1; }
+.toast-close { background: none; border: none; padding: 0; color: var(--text-faint); display: flex; }
+.toast-close:hover { color: var(--text); }
+.toast-item.toast-leave { animation: toast-out .2s ease both; }
+@keyframes toast-in { from { opacity: 0; transform: translateX(16px); } }
+@keyframes toast-out { to { opacity: 0; transform: translateX(16px); } }
+@media (max-width: 576px) { .toast-stack { left: 16px; right: 16px; max-width: none; } }
+
 /* table */
 .table { color: var(--text); border-radius: var(--radius-sm); overflow: hidden; }
 .table td, .table th { vertical-align: middle; border-color: var(--border) !important; }
@@ -178,7 +198,8 @@ p, .text-muted, .small.text-muted { color: var(--text-dim) !important; }
 
 /* progress bar */
 .progress-track { height: 10px; border-radius: 999px; background: var(--bg-elevated); border: 1px solid var(--border); overflow: hidden; }
-.progress-fill { height: 100%; background: var(--accent-grad); border-radius: 999px; transition: width .6s cubic-bezier(.4,0,.2,1); }
+.progress-fill { height: 100%; background: var(--accent-grad); border-radius: 999px; transition: width .6s cubic-bezier(.4,0,.2,1); animation: bar-fill .9s cubic-bezier(.4,0,.2,1) both; }
+@keyframes bar-fill { from { width: 0; } }
 
 /* ---------- plan / weeks ---------- */
 .week-card { border-radius: var(--radius); margin-bottom: .9rem; overflow: hidden; }
@@ -190,7 +211,7 @@ p, .text-muted, .small.text-muted { color: var(--text-dim) !important; }
 .week-mileage-figs { font-size: .74rem; color: var(--text-dim); font-weight: 700; white-space: nowrap; }
 .week-mileage-figs strong { color: var(--accent); font-weight: 800; }
 .week-mileage-track { flex: 1; height: 5px; border-radius: 999px; background: var(--bg-elevated); border: 1px solid var(--border); overflow: hidden; }
-.week-mileage-fill { height: 100%; background: var(--accent-grad); border-radius: 999px; transition: width .4s ease; }
+.week-mileage-fill { height: 100%; background: var(--accent-grad); border-radius: 999px; transition: width .4s ease; animation: bar-fill .7s cubic-bezier(.4,0,.2,1) both; }
 .week-header .chevron { transition: transform .2s ease; color: var(--text-faint); flex: none; margin-left: .75rem; }
 .week-card.collapsed .chevron { transform: rotate(-90deg); }
 .week-card.collapsed .week-body { display: none; }
@@ -218,10 +239,11 @@ p, .text-muted, .small.text-muted { color: var(--text-dim) !important; }
   display: flex; align-items: center; justify-content: center;
   font-size: 1.1rem; background: var(--bg-elevated); border: 1px solid var(--border);
 }
-.workout-icon.type-long { background: rgba(124,108,246,.15); }
-.workout-icon.type-tempo, .workout-icon.type-intervals { background: rgba(255,106,85,.15); }
-.workout-icon.type-race { background: var(--accent-grad); }
-.workout-icon.type-rest { background: rgba(255,255,255,.05); }
+.workout-icon { color: var(--accent); }
+.workout-icon.type-long { background: rgba(124,108,246,.15); color: var(--accent-2); }
+.workout-icon.type-tempo, .workout-icon.type-intervals { background: rgba(255,106,85,.15); color: var(--accent); }
+.workout-icon.type-race { background: var(--accent-grad); color: #fff; }
+.workout-icon.type-rest { background: rgba(255,255,255,.05); color: var(--text-faint); }
 
 .workout-main { flex: 1; min-width: 0; }
 .workout-main .w-type { font-weight: 700; font-size: .92rem; }
@@ -251,13 +273,24 @@ hr { border-color: var(--border); opacity: 1; }
 
 .connect-prompt { font-size: .8rem; color: var(--text-faint); }
 
+.strava-sync-banner {
+  display: flex; align-items: center; gap: .6rem; font-size: .78rem; color: var(--text-faint);
+  margin-bottom: .9rem;
+}
+.strava-sync-shim {
+  width: 16px; height: 16px; border-radius: 999px; flex: none;
+  background: linear-gradient(90deg, var(--bg-elevated) 0%, var(--surface-hover) 50%, var(--bg-elevated) 100%);
+  background-size: 200px 100%; animation: shimmer 1.2s infinite linear;
+}
+@keyframes shimmer { 0% { background-position: -100px 0; } 100% { background-position: 100px 0; } }
+
 /* ---------- Strava stats overview ---------- */
 .streak-banner {
   display: flex; align-items: center; gap: 1rem; border-radius: var(--radius);
   padding: 1.25rem 1.5rem; background: linear-gradient(120deg, rgba(255,106,85,.18), rgba(124,108,246,.12));
   border: 1px solid var(--border);
 }
-.streak-flame { font-size: 2.5rem; line-height: 1; }
+.streak-flame { font-size: 2.5rem; line-height: 1; color: var(--accent); }
 .streak-days { font-size: 1.4rem; font-weight: 800; }
 .streak-sub { font-size: .85rem; color: var(--text-dim); }
 
@@ -288,7 +321,7 @@ hr { border-color: var(--border); opacity: 1; }
   border: 1px solid var(--border); transition: border-color .15s ease, transform .15s ease;
 }
 .strava-cta-card:hover { border-color: #fc4c02; color: var(--text); transform: translateY(-1px); }
-.strava-cta-emoji { font-size: 1.8rem; flex: none; }
+.strava-cta-emoji { font-size: 1.8rem; flex: none; color: #fc4c02; }
 .strava-cta-title { font-weight: 800; font-size: 1rem; }
 .strava-cta-sub { font-size: .8rem; color: var(--text-dim); }
 .strava-cta-arrow { font-size: 1.3rem; color: #fc4c02; flex: none; }
@@ -330,7 +363,7 @@ hr { border-color: var(--border); opacity: 1; }
 .cal-cell[data-jump-to-workout]:hover, a.cal-cell:hover { border-color: var(--accent); color: var(--text); transform: translateY(-1px); }
 .cal-empty { background: transparent; border-color: transparent; }
 .cal-daynum { font-size: .7rem; font-weight: 700; color: var(--text-faint); }
-.cal-icon { font-size: 1rem; line-height: 1; margin-top: .15rem; }
+.cal-icon { font-size: 1rem; line-height: 1; margin-top: .15rem; color: var(--accent); }
 .cal-type { font-size: .62rem; font-weight: 700; margin-top: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cal-dist { font-size: .6rem; color: var(--text-faint); }
 .cal-desc {
@@ -338,16 +371,16 @@ hr { border-color: var(--border); opacity: 1; }
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .cal-race .cal-desc { color: rgba(255, 255, 255, .85); }
-.cal-strava-badge { position: absolute; top: 4px; right: 5px; font-size: .6rem; line-height: 1; }
+.cal-strava-badge { position: absolute; top: 4px; right: 5px; font-size: .6rem; line-height: 1; color: #fc4c02; }
 
 .cal-status-done { border-color: var(--success); background: var(--success-bg); }
 .cal-status-today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .cal-status-missed { border-color: var(--danger); background: var(--danger-bg); }
 .cal-race { background: var(--accent-grad) !important; border-color: transparent !important; }
-.cal-race .cal-daynum, .cal-race .cal-type, .cal-race .cal-dist { color: #fff; }
+.cal-race .cal-daynum, .cal-race .cal-type, .cal-race .cal-dist, .cal-race .cal-icon { color: #fff; }
 
 .strava-tag {
-  display: inline-block; font-size: .65rem; font-weight: 700; color: #fc4c02;
+  display: inline-flex; align-items: center; gap: .2rem; font-size: .65rem; font-weight: 700; color: #fc4c02;
   background: rgba(252, 76, 2, .14); border-radius: 999px; padding: .1rem .5rem; margin-left: .4rem;
 }
 

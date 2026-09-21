@@ -2,7 +2,7 @@ import os
 import calendar as cal_module
 from datetime import datetime, date, timedelta
 
-from flask import Flask, render_template, redirect, url_for, request, flash, abort
+from flask import Flask, render_template, redirect, url_for, request, flash, abort, jsonify
 from flask_login import (
     LoginManager, login_user, logout_user, login_required, current_user
 )
@@ -326,9 +326,9 @@ def _plan_months(workouts):
 
 def _sync_strava_completions(workouts, strava_token):
     """Match same-day Strava runs to not-yet-done workouts and auto-complete them with the
-    real distance/time. Returns an error string, if any."""
+    real distance/time. Returns (error_string_or_None, changed_bool)."""
     if not workouts:
-        return None
+        return None, False
     try:
         access_token = strava.get_valid_access_token(
             strava_token, STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, db
@@ -364,9 +364,9 @@ def _sync_strava_completions(workouts, strava_token):
             changed = True
         if changed:
             db.session.commit()
-        return None
+        return None, changed
     except Exception:
-        return "Couldn't sync Strava activities right now."
+        return "Couldn't sync Strava activities right now.", False
 
 
 @app.route("/plan/<int:plan_id>")
@@ -387,9 +387,9 @@ def plan_detail(plan_id):
     today = date.today()
     workouts = plan.workouts  # ordered by date
 
+    # Strava sync happens async (see /plan/<id>/strava-sync) so this page isn't
+    # blocked on a Strava API round-trip - it renders with whatever's in the db now.
     strava_error = None
-    if not current_user.is_coach() and current_user.strava_token:
-        strava_error = _sync_strava_completions(workouts, current_user.strava_token)
 
     _attach_comparisons(workouts)
 
@@ -426,6 +426,19 @@ def plan_detail(plan_id):
         current_week_index=current_week_index,
         strava_error=strava_error,
     )
+
+
+@app.route("/plan/<int:plan_id>/strava-sync", methods=["POST"])
+@login_required
+def strava_sync(plan_id):
+    plan = db.session.get(TrainingPlan, plan_id)
+    if plan is None or plan.client_id != current_user.id:
+        abort(404)
+    if not current_user.strava_token:
+        return jsonify(changed=False, error=None)
+
+    error, changed = _sync_strava_completions(plan.workouts, current_user.strava_token)
+    return jsonify(changed=changed, error=error)
 
 
 @app.route("/plan/<int:plan_id>/calendar")

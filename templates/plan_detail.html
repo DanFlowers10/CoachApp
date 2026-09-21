@@ -64,8 +64,13 @@
   <div class="connect-prompt mb-3">
     <a href="{{ url_for('strava_connect') }}">Connect Strava</a> to auto-complete matching workouts from your runs.
   </div>
-{% elif strava_error %}
-  <div class="connect-prompt mb-3">{{ strava_error }}</div>
+{% endif %}
+
+{% if not current_user.is_coach() and current_user.strava_token %}
+  <div class="strava-sync-banner" id="strava-sync-banner" style="display:none;">
+    <div class="shim strava-sync-shim"></div>
+    <span>Syncing with Strava&hellip;</span>
+  </div>
 {% endif %}
 
 {% if current_month %}
@@ -92,14 +97,14 @@
             {% set is_tempo = w.workout_type in ['Tempo', 'Intervals'] %}
             {% set is_race = w.workout_type == 'Race' %}
             {% set is_rest = w.workout_type == 'Rest' %}
-            {% set icon = '🏁' if is_race else ('🏔️' if is_long else ('⚡' if is_tempo else ('😴' if is_rest else '🏃'))) %}
+            {% set icon = 'ti-flag' if is_race else ('ti-mountain' if is_long else ('ti-bolt' if is_tempo else ('ti-moon' if is_rest else 'ti-run'))) %}
             {% set status = 'done' if w.completed else ('today' if w.date == today else ('missed' if w.date < today else 'upcoming')) %}
             <div class="cal-cell cal-status-{{ status }} {{ 'cal-race' if is_race else '' }}"
                  data-jump-to-workout="{{ w.id }}"
                  title="{{ w.workout_type }}{% if w.target_distance_km %} - {{ w.target_distance_km }}mi{% endif %}{% if w.description %} - {{ w.description }}{% endif %}">
-              {% if w.strava_activity_id %}<div class="cal-strava-badge" title="Auto-synced from Strava">⚡</div>{% endif %}
+              {% if w.strava_activity_id %}<div class="cal-strava-badge" title="Auto-synced from Strava"><i class="ti ti-brand-strava"></i></div>{% endif %}
               <div class="cal-daynum">{{ cell.date.day }}</div>
-              <div class="cal-icon">{{ icon }}</div>
+              <div class="cal-icon"><i class="ti {{ icon }}"></i></div>
               <div class="cal-type">{{ w.workout_type }}</div>
               {% if w.target_distance_km %}<div class="cal-dist">{{ w.target_distance_km }}mi{% if w.target_duration_min %} &middot; {{ w.target_duration_min }} min{% endif %}</div>{% endif %}
               {% if w.description %}<div class="cal-desc">{{ w.description }}</div>{% endif %}
@@ -147,13 +152,13 @@
         {% set is_tempo = w.workout_type in ['Tempo', 'Intervals'] %}
         {% set is_race = w.workout_type == 'Race' %}
         {% set is_rest = w.workout_type == 'Rest' %}
-        {% set icon = '🏁' if is_race else ('🏔️' if is_long else ('⚡' if is_tempo else ('😴' if is_rest else '🏃'))) %}
+        {% set icon = 'ti-flag' if is_race else ('ti-mountain' if is_long else ('ti-bolt' if is_tempo else ('ti-moon' if is_rest else 'ti-run'))) %}
         {% set icon_class = 'type-race' if is_race else ('type-long' if is_long else ('type-tempo' if is_tempo else ('type-rest' if is_rest else 'type-easy'))) %}
         {% set status = 'done' if w.completed else ('today' if w.date == today else ('missed' if w.date < today else 'upcoming')) %}
         <div class="workout-card {{ 'is-done' if status == 'done' else '' }} {{ 'is-today' if status == 'today' else '' }} {{ 'is-missed' if status == 'missed' else '' }}" id="workout-{{ w.id }}">
-          <div class="workout-icon {{ icon_class }}">{{ icon }}</div>
+          <div class="workout-icon {{ icon_class }}"><i class="ti {{ icon }}"></i></div>
           <div class="workout-main">
-            <div class="w-type">{{ w.workout_type }} &middot; <span class="text-muted" style="font-weight:600;">{{ w.date.strftime('%a %d %b') }}</span>{% if w.strava_activity_id %}<span class="strava-tag" title="Auto-synced from Strava">⚡ Strava</span>{% endif %}</div>
+            <div class="w-type">{{ w.workout_type }} &middot; <span class="text-muted" style="font-weight:600;">{{ w.date.strftime('%a %d %b') }}</span>{% if w.strava_activity_id %}<span class="strava-tag" title="Auto-synced from Strava"><i class="ti ti-brand-strava"></i> Strava</span>{% endif %}</div>
             {% if w.completed %}
               <div class="w-compare">
                 {% if w.target_distance_km or w.target_duration_min %}
@@ -312,6 +317,26 @@ if (location.hash.startsWith('#workout-')) {
     jumpToWorkout(hashWorkoutId, false);
   });
 }
+
+{% if not current_user.is_coach() and current_user.strava_token %}
+var syncBanner = document.getElementById('strava-sync-banner');
+if (syncBanner) {
+  syncBanner.style.display = '';
+  fetch('{{ url_for("strava_sync", plan_id=plan.id) }}', {method: 'POST'})
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.error) {
+        syncBanner.remove();
+        showToast(data.error, 'error');
+      } else if (data.changed) {
+        location.reload();
+      } else {
+        syncBanner.remove();
+      }
+    })
+    .catch(function () { syncBanner.remove(); });
+}
+{% endif %}
 </script>
 
 {% endblock %}
