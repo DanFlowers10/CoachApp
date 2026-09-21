@@ -215,6 +215,50 @@ def new_plan(client_id):
     return render_template("new_plan.html", client=client)
 
 
+def _pace_str(duration_min, distance_mi):
+    """'7:12/mi' from a duration and distance, or None if either is missing."""
+    if not duration_min or not distance_mi:
+        return None
+    pace = duration_min / distance_mi
+    minutes = int(pace)
+    seconds = round((pace - minutes) * 60)
+    if seconds == 60:
+        minutes += 1
+        seconds = 0
+    return f"{minutes}:{seconds:02d}/mi"
+
+
+def _attach_comparisons(workouts):
+    """For completed workouts, attach transient target-vs-actual fields the template can render."""
+    for w in workouts:
+        if not w.completed:
+            continue
+        w.actual_pace_str = _pace_str(w.actual_duration_min, w.actual_distance_km)
+        w.target_pace_str = _pace_str(w.target_duration_min, w.target_distance_km)
+
+        w.distance_badge = None
+        if w.target_distance_km and w.actual_distance_km:
+            delta = w.actual_distance_km - w.target_distance_km
+            if abs(delta) < 0.25:
+                w.distance_badge = "on target distance"
+            elif delta > 0:
+                w.distance_badge = f"+{delta:.1f} mi long"
+            else:
+                w.distance_badge = f"{abs(delta):.1f} mi short"
+
+        w.pace_badge = None
+        if w.actual_duration_min and w.actual_distance_km and w.target_duration_min and w.target_distance_km:
+            actual_pace_min = w.actual_duration_min / w.actual_distance_km
+            target_pace_min = w.target_duration_min / w.target_distance_km
+            delta_sec = round((actual_pace_min - target_pace_min) * 60)
+            if abs(delta_sec) <= 5:
+                w.pace_badge = "on target pace"
+            elif delta_sec < 0:
+                w.pace_badge = f"{abs(delta_sec)}s/mi faster"
+            else:
+                w.pace_badge = f"{delta_sec}s/mi slower"
+
+
 def _week_mileage(wk_workouts):
     """(planned_mi, actual_mi) for a set of workouts - actual is None until something's done."""
     planned_mi = sum(w.target_distance_km for w in wk_workouts if w.target_distance_km)
@@ -346,6 +390,8 @@ def plan_detail(plan_id):
     strava_error = None
     if not current_user.is_coach() and current_user.strava_token:
         strava_error = _sync_strava_completions(workouts, current_user.strava_token)
+
+    _attach_comparisons(workouts)
 
     weeks = _plan_weeks(workouts)
     months = _plan_months(workouts)

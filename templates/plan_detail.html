@@ -154,15 +154,39 @@
           <div class="workout-icon {{ icon_class }}">{{ icon }}</div>
           <div class="workout-main">
             <div class="w-type">{{ w.workout_type }} &middot; <span class="text-muted" style="font-weight:600;">{{ w.date.strftime('%a %d %b') }}</span>{% if w.strava_activity_id %}<span class="strava-tag" title="Auto-synced from Strava">⚡ Strava</span>{% endif %}</div>
-            <div class="w-meta">
-              {% if w.completed %}
-                {% if w.actual_distance_km %}{{ w.actual_distance_km }} mi logged{% endif %}
-                {% if w.actual_duration_min %} &middot; {{ w.actual_duration_min }} min{% endif %}
-              {% else %}
+            {% if w.completed %}
+              <div class="w-compare">
+                {% if w.target_distance_km or w.target_duration_min %}
+                  <div class="w-compare-col">
+                    <div class="w-compare-label">Target</div>
+                    <div class="w-compare-value">{% if w.target_distance_km %}{{ w.target_distance_km }} mi{% endif %}{% if w.target_duration_min %} &middot; {{ w.target_duration_min }} min{% endif %}</div>
+                  </div>
+                {% endif %}
+                {% if w.actual_distance_km or w.actual_duration_min %}
+                  <div class="w-compare-col">
+                    <div class="w-compare-label">Actual</div>
+                    <div class="w-compare-value strong">{% if w.actual_distance_km %}{{ w.actual_distance_km }} mi{% endif %}{% if w.actual_duration_min %} &middot; {{ w.actual_duration_min }} min{% endif %}</div>
+                  </div>
+                {% endif %}
+                {% if w.actual_pace_str %}
+                  <div class="w-compare-col">
+                    <div class="w-compare-label">Avg pace</div>
+                    <div class="w-compare-value strong">{{ w.actual_pace_str }}</div>
+                  </div>
+                {% endif %}
+              </div>
+              {% if w.distance_badge or w.pace_badge %}
+                <div class="w-badges">
+                  {% if w.distance_badge %}<span class="compare-badge {{ 'ok' if w.distance_badge == 'on target distance' else 'note' }}">{{ w.distance_badge }}</span>{% endif %}
+                  {% if w.pace_badge %}<span class="compare-badge {{ 'ok' if w.pace_badge == 'on target pace' else 'note' }}">{{ w.pace_badge }}</span>{% endif %}
+                </div>
+              {% endif %}
+            {% else %}
+              <div class="w-meta">
                 {% if w.target_distance_km %}{{ w.target_distance_km }} mi{% endif %}
                 {% if w.target_duration_min %} &middot; {{ w.target_duration_min }} min{% endif %}
-              {% endif %}
-            </div>
+              </div>
+            {% endif %}
             {% if w.description %}<div class="w-desc">{{ w.description }}</div>{% endif %}
           </div>
 
@@ -258,7 +282,15 @@ function jumpToWorkout(workoutId, smooth) {
   if (!card) return;
   var week = card.closest('[data-week]');
   if (week) week.classList.remove('collapsed');
-  card.scrollIntoView({behavior: smooth ? 'smooth' : 'auto', block: 'center'});
+
+  // Scroll so the whole week is visible (not just this one card centered),
+  // offset below the sticky nav so the week header isn't hidden under it.
+  var target = week || card;
+  var nav = document.querySelector('.app-nav');
+  var navHeight = nav ? nav.offsetHeight : 0;
+  var targetTop = target.getBoundingClientRect().top + window.pageYOffset - navHeight - 16;
+  window.scrollTo({top: Math.max(targetTop, 0), behavior: smooth ? 'smooth' : 'auto'});
+
   card.classList.remove('jump-highlight');
   void card.offsetWidth; // restart the animation if it's already been triggered once
   card.classList.add('jump-highlight');
@@ -272,8 +304,13 @@ document.querySelectorAll('[data-jump-to-workout]').forEach(function (cell) {
 });
 
 // Coming from the full calendar page (a #workout-N link): expand its week and highlight it.
+// Deferred to 'load' so it runs after the browser's own (top-aligned) fragment scroll,
+// otherwise that native jump fires afterwards and undoes this one.
 if (location.hash.startsWith('#workout-')) {
-  jumpToWorkout(location.hash.replace('#workout-', ''), false);
+  var hashWorkoutId = location.hash.replace('#workout-', '');
+  window.addEventListener('load', function () {
+    jumpToWorkout(hashWorkoutId, false);
+  });
 }
 </script>
 

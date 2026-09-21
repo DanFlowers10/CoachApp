@@ -228,6 +228,16 @@ p, .text-muted, .small.text-muted { color: var(--text-dim) !important; }
 .workout-main .w-meta { font-size: .78rem; color: var(--text-faint); }
 .workout-main .w-desc { font-size: .8rem; color: var(--text-dim); margin-top: .1rem; }
 
+.w-compare { display: flex; gap: 1.1rem; margin-top: .3rem; }
+.w-compare-label { font-size: .66rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text-faint); }
+.w-compare-value { font-size: .82rem; color: var(--text-dim); font-weight: 600; margin-top: .05rem; }
+.w-compare-value.strong { color: var(--text); }
+
+.w-badges { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .4rem; }
+.compare-badge { font-size: .7rem; font-weight: 700; padding: .18rem .55rem; border-radius: 999px; }
+.compare-badge.ok { background: var(--success-bg); color: var(--success); }
+.compare-badge.note { background: var(--warning-bg); color: var(--warning); }
+
 .status-pill { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; padding: .3rem .6rem; border-radius: 999px; flex: none; }
 .status-pill.done { background: var(--success-bg); color: var(--success); }
 .status-pill.today { background: rgba(255,106,85,.15); color: var(--accent); }
