@@ -364,6 +364,8 @@ hr { border-color: var(--border); opacity: 1; }
 .cal-empty { background: transparent; border-color: transparent; }
 .cal-daynum { font-size: .7rem; font-weight: 700; color: var(--text-faint); }
 .cal-icon { font-size: 1rem; line-height: 1; margin-top: .15rem; color: var(--accent); }
+.cal-icon.cal-icon-long { color: var(--accent-2); }
+.cal-icon.cal-icon-rest { color: var(--text-faint); }
 .cal-type { font-size: .62rem; font-weight: 700; margin-top: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cal-dist { font-size: .6rem; color: var(--text-faint); }
 .cal-desc {
