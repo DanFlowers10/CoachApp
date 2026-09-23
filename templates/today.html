@@ -60,7 +60,7 @@
 
       <div class="today-focus-card mb-3">
         <div class="workout-icon {{ icon_class }}"><i class="ti {{ icon }}"></i></div>
-        <a href="{{ url_for('workout_detail', workout_id=w.id) }}" class="flex-grow-1 text-reset text-decoration-none">
+        <button type="button" class="flex-grow-1 text-reset text-decoration-none bg-transparent border-0 text-start p-0" style="font: inherit;" onclick="document.getElementById('workout-detail-overlay').classList.add('is-open')">
           <div class="d-flex justify-content-between align-items-start gap-2">
             <div>
               <div class="fw-bold" style="font-size:1.05rem;">{% if w.target_distance_km %}{{ w.target_distance_km }}mi {% endif %}{{ w.workout_type }}{% if w.strava_activity_id %}<span class="strava-tag" title="Auto-synced from Strava"><i class="ti ti-brand-strava"></i> Strava</span>{% endif %}</div>
@@ -68,7 +68,7 @@
             </div>
           </div>
           {% if w.description %}<div class="today-focus-desc mt-2">{{ w.description }}</div>{% endif %}
-        </a>
+        </button>
         {% if w.completed %}
           <span class="status-pill done">done</span>
         {% elif not current_user.is_coach() %}
@@ -76,6 +76,73 @@
             <button class="btn btn-sm btn-accent">Mark done</button>
           </form>
         {% endif %}
+      </div>
+
+      <div class="page-overlay" id="workout-detail-overlay">
+        <div class="page-overlay-inner">
+          <button type="button" class="btn-icon-back" onclick="document.getElementById('workout-detail-overlay').classList.remove('is-open')"><i class="ti ti-chevron-left"></i> Back</button>
+
+          <div class="workout-hero {{ icon_class }}" style="--hero-color: {{ {'type-easy': '#3ecf8e', 'type-tempo': '#e968c7', 'type-intervals': '#9a8cf9', 'type-long': '#5b9cf6', 'type-rest': 'var(--text-faint)', 'type-race': '#ff6a55'}[icon_class] }};">
+            <div class="d-flex justify-content-between align-items-start">
+              <div class="workout-hero-date">{{ w.date.strftime('%A %d %b %Y') }}</div>
+              {% if w.completed %}
+                <span class="status-pill done">done</span>
+              {% elif not current_user.is_coach() %}
+                <form method="post" action="{{ url_for('complete_workout', workout_id=w.id) }}">
+                  <button class="btn btn-sm btn-accent">Mark done</button>
+                </form>
+              {% endif %}
+            </div>
+            <h2 class="mb-0 mt-2">{% if w.target_distance_km %}{{ w.target_distance_km }}mi {% endif %}{{ w.workout_type }}</h2>
+            {% if w.target_duration_min %}
+              <div class="workout-hero-duration"><i class="ti ti-clock"></i> {{ w.target_duration_min }} min</div>
+            {% endif %}
+          </div>
+
+          {% if w.description %}
+            <div class="text-uppercase small fw-bold text-muted mt-4 mb-2" style="letter-spacing:.04em;">Session</div>
+            <div class="card-surface" style="border-radius: var(--radius); padding: 1rem 1.1rem;">{{ w.description }}</div>
+          {% endif %}
+
+          {% if w.completed %}
+            <div class="text-uppercase small fw-bold text-muted mt-4 mb-2" style="letter-spacing:.04em;">Logged</div>
+            <div class="card-surface" style="border-radius: var(--radius); padding: 1rem 1.1rem;">
+              {% if w.actual_distance_km %}{{ w.actual_distance_km }} mi{% endif %}
+              {% if w.actual_duration_min %} &middot; {{ w.actual_duration_min }} min{% endif %}
+              {% if w.distance_badge or w.pace_badge %}
+                <div class="w-badges mt-2">
+                  {% if w.distance_badge %}<span class="compare-badge {{ 'ok' if w.distance_badge == 'on target distance' else 'note' }}">{{ w.distance_badge }}</span>{% endif %}
+                  {% if w.pace_badge %}<span class="compare-badge {{ 'ok' if w.pace_badge == 'on target pace' else 'note' }}">{{ w.pace_badge }}</span>{% endif %}
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          {% if not current_user.is_coach() %}
+            <div class="text-uppercase small fw-bold text-muted mt-4 mb-2" style="letter-spacing:.04em;">Strava</div>
+            {% if w.strava_activity_id %}
+              <div class="card-surface d-flex align-items-center gap-3" style="border-radius: var(--radius); padding: .85rem 1rem;">
+                <div class="strava-link-icon"><i class="ti ti-brand-strava"></i></div>
+                <div class="flex-grow-1">
+                  <div class="fw-bold small">Linked activity</div>
+                  <div class="small text-muted">Strava ID {{ w.strava_activity_id }}</div>
+                </div>
+                <form method="post" action="{{ url_for('unlink_strava_activity', workout_id=w.id) }}" onsubmit="return confirm('Unlink this Strava activity?');">
+                  <button class="btn btn-sm btn-outline-danger">Unlink</button>
+                </form>
+              </div>
+            {% else %}
+              <a href="{{ url_for('link_strava_picker', workout_id=w.id) }}" class="card-surface d-flex align-items-center gap-3 text-decoration-none" style="border-radius: var(--radius); padding: .85rem 1rem;">
+                <div class="strava-link-icon strava-link-icon-muted"><i class="ti ti-link"></i></div>
+                <div class="flex-grow-1 text-reset">
+                  <div class="fw-bold small">Link a Strava activity</div>
+                  <div class="small text-muted">Match this workout to one of your recent runs</div>
+                </div>
+                <i class="ti ti-chevron-right text-muted"></i>
+              </a>
+            {% endif %}
+          {% endif %}
+        </div>
       </div>
     {% endif %}
 

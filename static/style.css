@@ -119,6 +119,7 @@ p, .text-muted, .small.text-muted { color: var(--text-dim) !important; }
   background: var(--surface);
   border: 1px solid var(--border);
 }
+button.card-surface { color: inherit; font: inherit; text-align: inherit; cursor: pointer; }
 
 .list-group-item {
   border-radius: var(--radius-sm) !important;
@@ -332,6 +333,18 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
 .sheet-workout-row.type-rest { border-left-color: var(--text-faint); }
 .sheet-check { width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--border); flex: none; }
 .sheet-check.is-done { border-color: var(--success); background: var(--success); }
+
+/* full-cover in-page detail overlay (Today screen) */
+.page-overlay {
+  display: none; position: fixed; inset: 0; z-index: 70; background: var(--bg); overflow-y: auto;
+}
+.page-overlay.is-open { display: block; }
+.page-overlay-inner { max-width: 720px; margin: 0 auto; padding: 1.25rem 1.25rem 2rem; }
+.btn-icon-back {
+  background: none; border: none; color: var(--text); font-weight: 800; font-size: .85rem;
+  display: flex; align-items: center; gap: .15rem; padding: 0; margin-bottom: 1rem;
+}
+.btn-icon-back i { font-size: 1.2rem; }
 
 .workout-icon {
   width: 40px; height: 40px; border-radius: 12px; flex: none;
