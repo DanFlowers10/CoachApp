@@ -42,22 +42,20 @@
 
   <div class="nav-progress" id="nav-progress"></div>
 
-  <div class="pull-refresh" id="pull-refresh">
+  {% block header %}
+  <nav class="app-nav mb-4">
+    <div class="container py-2 d-flex align-items-center justify-content-between">
+      {% include "_account_menu.html" %}
+    </div>
+  </nav>
+  {% endblock %}
+
+  <div class="pull-refresh-gap" id="pull-refresh-gap">
     <div class="pull-refresh-spinner"><i class="ti ti-arrow-down" id="pull-refresh-icon"></i></div>
   </div>
 
-  <div id="page-scroll-wrap">
-    {% block header %}
-    <nav class="app-nav mb-4">
-      <div class="container py-2 d-flex align-items-center justify-content-between">
-        {% include "_account_menu.html" %}
-      </div>
-    </nav>
-    {% endblock %}
-
-    <div class="container pb-5">
-      {% block content %}{% endblock %}
-    </div>
+  <div class="container pb-5" id="page-content">
+    {% block content %}{% endblock %}
   </div>
 
   {% include "_athlete_nav.html" %}
@@ -137,15 +135,18 @@
     // Pull-to-refresh, installed-app only: a plain browser tab already has this via
     // the OS/browser chrome, but once installed as a PWA there's no chrome left,
     // so there's otherwise no way to force a reload short of force-quitting the app.
+    // The header never moves - a gap opens up below it (pushing the content down)
+    // and the content dims slightly while it refreshes, matching Runna's pattern.
     (function () {
       var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
       if (!isStandalone) return;
 
-      var el = document.getElementById('pull-refresh');
-      var wrap = document.getElementById('page-scroll-wrap');
+      var gap = document.getElementById('pull-refresh-gap');
+      var content = document.getElementById('page-content');
+      var icon = document.getElementById('pull-refresh-icon');
       var DEADZONE = 16;
-      var THRESHOLD = 110;
-      var MAX_PULL = 140;
+      var THRESHOLD = 90;
+      var MAX_PULL = 120;
       var startY = null;
       var pulling = false;
       var ready = false;
@@ -155,32 +156,33 @@
         startY = e.touches[0].clientY;
         pulling = true;
         ready = false;
-        wrap.style.transition = 'none';
+        gap.style.transition = 'none';
       }, {passive: true});
 
       document.addEventListener('touchmove', function (e) {
         if (!pulling || startY === null) return;
         var delta = e.touches[0].clientY - startY - DEADZONE;
-        if (delta <= 0) { wrap.style.transform = ''; ready = false; el.classList.remove('is-ready'); return; }
+        if (delta <= 0) { gap.style.height = '0px'; content.style.opacity = ''; ready = false; gap.classList.remove('is-ready'); return; }
         var dist = Math.min(delta * 0.35, MAX_PULL);
-        wrap.style.transform = 'translateY(' + dist + 'px)';
+        gap.style.height = dist + 'px';
+        content.style.opacity = String(1 - Math.min(dist / MAX_PULL, 1) * 0.5);
         ready = dist >= THRESHOLD;
-        el.classList.toggle('is-ready', ready);
+        gap.classList.toggle('is-ready', ready);
       }, {passive: true});
 
       document.addEventListener('touchend', function () {
         if (!pulling) return;
         pulling = false;
-        wrap.style.transition = 'transform .2s cubic-bezier(.2,.8,.2,1)';
+        gap.style.transition = 'height .2s cubic-bezier(.2,.8,.2,1)';
         if (ready) {
-          var icon = document.getElementById('pull-refresh-icon');
           if (icon) icon.className = 'ti ti-loader-2';
-          el.classList.add('is-loading');
-          wrap.style.transform = 'translateY(' + THRESHOLD + 'px)';
+          gap.classList.add('is-loading');
+          gap.style.height = THRESHOLD + 'px';
           location.reload();
         } else {
-          wrap.style.transform = '';
-          el.classList.remove('is-ready');
+          gap.style.height = '0px';
+          content.style.opacity = '';
+          gap.classList.remove('is-ready');
         }
         startY = null;
       });

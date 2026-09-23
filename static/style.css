@@ -235,12 +235,11 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
 }
 .nav-progress.is-active { transform: scaleX(0.7); opacity: 1; }
 
-/* Sits fixed at the very top, hidden behind the opaque sticky header (z-index 20)
-   at rest; revealed in the gap as #page-scroll-wrap is pulled down below it. */
-.pull-refresh {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 15;
+/* Header stays put; this grows in height below it to reveal the spinner,
+   pushing #page-content down as it opens, same as Runna's pull-to-refresh. */
+.pull-refresh-gap {
+  height: 0; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
-  height: 90px; pointer-events: none;
 }
 .pull-refresh-spinner {
   width: 30px; height: 30px; border-radius: 999px; background: var(--bg-elevated);
@@ -249,8 +248,8 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
   transition: transform .15s ease;
 }
 .pull-refresh-spinner i { font-size: 1rem; }
-.pull-refresh.is-ready .pull-refresh-spinner { transform: rotate(180deg); }
-.pull-refresh.is-loading .pull-refresh-spinner i { animation: pull-refresh-spin .7s linear infinite; }
+.pull-refresh-gap.is-ready .pull-refresh-spinner { transform: rotate(180deg); }
+.pull-refresh-gap.is-loading .pull-refresh-spinner i { animation: pull-refresh-spin .7s linear infinite; }
 @keyframes pull-refresh-spin { to { transform: rotate(360deg); } }
 
 /* toasts */
@@ -332,9 +331,13 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
 }
 .week-selector-link i:first-child { color: var(--success); font-size: .95rem; }
 .week-selector-link i:last-child { color: var(--text-faint); font-size: .8rem; }
-.day-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-top: .5rem; touch-action: pan-y; }
+/* The weekday letters (M T W T F S S) never move - only the date/dot track
+   below them slides when swiping between weeks, same as Runna's day selector. */
+.day-strip { margin-top: .5rem; touch-action: pan-y; overflow: hidden; }
+.day-strip-dow-row { display: grid; grid-template-columns: repeat(7, 1fr); }
+.day-strip-dow { text-align: center; font-size: .68rem; font-weight: 700; color: var(--text-faint); }
+.day-strip-track { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
 .day-strip-item { display: flex; flex-direction: column; align-items: center; padding: .3rem 0; text-decoration: none; }
-.day-strip-dow { font-size: .68rem; font-weight: 700; color: var(--text-faint); }
 .day-strip-num {
   width: 27px; height: 27px; border-radius: 999px; margin-top: .3rem;
   display: flex; align-items: center; justify-content: center;

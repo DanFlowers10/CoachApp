@@ -14,15 +14,21 @@
     </div>
     {% if current_week %}
       <div class="day-strip" id="day-strip">
-        {% for w in current_week.workouts %}
-          {% set is_selected = selected_workout and w.id == selected_workout.id %}
-          {% set is_today = w.date == today %}
-          <a href="{{ url_for('client_dashboard') }}?week={{ current_week.index }}&day={{ w.date.isoformat() }}" class="day-strip-item">
+        <div class="day-strip-dow-row">
+          {% for w in current_week.workouts %}
             <div class="day-strip-dow">{{ w.date.strftime('%a')[:1] }}</div>
-            <div class="day-strip-num {{ 'is-selected' if is_selected else '' }} {{ 'is-today-ring' if is_today and not is_selected else '' }}">{{ w.date.day }}</div>
-            <div class="day-strip-dot" style="background: {{ '#3ecf8e' if w.workout_type == 'Easy Run' else ('#e968c7' if w.workout_type == 'Tempo' else ('#9a8cf9' if w.workout_type == 'Intervals' else ('#5b9cf6' if w.workout_type == 'Long Run' else ('#ff6a55' if w.workout_type == 'Race' else 'var(--text-faint)')))) }};"></div>
-          </a>
-        {% endfor %}
+          {% endfor %}
+        </div>
+        <div class="day-strip-track" id="day-strip-track">
+          {% for w in current_week.workouts %}
+            {% set is_selected = selected_workout and w.id == selected_workout.id %}
+            {% set is_today = w.date == today %}
+            <a href="{{ url_for('client_dashboard') }}?week={{ current_week.index }}&day={{ w.date.isoformat() }}" class="day-strip-item">
+              <div class="day-strip-num {{ 'is-selected' if is_selected else '' }} {{ 'is-today-ring' if is_today and not is_selected else '' }}">{{ w.date.day }}</div>
+              <div class="day-strip-dot" style="background: {{ '#3ecf8e' if w.workout_type == 'Easy Run' else ('#e968c7' if w.workout_type == 'Tempo' else ('#9a8cf9' if w.workout_type == 'Intervals' else ('#5b9cf6' if w.workout_type == 'Long Run' else ('#ff6a55' if w.workout_type == 'Race' else 'var(--text-faint)')))) }};"></div>
+            </a>
+          {% endfor %}
+        </div>
       </div>
     {% endif %}
   </div>
@@ -260,8 +266,9 @@
 {% if current_week %}
 <script>
 (function () {
-  var strip = document.getElementById('day-strip');
-  if (!strip) return;
+  var strip = document.getElementById('day-strip-track');
+  var hitArea = document.getElementById('day-strip');
+  if (!strip || !hitArea) return;
   var startX = null;
   var startY = null;
   var dragging = false;
@@ -277,7 +284,7 @@
     return sign * (abs < 70 ? abs : 70 + (abs - 70) * 0.4);
   }
 
-  strip.addEventListener('touchstart', function (e) {
+  hitArea.addEventListener('touchstart', function (e) {
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     dragging = true;
@@ -285,7 +292,7 @@
     strip.style.transition = 'none';
   }, {passive: true});
 
-  strip.addEventListener('touchmove', function (e) {
+  hitArea.addEventListener('touchmove', function (e) {
     if (!dragging) return;
     var dx = e.touches[0].clientX - startX;
     var dy = e.touches[0].clientY - startY;
@@ -300,7 +307,7 @@
     e.preventDefault();
   }, {passive: false});
 
-  strip.addEventListener('touchend', function (e) {
+  hitArea.addEventListener('touchend', function (e) {
     if (!dragging) return;
     dragging = false;
     strip.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1)';
