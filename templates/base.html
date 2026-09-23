@@ -28,27 +28,13 @@
   <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 </head>
 <body class="{{ 'has-bottom-nav' if current_user.is_authenticated and not current_user.is_coach() else '' }}">
+  {% block header %}
   <nav class="app-nav mb-4">
     <div class="container py-2 d-flex align-items-center justify-content-between">
-      <a href="{{ url_for('index') }}" aria-label="Marathon Coach">
-        <span class="brand-mark"><i class="ti ti-run"></i></span>
-      </a>
-      {% if current_user.is_authenticated %}
-        <div class="account-menu">
-          <button type="button" class="account-avatar" id="account-avatar-btn" onclick="toggleAccountMenu()">{{ current_user.initials }}</button>
-          <div class="account-dropdown" id="account-dropdown">
-            <div class="account-dropdown-name">{{ current_user.name }} &middot; {{ 'athlete' if current_user.role == 'client' else current_user.role }}</div>
-            <div class="theme-switch-row">
-              <span>Light mode</span>
-              <button type="button" class="theme-switch" id="theme-switch" onclick="toggleTheme()" aria-label="Toggle light mode"></button>
-            </div>
-            <a class="account-dropdown-item" href="{{ url_for('change_password') }}"><i class="ti ti-lock"></i> Change password</a>
-            <a class="account-dropdown-item is-danger" href="{{ url_for('logout') }}"><i class="ti ti-logout"></i> Log out</a>
-          </div>
-        </div>
-      {% endif %}
+      {% include "_account_menu.html" %}
     </div>
   </nav>
+  {% endblock %}
 
   <div class="toast-stack" id="toast-stack">
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -63,6 +49,10 @@
   </div>
 
   <div class="nav-progress" id="nav-progress"></div>
+
+  <div class="pull-refresh" id="pull-refresh">
+    <div class="pull-refresh-spinner"><i class="ti ti-arrow-down"></i></div>
+  </div>
 
   <div class="container pb-5">
     {% block content %}{% endblock %}
@@ -139,6 +129,53 @@
       applyTheme(next);
     }
     applyTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
+  </script>
+
+  <script>
+    // Pull-to-refresh, installed-app only: a plain browser tab already has this via
+    // the OS/browser chrome, but once installed as a PWA there's no chrome left,
+    // so there's otherwise no way to force a reload short of force-quitting the app.
+    (function () {
+      var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      if (!isStandalone) return;
+
+      var el = document.getElementById('pull-refresh');
+      var THRESHOLD = 64;
+      var startY = null;
+      var pulling = false;
+      var ready = false;
+
+      document.addEventListener('touchstart', function (e) {
+        if (window.scrollY > 0) { startY = null; return; }
+        startY = e.touches[0].clientY;
+        pulling = true;
+        ready = false;
+      }, {passive: true});
+
+      document.addEventListener('touchmove', function (e) {
+        if (!pulling || startY === null) return;
+        var delta = e.touches[0].clientY - startY;
+        if (delta <= 0) { el.style.transform = ''; ready = false; el.classList.remove('is-ready'); return; }
+        var dist = Math.min(delta * 0.5, 90);
+        el.style.transform = 'translateY(' + (60 + dist) + 'px)';
+        ready = dist >= THRESHOLD;
+        el.classList.toggle('is-ready', ready);
+      }, {passive: true});
+
+      document.addEventListener('touchend', function () {
+        if (!pulling) return;
+        pulling = false;
+        if (ready) {
+          el.classList.add('is-loading');
+          el.style.transform = 'translateY(60px)';
+          location.reload();
+        } else {
+          el.style.transform = '';
+          el.classList.remove('is-ready');
+        }
+        startY = null;
+      });
+    })();
   </script>
 </body>
 </html>

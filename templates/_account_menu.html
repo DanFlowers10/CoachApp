@@ -1,0 +1,17 @@
+<a href="{{ url_for('index') }}" aria-label="Marathon Coach">
+  <span class="brand-mark"><i class="ti ti-run"></i></span>
+</a>
+{% if current_user.is_authenticated %}
+  <div class="account-menu">
+    <button type="button" class="account-avatar" id="account-avatar-btn" onclick="toggleAccountMenu()">{{ current_user.initials }}</button>
+    <div class="account-dropdown" id="account-dropdown">
+      <div class="account-dropdown-name">{{ current_user.name }} &middot; {{ 'athlete' if current_user.role == 'client' else current_user.role }}</div>
+      <div class="theme-switch-row">
+        <span>Light mode</span>
+        <button type="button" class="theme-switch" id="theme-switch" onclick="toggleTheme()" aria-label="Toggle light mode"></button>
+      </div>
+      <a class="account-dropdown-item" href="{{ url_for('change_password') }}"><i class="ti ti-lock"></i> Change password</a>
+      <a class="account-dropdown-item is-danger" href="{{ url_for('logout') }}"><i class="ti ti-logout"></i> Log out</a>
+    </div>
+  </div>
+{% endif %}

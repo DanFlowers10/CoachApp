@@ -1,5 +1,32 @@
 {% extends "base.html" %}
 {% block title %}Today{% endblock %}
+
+{% block header %}
+<nav class="app-nav {{ 'app-nav-merged' if current_week else '' }} mb-4">
+  <div class="container py-2">
+    <div class="d-flex align-items-center justify-content-between">
+      {% include "_account_menu.html" %}
+    </div>
+    {% if current_week %}
+      <a href="{{ url_for('plan_calendar', plan_id=plan.id) }}" class="week-selector-link">
+        <i class="ti ti-circle-dot"></i> Week {{ current_week.index }} of {{ plan.workouts|length // 7 }} <i class="ti ti-chevron-down"></i>
+      </a>
+      <div class="day-strip">
+        {% for w in current_week.workouts %}
+          {% set is_selected = selected_workout and w.id == selected_workout.id %}
+          {% set is_today = w.date == today %}
+          <a href="{{ url_for('client_dashboard') }}?day={{ w.date.isoformat() }}" class="day-strip-item">
+            <div class="day-strip-dow">{{ w.date.strftime('%a')[:1] }}</div>
+            <div class="day-strip-num {{ 'is-selected' if is_selected else '' }} {{ 'is-today-ring' if is_today and not is_selected else '' }}">{{ w.date.day }}</div>
+            <div class="day-strip-dot" style="background: {{ '#3ecf8e' if w.workout_type == 'Easy Run' else ('#e968c7' if w.workout_type == 'Tempo' else ('#9a8cf9' if w.workout_type == 'Intervals' else ('#5b9cf6' if w.workout_type == 'Long Run' else ('#ff6a55' if w.workout_type == 'Race' else 'var(--text-faint)')))) }};"></div>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</nav>
+{% endblock %}
+
 {% block content %}
 
 {% if not plan %}
@@ -8,15 +35,7 @@
 {% else %}
 
   <div class="d-flex align-items-center justify-content-between mb-3">
-    <div class="d-flex align-items-center gap-2">
-      <div class="today-avatar">{{ current_user.name[0]|upper }}</div>
-      <div>
-        <div class="fw-bold" style="font-size:1rem;">{{ plan.title }}</div>
-        {% if current_week %}
-          <a href="{{ url_for('plan_calendar', plan_id=plan.id) }}" class="small text-muted">Week {{ current_week.index }} of {{ plan.workouts|length // 7 }} &rarr;</a>
-        {% endif %}
-      </div>
-    </div>
+    <div class="fw-bold" style="font-size:1rem;">{{ plan.title }}</div>
     {% if plan_count and plan_count > 1 %}
       <a href="{{ url_for('client_plans') }}" class="small text-muted">All plans</a>
     {% endif %}
@@ -34,18 +53,6 @@
   {% endif %}
 
   {% if current_week %}
-    <div class="day-strip mb-3">
-      {% for w in current_week.workouts %}
-        {% set is_selected = selected_workout and w.id == selected_workout.id %}
-        {% set is_today = w.date == today %}
-        <a href="{{ url_for('client_dashboard') }}?day={{ w.date.isoformat() }}" class="day-strip-item">
-          <div class="day-strip-dow">{{ w.date.strftime('%a')[:1] }}</div>
-          <div class="day-strip-num {{ 'is-selected' if is_selected else '' }} {{ 'is-today-ring' if is_today and not is_selected else '' }}">{{ w.date.day }}</div>
-          <div class="day-strip-dot" style="background: {{ '#3ecf8e' if w.workout_type == 'Easy Run' else ('#e968c7' if w.workout_type == 'Tempo' else ('#9a8cf9' if w.workout_type == 'Intervals' else ('#5b9cf6' if w.workout_type == 'Long Run' else ('#ff6a55' if w.workout_type == 'Race' else 'var(--text-faint)')))) }};"></div>
-        </a>
-      {% endfor %}
-    </div>
-
     {% if selected_workout %}
       {% set w = selected_workout %}
       {% set is_long = w.workout_type == 'Long Run' %}

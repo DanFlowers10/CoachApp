@@ -77,6 +77,15 @@ p, .text-muted, .small.text-muted { color: var(--text-dim) !important; }
   z-index: 20;
 }
 
+/* Merged with the component directly below it (e.g. Today's day strip) so the
+   sticky header reads as one panel instead of a separate bar sitting on top. */
+.app-nav.app-nav-merged {
+  background: var(--bg-elevated);
+  border-radius: 0 0 var(--radius) var(--radius);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .18);
+  padding-bottom: .5rem;
+}
+
 .app-nav .brand-mark {
   width: 28px;
   height: 28px;
@@ -226,6 +235,22 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
 }
 .nav-progress.is-active { transform: scaleX(0.7); opacity: 1; }
 
+.pull-refresh {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 90;
+  display: flex; align-items: center; justify-content: center;
+  height: 60px; margin-top: -60px; pointer-events: none;
+}
+.pull-refresh-spinner {
+  width: 30px; height: 30px; border-radius: 999px; background: var(--bg-elevated);
+  border: 1px solid var(--border); box-shadow: var(--shadow);
+  display: flex; align-items: center; justify-content: center; color: var(--accent);
+  transition: transform .15s ease;
+}
+.pull-refresh-spinner i { font-size: 1rem; }
+.pull-refresh.is-ready .pull-refresh-spinner { transform: rotate(180deg); }
+.pull-refresh.is-loading .pull-refresh-spinner i { animation: pull-refresh-spin .7s linear infinite; }
+@keyframes pull-refresh-spin { to { transform: rotate(360deg); } }
+
 /* toasts */
 .toast-stack { position: fixed; top: 76px; right: 16px; z-index: 1050; display: flex; flex-direction: column; gap: .5rem; max-width: 340px; width: calc(100% - 32px); }
 .toast-item {
@@ -299,12 +324,13 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
 }
 
 /* today page */
-.today-avatar {
-  width: 34px; height: 34px; border-radius: 999px; flex: none;
-  background: #3ecf8e; color: #0d0d11; font-weight: 800; font-size: .95rem;
-  display: flex; align-items: center; justify-content: center;
+.week-selector-link {
+  display: flex; align-items: center; gap: .35rem; font-size: .85rem; font-weight: 800;
+  color: var(--text); margin-top: .6rem;
 }
-.day-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.week-selector-link i:first-child { color: var(--success); font-size: .95rem; }
+.week-selector-link i:last-child { color: var(--text-faint); font-size: .8rem; }
+.day-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-top: .5rem; }
 .day-strip-item { display: flex; flex-direction: column; align-items: center; padding: .3rem 0; text-decoration: none; }
 .day-strip-dow { font-size: .68rem; font-weight: 700; color: var(--text-faint); }
 .day-strip-num {
