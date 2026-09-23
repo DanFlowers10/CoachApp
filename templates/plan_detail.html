@@ -22,28 +22,20 @@
 {% if plan.goal_race %}<p class="text-muted mb-3">Goal: {{ plan.goal_race }}</p>{% endif %}
 {% if plan.notes %}<p class="mb-3">{{ plan.notes }}</p>{% endif %}
 
-<div class="stat-row">
-  <div class="stat-tile card-surface">
-    <div class="stat-label">Progress</div>
-    <div class="stat-value accent">{{ percent_complete }}%</div>
+{% if weeks %}
+<div class="card-surface plan-progress-card mb-4">
+  <div class="plan-progress-head">
+    <span class="plan-progress-label">Week {{ current_week_index }} of {{ weeks|length }}</span>
+    <span class="plan-progress-total accent">{{ percent_complete }}%</span>
   </div>
-  <div class="stat-tile card-surface">
-    <div class="stat-label">Workouts done</div>
-    <div class="stat-value">{{ done_workouts }}<span class="text-muted" style="font-size:1rem;"> / {{ total_workouts }}</span></div>
+  <div class="plan-week-segments">
+    {% for wk in weeks %}
+      <div class="plan-week-segment {{ 'is-done' if wk.done == wk.total else ('is-current' if wk.index == current_week_index else '') }}"></div>
+    {% endfor %}
   </div>
-  <div class="stat-tile card-surface">
-    <div class="stat-label">Planned distance</div>
-    <div class="stat-value">{{ total_km|round(0, 'floor')|int }}<span class="text-muted" style="font-size:1rem;"> mi</span></div>
-  </div>
-  <div class="stat-tile card-surface">
-    <div class="stat-label">Weeks</div>
-    <div class="stat-value">{{ weeks|length }}</div>
-  </div>
+  <div class="plan-progress-sub">{{ done_workouts }}/{{ total_workouts }} workouts done &middot; {{ total_km|round(0, 'floor')|int }} mi planned</div>
 </div>
-
-<div class="progress-track mb-4">
-  <div class="progress-fill" style="width: {{ percent_complete }}%;"></div>
-</div>
+{% endif %}
 
 {% if not weeks %}
   <p class="text-muted">No workouts added yet.</p>
@@ -158,7 +150,7 @@
         {% set icon = 'ti-flag' if is_race else ('ti-mountain' if is_long else ('ti-bolt' if (is_tempo or is_intervals) else ('ti-moon' if is_rest else 'ti-run'))) %}
         {% set icon_class = 'type-race' if is_race else ('type-long' if is_long else ('type-tempo' if is_tempo else ('type-intervals' if is_intervals else ('type-rest' if is_rest else 'type-easy')))) %}
         {% set status = 'done' if w.completed else ('today' if w.date == today else ('missed' if w.date < today else 'upcoming')) %}
-        <div class="workout-card {{ 'is-done' if status == 'done' else '' }} {{ 'is-today' if status == 'today' else '' }} {{ 'is-missed' if status == 'missed' else '' }}" id="workout-{{ w.id }}">
+        <div class="workout-card {{ icon_class }} {{ 'is-done' if status == 'done' else '' }} {{ 'is-today' if status == 'today' else '' }} {{ 'is-missed' if status == 'missed' else '' }}" id="workout-{{ w.id }}">
           <div class="workout-icon {{ icon_class }}"><i class="ti {{ icon }}"></i></div>
           <div class="workout-main">
             <div class="w-type">{{ w.workout_type }} &middot; <span class="text-muted" style="font-weight:600;">{{ w.date.strftime('%a %d %b') }}</span>{% if w.strava_activity_id %}<span class="strava-tag" title="Auto-synced from Strava"><i class="ti ti-brand-strava"></i> Strava</span>{% endif %}</div>

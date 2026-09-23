@@ -288,6 +288,18 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
 .progress-fill { height: 100%; background: var(--accent-grad); border-radius: 999px; transition: width .6s cubic-bezier(.4,0,.2,1); animation: bar-fill .9s cubic-bezier(.4,0,.2,1) both; }
 @keyframes bar-fill { from { width: 0; } }
 
+/* plan progress card: one segment per week, colored by status */
+.plan-progress-card { border-radius: var(--radius); padding: 1rem 1.1rem; }
+.plan-progress-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: .65rem; }
+.plan-progress-label { font-size: .82rem; color: var(--text-dim); font-weight: 600; }
+.plan-progress-total { font-size: 1.3rem; font-weight: 800; }
+.plan-progress-total.accent { background: var(--accent-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.plan-week-segments { display: flex; gap: 3px; }
+.plan-week-segment { flex: 1; height: 6px; border-radius: 999px; background: var(--border); }
+.plan-week-segment.is-done { background: var(--success); }
+.plan-week-segment.is-current { background: var(--accent); }
+.plan-progress-sub { font-size: .78rem; color: var(--text-faint); font-weight: 600; margin-top: .6rem; }
+
 /* ---------- plan / weeks ---------- */
 .week-card { border-radius: var(--radius); margin-bottom: .9rem; overflow: hidden; }
 .week-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; cursor: pointer; user-select: none; }
@@ -306,11 +318,20 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
 
 .workout-card {
   border-radius: var(--radius-sm);
-  padding: .85rem 1rem;
+  padding: .85rem 1rem .85rem 1.2rem;
   display: flex;
   align-items: center;
   gap: .85rem;
+  position: relative;
+  overflow: hidden;
 }
+.workout-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--text-faint); }
+.workout-card.type-easy::before { background: #3ecf8e; }
+.workout-card.type-tempo::before { background: #e968c7; }
+.workout-card.type-intervals::before { background: #9a8cf9; }
+.workout-card.type-long::before { background: #5b9cf6; }
+.workout-card.type-race::before { background: #ff6a55; }
+.workout-card.type-rest::before { background: var(--text-faint); }
 .workout-card.is-today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .workout-card.is-done { opacity: .7; }
 .workout-card.is-missed { border-color: var(--danger); }
