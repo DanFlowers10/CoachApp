@@ -27,7 +27,7 @@
   <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css" rel="stylesheet">
   <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 </head>
-<body class="{{ 'has-bottom-nav' if current_user.is_authenticated and not current_user.is_coach() else '' }}">
+<body class="{{ 'has-bottom-nav' if current_user.is_authenticated and not current_user.is_coach() else '' }}" {% block body_attrs %}{% endblock %}>
   <div class="toast-stack" id="toast-stack">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}
@@ -139,7 +139,7 @@
     // and the content dims slightly while it refreshes, matching Runna's pattern.
     (function () {
       var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-      if (!isStandalone) return;
+      if (!isStandalone || document.body.hasAttribute('data-no-pull-refresh')) return;
 
       var gap = document.getElementById('pull-refresh-gap');
       var content = document.getElementById('page-content');

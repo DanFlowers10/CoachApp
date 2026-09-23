@@ -461,7 +461,6 @@ def plan_detail(plan_id):
     _attach_comparisons(workouts)
 
     weeks = _plan_weeks(workouts)
-    months = _plan_months(workouts)
 
     total_workouts = len(workouts)
     done_workouts = sum(1 for w in workouts if w.completed)
@@ -474,12 +473,6 @@ def plan_detail(plan_id):
             current_week_index = wk["index"]
             break
 
-    current_month_label = None
-    current_week = next((wk for wk in weeks if wk["index"] == current_week_index), None)
-    if current_week:
-        current_month_label = date(current_week["start"].year, current_week["start"].month, 1).strftime("%B %Y")
-    current_month = next((m for m in months if m["label"] == current_month_label), months[0] if months else None)
-
     weeks_done_count = sum(1 for wk in weeks if wk["done"] == wk["total"])
     race_workout = next((w for w in workouts if w.workout_type == "Race"), None)
     race_time_estimates = _estimate_race_times(workouts, race_workout.date if race_workout else None, today)
@@ -489,7 +482,6 @@ def plan_detail(plan_id):
         plan=plan,
         today=today,
         weeks=weeks,
-        current_month=current_month,
         total_workouts=total_workouts,
         done_workouts=done_workouts,
         percent_complete=percent_complete,

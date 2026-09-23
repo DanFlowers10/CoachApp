@@ -1,11 +1,24 @@
 {% extends "base.html" %}
 {% block title %}{{ plan.title }}{% endblock %}
+{% block body_attrs %}data-no-pull-refresh{% endblock %}
+
+{% block header %}
+<nav class="app-nav mb-4">
+  <div class="container py-2">
+    <div class="d-flex align-items-center justify-content-between position-relative">
+      {% include "_account_menu.html" %}
+      <span class="page-title-badge position-absolute top-50 start-50 translate-middle">
+        <i class="ti ti-clipboard-list"></i> Your Plan
+      </span>
+    </div>
+  </div>
+</nav>
+{% endblock %}
+
 {% block content %}
 
 {% if current_user.is_coach() %}
-  <a href="{{ url_for('client_detail', client_id=plan.client_id) }}" class="small">&larr; Back to {{ plan.client.name }}</a>
-{% else %}
-  <a href="{{ url_for('client_dashboard') }}" class="small">&larr; Today</a>
+  <a href="{{ url_for('client_detail', client_id=plan.client_id) }}" class="small d-block mb-2">&larr; Back to {{ plan.client.name }}</a>
 {% endif %}
 
 <div class="card-surface plan-hero-card mt-2 mb-3">
@@ -21,7 +34,6 @@
   {% if race_workout %}
     <div class="plan-hero-race">Your race: <strong>{{ race_workout.date.strftime('%d %b %Y') }}</strong></div>
   {% endif %}
-  {% if plan.notes %}<p class="mb-0 mt-2 small text-muted">{{ plan.notes }}</p>{% endif %}
 
   {% if weeks %}
     <div class="plan-week-segments mt-3">
@@ -102,79 +114,20 @@
   </div>
 {% endif %}
 
-{% if current_month %}
-  <div class="cal-month card-surface">
-    <a class="cal-month-header" href="{{ url_for('plan_calendar', plan_id=plan.id) }}" title="View the full plan calendar">
-      <h5 class="mb-0">{{ current_month.label }}</h5>
-      <span class="cal-month-link">Full plan calendar &rarr;</span>
-    </a>
-    <div class="cal-grid cal-grid-detailed mt-3">
-      <div class="cal-dow">Mon</div>
-      <div class="cal-dow">Tue</div>
-      <div class="cal-dow">Wed</div>
-      <div class="cal-dow">Thu</div>
-      <div class="cal-dow">Fri</div>
-      <div class="cal-dow">Sat</div>
-      <div class="cal-dow">Sun</div>
-      {% for wk in current_month.weeks %}
-        {% for cell in wk.days %}
-          {% if not cell.in_month %}
-            <div class="cal-cell cal-empty"></div>
-          {% elif cell.workout %}
-            {% set w = cell.workout %}
-            {% set is_long = w.workout_type == 'Long Run' %}
-            {% set is_tempo = w.workout_type == 'Tempo' %}
-            {% set is_intervals = w.workout_type == 'Intervals' %}
-            {% set is_race = w.workout_type == 'Race' %}
-            {% set is_rest = w.workout_type == 'Rest' %}
-            {% set icon = 'ti-flag' if is_race else ('ti-mountain' if is_long else ('ti-bolt' if (is_tempo or is_intervals) else ('ti-moon' if is_rest else 'ti-run'))) %}
-            {% set icon_color = 'cal-icon-long' if is_long else ('cal-icon-tempo' if is_tempo else ('cal-icon-intervals' if is_intervals else ('cal-icon-rest' if is_rest else ('cal-icon-easy' if not is_race else '')))) %}
-            {% set status = 'done' if w.completed else ('today' if w.date == today else ('missed' if w.date < today else 'upcoming')) %}
-            <div class="cal-cell cal-status-{{ status }} {{ 'cal-race' if is_race else '' }}"
-                 data-jump-to-workout="{{ w.id }}"
-                 title="{{ w.workout_type }}{% if w.target_distance_km %} - {{ w.target_distance_km }}mi{% endif %}{% if w.description %} - {{ w.description }}{% endif %}">
-              {% if w.strava_activity_id %}<div class="cal-strava-badge" title="Auto-synced from Strava"><i class="ti ti-brand-strava"></i></div>{% endif %}
-              <div class="cal-daynum">{{ cell.date.day }}</div>
-              <div class="cal-icon {{ icon_color }}"><i class="ti {{ icon }}"></i></div>
-              <div class="cal-type">{{ w.workout_type }}</div>
-              {% if w.target_distance_km %}<div class="cal-dist">{{ w.target_distance_km }}mi{% if w.target_duration_min %} &middot; {{ w.target_duration_min }} min{% endif %}</div>{% endif %}
-              {% if w.description %}<div class="cal-desc">{{ w.description }}</div>{% endif %}
-            </div>
-          {% else %}
-            <div class="cal-cell">
-              <div class="cal-daynum">{{ cell.date.day }}</div>
-            </div>
-          {% endif %}
-        {% endfor %}
-        {% if wk.planned_mi %}
-          <div class="cal-week-summary">
-            <span>Week total</span>
-            <span class="cal-week-summary-figs">
-              {% if wk.actual_mi is not none %}<strong>{{ wk.actual_mi }}</strong> / {% endif %}{{ wk.planned_mi }} mi
-            </span>
-          </div>
-        {% endif %}
-      {% endfor %}
-    </div>
-  </div>
-{% endif %}
 {% endif %}
 
 {% for wk in weeks %}
-  <div class="week-card card-surface {{ '' if wk.index == current_week_index else 'collapsed' }}" data-week id="week-{{ wk.index }}">
-    <div class="week-header" data-week-toggle>
-      <div class="flex-grow-1">
-        <div class="week-meta">{{ wk.start.strftime('%d %b') }} &ndash; {{ wk.end.strftime('%d %b') }}</div>
-        <div class="week-title">Week {{ wk.index }}</div>
-        <div class="week-progress-segments">
-          {% for w in wk.workouts %}
-            {% set wstatus = 'done' if w.completed else ('today' if w.date == today else ('missed' if w.date < today else 'upcoming')) %}
-            <div class="week-progress-segment is-{{ wstatus }}"></div>
-          {% endfor %}
-        </div>
-        <div class="week-progress-sub">Total Workouts: {{ wk.total }} &middot; Distance: {{ wk.planned_mi }}mi</div>
+  <div class="week-card" id="week-{{ wk.index }}">
+    <div class="week-header">
+      <div class="week-meta">{{ wk.start.strftime('%d %b').upper() }} - {{ wk.end.strftime('%d %b').upper() }}</div>
+      <div class="week-title">Week {{ wk.index }}</div>
+      <div class="week-progress-segments">
+        {% for w in wk.workouts %}
+          {% set wstatus = 'done' if w.completed else ('today' if w.date == today else ('missed' if w.date < today else 'upcoming')) %}
+          <div class="week-progress-segment is-{{ wstatus }}"></div>
+        {% endfor %}
       </div>
-      <span class="chevron">&#9660;</span>
+      <div class="week-progress-sub">Total Workouts: {{ wk.total }}<br>Distance: {{ wk.planned_mi }}mi</div>
     </div>
     <div class="week-body">
       {% for w in wk.workouts %}
@@ -190,7 +143,6 @@
           <div class="workout-row-mini-text">
             <span class="fw-bold">{{ w.workout_type }}</span>{% if w.target_distance_km %}<span class="text-muted"> &middot; {{ w.target_distance_km }}mi</span>{% endif %}{% if w.strava_activity_id %}<i class="ti ti-brand-strava" title="Auto-synced from Strava" style="color:#fc4c02;font-size:.8rem;margin-left:.35rem;"></i>{% endif %}
           </div>
-          <div class="sheet-check {{ 'is-done' if w.completed else '' }}"></div>
         </a>
       {% endfor %}
     </div>
@@ -257,12 +209,6 @@
 {% endif %}
 
 <script>
-document.querySelectorAll('[data-week-toggle]').forEach(function (header) {
-  header.addEventListener('click', function () {
-    header.closest('[data-week]').classList.toggle('collapsed');
-  });
-});
-
 document.querySelectorAll('[data-race-times-toggle]').forEach(function (header) {
   header.addEventListener('click', function () {
     header.closest('[data-race-times]').classList.toggle('collapsed');
@@ -272,11 +218,10 @@ document.querySelectorAll('[data-race-times-toggle]').forEach(function (header) 
 function jumpToWorkout(workoutId, smooth) {
   var card = document.getElementById('workout-' + workoutId);
   if (!card) return;
-  var week = card.closest('[data-week]');
-  if (week) week.classList.remove('collapsed');
 
   // Scroll so the whole week is visible (not just this one card centered),
   // offset below the sticky nav so the week header isn't hidden under it.
+  var week = card.closest('.week-card');
   var target = week || card;
   var nav = document.querySelector('.app-nav');
   var navHeight = nav ? nav.offsetHeight : 0;
@@ -289,16 +234,9 @@ function jumpToWorkout(workoutId, smooth) {
   setTimeout(function () { card.classList.remove('jump-highlight'); }, 2000);
 }
 
-document.querySelectorAll('[data-jump-to-workout]').forEach(function (cell) {
-  cell.addEventListener('click', function () {
-    jumpToWorkout(cell.dataset.jumpToWorkout, true);
-  });
-});
-
 function jumpToWeek(weekIndex, smooth) {
   var week = document.getElementById('week-' + weekIndex);
   if (!week) return;
-  week.classList.remove('collapsed');
 
   var nav = document.querySelector('.app-nav');
   var navHeight = nav ? nav.offsetHeight : 0;
@@ -312,8 +250,8 @@ function jumpToWeek(weekIndex, smooth) {
 }
 
 // Coming from the full calendar page (a #workout-N link) or Today's "View full week"
-// (a #week-N link): expand the right week and jump to it. Deferred to 'load' so it runs
-// after the browser's own (top-aligned) fragment scroll, otherwise that native jump fires
+// (a #week-N link): scroll to it and highlight it. Deferred to 'load' so it runs after
+// the browser's own (top-aligned) fragment scroll, otherwise that native jump fires
 // afterwards and undoes this one.
 if (location.hash.startsWith('#workout-')) {
   var hashWorkoutId = location.hash.replace('#workout-', '');
