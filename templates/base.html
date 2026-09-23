@@ -28,14 +28,6 @@
   <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 </head>
 <body class="{{ 'has-bottom-nav' if current_user.is_authenticated and not current_user.is_coach() else '' }}">
-  {% block header %}
-  <nav class="app-nav mb-4">
-    <div class="container py-2 d-flex align-items-center justify-content-between">
-      {% include "_account_menu.html" %}
-    </div>
-  </nav>
-  {% endblock %}
-
   <div class="toast-stack" id="toast-stack">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}
@@ -54,8 +46,18 @@
     <div class="pull-refresh-spinner"><i class="ti ti-arrow-down" id="pull-refresh-icon"></i></div>
   </div>
 
-  <div class="container pb-5">
-    {% block content %}{% endblock %}
+  <div id="page-scroll-wrap">
+    {% block header %}
+    <nav class="app-nav mb-4">
+      <div class="container py-2 d-flex align-items-center justify-content-between">
+        {% include "_account_menu.html" %}
+      </div>
+    </nav>
+    {% endblock %}
+
+    <div class="container pb-5">
+      {% block content %}{% endblock %}
+    </div>
   </div>
 
   {% include "_athlete_nav.html" %}
@@ -140,7 +142,10 @@
       if (!isStandalone) return;
 
       var el = document.getElementById('pull-refresh');
-      var THRESHOLD = 64;
+      var wrap = document.getElementById('page-scroll-wrap');
+      var DEADZONE = 16;
+      var THRESHOLD = 110;
+      var MAX_PULL = 140;
       var startY = null;
       var pulling = false;
       var ready = false;
@@ -150,14 +155,15 @@
         startY = e.touches[0].clientY;
         pulling = true;
         ready = false;
+        wrap.style.transition = 'none';
       }, {passive: true});
 
       document.addEventListener('touchmove', function (e) {
         if (!pulling || startY === null) return;
-        var delta = e.touches[0].clientY - startY;
-        if (delta <= 0) { el.style.transform = ''; ready = false; el.classList.remove('is-ready'); return; }
-        var dist = Math.min(delta * 0.5, 90);
-        el.style.transform = 'translateY(' + (60 + dist) + 'px)';
+        var delta = e.touches[0].clientY - startY - DEADZONE;
+        if (delta <= 0) { wrap.style.transform = ''; ready = false; el.classList.remove('is-ready'); return; }
+        var dist = Math.min(delta * 0.35, MAX_PULL);
+        wrap.style.transform = 'translateY(' + dist + 'px)';
         ready = dist >= THRESHOLD;
         el.classList.toggle('is-ready', ready);
       }, {passive: true});
@@ -165,14 +171,15 @@
       document.addEventListener('touchend', function () {
         if (!pulling) return;
         pulling = false;
+        wrap.style.transition = 'transform .2s cubic-bezier(.2,.8,.2,1)';
         if (ready) {
           var icon = document.getElementById('pull-refresh-icon');
           if (icon) icon.className = 'ti ti-loader-2';
           el.classList.add('is-loading');
-          el.style.transform = 'translateY(60px)';
+          wrap.style.transform = 'translateY(' + THRESHOLD + 'px)';
           location.reload();
         } else {
-          el.style.transform = '';
+          wrap.style.transform = '';
           el.classList.remove('is-ready');
         }
         startY = null;
