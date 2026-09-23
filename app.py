@@ -87,6 +87,13 @@ def index():
     return redirect(url_for("login"))
 
 
+@app.route("/service-worker.js")
+def service_worker():
+    # Served from the root (not /static/) so its default scope covers the whole
+    # app - a service worker registered from /static/ only controls that folder.
+    return app.send_static_file("service-worker.js")
+
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     """Coach self-signup. Clients are created by their coach, not here."""
