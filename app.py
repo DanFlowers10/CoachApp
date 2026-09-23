@@ -690,18 +690,37 @@ def client_dashboard():
         if wk["end"] >= today and wk["done"] < wk["total"]:
             current_week_index = wk["index"]
             break
+
+    # ?week=N lets the week picker (or a swipe) jump to any week, overriding the
+    # auto-detected "current" one.
+    week_str = request.args.get("week")
+    if week_str and week_str.isdigit() and weeks and 1 <= int(week_str) <= len(weeks):
+        current_week_index = int(week_str)
     current_week = next((wk for wk in weeks if wk["index"] == current_week_index), None)
 
     selected_str = request.args.get("day")
-    selected_date = date.fromisoformat(selected_str) if selected_str else today
+    selected_date = date.fromisoformat(selected_str) if selected_str else None
+
+    # ?dow=0-6 keeps the same weekday position when the week changes via the
+    # picker or a swipe (e.g. Wednesday stays selected, just in the new week).
+    dow_str = request.args.get("dow")
 
     selected_workout = None
     if current_week:
-        selected_workout = next((w for w in current_week["workouts"] if w.date == selected_date), None)
+        if selected_date:
+            selected_workout = next((w for w in current_week["workouts"] if w.date == selected_date), None)
+        if selected_workout is None and dow_str and dow_str.isdigit():
+            dow = int(dow_str)
+            if 0 <= dow < len(current_week["workouts"]):
+                selected_workout = current_week["workouts"][dow]
         if selected_workout is None:
             selected_workout = next((w for w in current_week["workouts"] if w.date == today), None)
         if selected_workout is None and current_week["workouts"]:
             selected_workout = current_week["workouts"][0]
+
+    selected_dow = 0
+    if current_week and selected_workout:
+        selected_dow = current_week["workouts"].index(selected_workout)
 
     plan_count = TrainingPlan.query.filter_by(client_id=current_user.id).count()
 
@@ -709,8 +728,10 @@ def client_dashboard():
         "today.html",
         plan=plan,
         today=today,
+        weeks=weeks,
         current_week=current_week,
         selected_workout=selected_workout,
+        selected_dow=selected_dow,
         plan_count=plan_count,
     )
 

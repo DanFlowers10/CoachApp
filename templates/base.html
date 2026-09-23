@@ -51,7 +51,7 @@
   <div class="nav-progress" id="nav-progress"></div>
 
   <div class="pull-refresh" id="pull-refresh">
-    <div class="pull-refresh-spinner"><i class="ti ti-arrow-down"></i></div>
+    <div class="pull-refresh-spinner"><i class="ti ti-arrow-down" id="pull-refresh-icon"></i></div>
   </div>
 
   <div class="container pb-5">
@@ -166,6 +166,8 @@
         if (!pulling) return;
         pulling = false;
         if (ready) {
+          var icon = document.getElementById('pull-refresh-icon');
+          if (icon) icon.className = 'ti ti-loader-2';
           el.classList.add('is-loading');
           el.style.transform = 'translateY(60px)';
           location.reload();
