@@ -4,15 +4,15 @@
 {% block header %}
 <nav class="app-nav {{ 'app-nav-merged' if current_week else '' }} mb-4">
   <div class="container py-2">
-    <div class="d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center justify-content-between position-relative">
       {% include "_account_menu.html" %}
-    </div>
-    {% if current_week %}
-      <div class="d-flex justify-content-center">
-        <button type="button" class="week-selector-link" onclick="document.getElementById('week-picker-sheet').classList.add('is-open')">
+      {% if current_week %}
+        <button type="button" class="week-selector-link position-absolute top-50 start-50 translate-middle" onclick="document.getElementById('week-picker-sheet').classList.add('is-open')">
           <i class="ti ti-circle-dot"></i> Week {{ current_week.index }} of {{ weeks|length }} <i class="ti ti-chevron-down"></i>
         </button>
-      </div>
+      {% endif %}
+    </div>
+    {% if current_week %}
       <div class="day-strip" id="day-strip">
         {% for w in current_week.workouts %}
           {% set is_selected = selected_workout and w.id == selected_workout.id %}
