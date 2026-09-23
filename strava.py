@@ -11,6 +11,7 @@ AUTHORIZE_URL = "https://www.strava.com/oauth/authorize"
 TOKEN_URL = "https://www.strava.com/oauth/token"
 DEAUTHORIZE_URL = "https://www.strava.com/oauth/deauthorize"
 ACTIVITIES_URL = "https://www.strava.com/api/v3/athlete/activities"
+ACTIVITY_URL = "https://www.strava.com/api/v3/activities"
 
 
 def get_authorize_url(client_id, redirect_uri, state=""):
@@ -76,6 +77,16 @@ def deauthorize(access_token):
         timeout=10,
     )
     resp.raise_for_status()
+
+
+def fetch_activity(access_token, activity_id):
+    resp = requests.get(
+        f"{ACTIVITY_URL}/{activity_id}",
+        headers={"Authorization": f"Bearer {access_token}"},
+        timeout=10,
+    )
+    resp.raise_for_status()
+    return resp.json()
 
 
 def fetch_recent_activities(access_token, per_page=15):

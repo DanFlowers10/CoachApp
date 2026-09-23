@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Link a Strava activity{% endblock %}
+{% block content %}
+
+<a href="{{ url_for('workout_detail', workout_id=workout.id) }}" class="small d-block mb-3">&larr; {{ workout.workout_type }}</a>
+<h2 class="mb-1">Link a Strava activity</h2>
+<p class="text-muted mb-4">Pick the run that matches {% if workout.target_distance_km %}your {{ workout.target_distance_km }}mi {% endif %}{{ workout.workout_type|lower }} on {{ workout.date.strftime('%A %d %b') }}.</p>
+
+{% if not activities %}
+  <p class="text-muted">No recent runs found on Strava.</p>
+{% else %}
+  <div class="d-flex flex-column gap-2">
+    {% for a in activities %}
+      <form method="post" action="{{ url_for('link_strava_activity', workout_id=workout.id, activity_id=a.id) }}">
+        <button type="submit" class="link-activity-row">
+          <div class="strava-link-icon"><i class="ti ti-brand-strava"></i></div>
+          <div class="flex-grow-1 text-start">
+            <div class="fw-bold small">{{ a.name }}</div>
+            <div class="small text-muted">
+              {{ (a.distance / 1609.34)|round(1) }} mi &middot;
+              {{ (a.moving_time // 60) }} min &middot;
+              {{ a.start_date_local[:10] }}
+            </div>
+          </div>
+          <i class="ti ti-chevron-right text-muted"></i>
+        </button>
+      </form>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% endblock %}

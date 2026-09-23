@@ -60,26 +60,26 @@
 
       <div class="today-focus-card mb-3">
         <div class="workout-icon {{ icon_class }}"><i class="ti {{ icon }}"></i></div>
-        <div class="flex-grow-1">
+        <a href="{{ url_for('workout_detail', workout_id=w.id) }}" class="flex-grow-1 text-reset text-decoration-none">
           <div class="d-flex justify-content-between align-items-start gap-2">
             <div>
               <div class="fw-bold" style="font-size:1.05rem;">{% if w.target_distance_km %}{{ w.target_distance_km }}mi {% endif %}{{ w.workout_type }}{% if w.strava_activity_id %}<span class="strava-tag" title="Auto-synced from Strava"><i class="ti ti-brand-strava"></i> Strava</span>{% endif %}</div>
               <div class="small text-muted">{{ w.date.strftime('%A %d %b') }}{% if w.target_duration_min %} &middot; {{ w.target_duration_min }} min{% endif %}</div>
             </div>
-            {% if w.completed %}
-              <span class="status-pill done">done</span>
-            {% elif not current_user.is_coach() %}
-              <form method="post" action="{{ url_for('complete_workout', workout_id=w.id) }}">
-                <button class="btn btn-sm btn-accent">Mark done</button>
-              </form>
-            {% endif %}
           </div>
           {% if w.description %}<div class="today-focus-desc mt-2">{{ w.description }}</div>{% endif %}
-        </div>
+        </a>
+        {% if w.completed %}
+          <span class="status-pill done">done</span>
+        {% elif not current_user.is_coach() %}
+          <form method="post" action="{{ url_for('complete_workout', workout_id=w.id) }}">
+            <button class="btn btn-sm btn-accent">Mark done</button>
+          </form>
+        {% endif %}
       </div>
     {% endif %}
 
-    <div class="card-surface" style="border-radius: var(--radius); padding: 1rem 1.1rem;">
+    <button type="button" class="card-surface w-100 text-start" style="border-radius: var(--radius); padding: 1rem 1.1rem;" onclick="document.getElementById('week-overview-sheet').classList.add('is-open')">
       <div class="fw-bold mb-2" style="font-size:.9rem;">Week {{ current_week.index }} overview</div>
       <div class="week-mini-bars mb-2">
         {% for w in current_week.workouts %}
@@ -89,6 +89,43 @@
       <div class="d-flex justify-content-between small text-muted">
         <span>Workouts: <strong class="text-reset">{{ current_week.done }}/{{ current_week.total }}</strong></span>
         <span>Distance: <strong class="text-reset">{{ current_week.actual_mi or 0 }}/{{ current_week.planned_mi }}mi</strong></span>
+      </div>
+    </button>
+
+    <div class="bottom-sheet-backdrop" id="week-overview-sheet" onclick="if (event.target === this) this.classList.remove('is-open')">
+      <div class="bottom-sheet">
+        <div class="bottom-sheet-handle"></div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span class="fw-bold" style="font-size:.95rem;">Week {{ current_week.index }} overview</span>
+          <button type="button" class="btn-icon" onclick="document.getElementById('week-overview-sheet').classList.remove('is-open')" aria-label="Close"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="bottom-sheet-body">
+          <div class="week-mini-bars mb-2">
+            {% for w in current_week.workouts %}
+              <div class="week-mini-bar {{ 'is-done' if w.completed else '' }}"></div>
+            {% endfor %}
+          </div>
+          <div class="d-flex justify-content-between small text-muted mb-3">
+            <span>Workouts: <strong class="text-reset">{{ current_week.done }}/{{ current_week.total }}</strong></span>
+            <span>Distance: <strong class="text-reset">{{ current_week.actual_mi or 0 }}/{{ current_week.planned_mi }}mi</strong></span>
+          </div>
+          {% for w in current_week.workouts %}
+            {% set is_long = w.workout_type == 'Long Run' %}
+            {% set is_tempo = w.workout_type == 'Tempo' %}
+            {% set is_intervals = w.workout_type == 'Intervals' %}
+            {% set is_race = w.workout_type == 'Race' %}
+            {% set is_rest = w.workout_type == 'Rest' %}
+            {% set icon_class = 'type-race' if is_race else ('type-long' if is_long else ('type-tempo' if is_tempo else ('type-intervals' if is_intervals else ('type-rest' if is_rest else 'type-easy')))) %}
+            <a href="{{ url_for('workout_detail', workout_id=w.id) }}" class="sheet-workout-row {{ icon_class }}">
+              <div class="flex-grow-1">
+                <div class="fw-bold small">{% if w.target_distance_km %}{{ w.target_distance_km }}mi {% endif %}{{ w.workout_type }}</div>
+                <div class="small text-muted">{{ w.date.strftime('%a %d %b') }}{% if w.target_duration_min %} &middot; {{ w.target_duration_min }} min{% endif %}</div>
+              </div>
+              <div class="sheet-check {{ 'is-done' if w.completed else '' }}"></div>
+            </a>
+          {% endfor %}
+        </div>
+        <a href="{{ url_for('plan_detail', plan_id=plan.id) }}#week-{{ current_week.index }}" class="btn btn-accent w-100 mt-3">View full week</a>
       </div>
     </div>
   {% else %}

@@ -311,13 +311,35 @@ document.querySelectorAll('[data-jump-to-workout]').forEach(function (cell) {
   });
 });
 
-// Coming from the full calendar page (a #workout-N link): expand its week and highlight it.
-// Deferred to 'load' so it runs after the browser's own (top-aligned) fragment scroll,
-// otherwise that native jump fires afterwards and undoes this one.
+function jumpToWeek(weekIndex, smooth) {
+  var week = document.getElementById('week-' + weekIndex);
+  if (!week) return;
+  week.classList.remove('collapsed');
+
+  var nav = document.querySelector('.app-nav');
+  var navHeight = nav ? nav.offsetHeight : 0;
+  var targetTop = week.getBoundingClientRect().top + window.pageYOffset - navHeight - 16;
+  window.scrollTo({top: Math.max(targetTop, 0), behavior: smooth ? 'smooth' : 'auto'});
+
+  week.classList.remove('jump-highlight');
+  void week.offsetWidth;
+  week.classList.add('jump-highlight');
+  setTimeout(function () { week.classList.remove('jump-highlight'); }, 2000);
+}
+
+// Coming from the full calendar page (a #workout-N link) or Today's "View full week"
+// (a #week-N link): expand the right week and jump to it. Deferred to 'load' so it runs
+// after the browser's own (top-aligned) fragment scroll, otherwise that native jump fires
+// afterwards and undoes this one.
 if (location.hash.startsWith('#workout-')) {
   var hashWorkoutId = location.hash.replace('#workout-', '');
   window.addEventListener('load', function () {
     jumpToWorkout(hashWorkoutId, false);
+  });
+} else if (location.hash.startsWith('#week-')) {
+  var hashWeekIndex = location.hash.replace('#week-', '');
+  window.addEventListener('load', function () {
+    jumpToWeek(hashWeekIndex, false);
   });
 }
 

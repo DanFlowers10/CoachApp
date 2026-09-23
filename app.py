@@ -540,6 +540,75 @@ def bulk_add_workouts(plan_id):
     return render_template("bulk_add.html", plan=plan, days=days)
 
 
+@app.route("/workout/<int:workout_id>")
+@login_required
+def workout_detail(workout_id):
+    workout = db.session.get(Workout, workout_id)
+    if workout is None:
+        abort(404)
+    if current_user.is_coach():
+        if workout.plan.coach_id != current_user.id:
+            abort(404)
+    else:
+        if workout.plan.client_id != current_user.id:
+            abort(404)
+
+    _attach_comparisons([workout])
+    return render_template("workout_detail.html", workout=workout, plan=workout.plan)
+
+
+@app.route("/workout/<int:workout_id>/link-strava")
+@login_required
+@client_required
+def link_strava_picker(workout_id):
+    workout = db.session.get(Workout, workout_id)
+    if workout is None or workout.plan.client_id != current_user.id:
+        abort(404)
+    if not current_user.strava_token:
+        flash("Connect Strava first.", "error")
+        return redirect(url_for("workout_detail", workout_id=workout_id))
+
+    access_token = strava.get_valid_access_token(current_user.strava_token, STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, db)
+    activities = [
+        a for a in strava.fetch_recent_activities(access_token, per_page=15)
+        if a.get("type") in ("Run", "TrailRun")
+    ]
+    return render_template("link_strava.html", workout=workout, activities=activities)
+
+
+@app.route("/workout/<int:workout_id>/link-strava/<activity_id>", methods=["POST"])
+@login_required
+@client_required
+def link_strava_activity(workout_id, activity_id):
+    workout = db.session.get(Workout, workout_id)
+    if workout is None or workout.plan.client_id != current_user.id:
+        abort(404)
+
+    access_token = strava.get_valid_access_token(current_user.strava_token, STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, db)
+    activity = strava.fetch_activity(access_token, activity_id)
+
+    workout.completed = True
+    workout.actual_distance_km = round(activity["distance"] / 1609.34, 1)
+    workout.actual_duration_min = round(activity["moving_time"] / 60)
+    workout.strava_activity_id = str(activity["id"])
+    db.session.commit()
+    flash("Activity linked.", "success")
+    return redirect(url_for("workout_detail", workout_id=workout_id))
+
+
+@app.route("/workout/<int:workout_id>/unlink-strava", methods=["POST"])
+@login_required
+@client_required
+def unlink_strava_activity(workout_id):
+    workout = db.session.get(Workout, workout_id)
+    if workout is None or workout.plan.client_id != current_user.id:
+        abort(404)
+    workout.strava_activity_id = None
+    db.session.commit()
+    flash("Strava activity unlinked.", "success")
+    return redirect(url_for("workout_detail", workout_id=workout_id))
+
+
 @app.route("/workout/<int:workout_id>/complete", methods=["POST"])
 @login_required
 @client_required
