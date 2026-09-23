@@ -264,23 +264,61 @@
   if (!strip) return;
   var startX = null;
   var startY = null;
+  var dragging = false;
+  var horizontal = false;
   var SWIPE_THRESHOLD = 50;
+  var prevWeek = {{ current_week.index - 1 }};
+  var nextWeek = {{ current_week.index + 1 }};
+  var maxWeek = {{ weeks|length }};
+
+  function damp(dx) {
+    var sign = dx < 0 ? -1 : 1;
+    var abs = Math.min(Math.abs(dx), 140);
+    return sign * (abs < 70 ? abs : 70 + (abs - 70) * 0.4);
+  }
 
   strip.addEventListener('touchstart', function (e) {
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
+    dragging = true;
+    horizontal = false;
+    strip.style.transition = 'none';
   }, {passive: true});
 
-  strip.addEventListener('touchend', function (e) {
-    if (startX === null) return;
-    var dx = e.changedTouches[0].clientX - startX;
-    var dy = e.changedTouches[0].clientY - startY;
-    startX = null;
-    if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy)) return;
+  strip.addEventListener('touchmove', function (e) {
+    if (!dragging) return;
+    var dx = e.touches[0].clientX - startX;
+    var dy = e.touches[0].clientY - startY;
+    if (!horizontal && Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+    if (!horizontal && Math.abs(dy) > Math.abs(dx)) { dragging = false; return; }
+    horizontal = true;
 
-    var nextWeek = dx < 0 ? {{ current_week.index + 1 }} : {{ current_week.index - 1 }};
-    if (nextWeek < 1 || nextWeek > {{ weeks|length }}) return;
-    window.location = '{{ url_for("client_dashboard") }}?week=' + nextWeek + '&dow={{ selected_dow }}';
+    var atStart = dx > 0 && prevWeek < 1;
+    var atEnd = dx < 0 && nextWeek > maxWeek;
+    var applied = (atStart || atEnd) ? dx * 0.25 : damp(dx);
+    strip.style.transform = 'translateX(' + applied + 'px)';
+    e.preventDefault();
+  }, {passive: false});
+
+  strip.addEventListener('touchend', function (e) {
+    if (!dragging) return;
+    dragging = false;
+    strip.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1)';
+    if (!horizontal) { strip.style.transform = ''; return; }
+
+    var dx = e.changedTouches[0].clientX - startX;
+    var target = dx < 0 ? nextWeek : prevWeek;
+    if (Math.abs(dx) < SWIPE_THRESHOLD || target < 1 || target > maxWeek) {
+      strip.style.transform = '';
+      return;
+    }
+
+    strip.style.transform = 'translateX(' + (dx < 0 ? '-110%' : '110%') + ')';
+    strip.style.opacity = '0';
+    document.getElementById('nav-progress').classList.add('is-active');
+    setTimeout(function () {
+      window.location = '{{ url_for("client_dashboard") }}?week=' + target + '&dow={{ selected_dow }}';
+    }, 180);
   });
 })();
 </script>

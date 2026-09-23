@@ -330,7 +330,7 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
 }
 .week-selector-link i:first-child { color: var(--success); font-size: .95rem; }
 .week-selector-link i:last-child { color: var(--text-faint); font-size: .8rem; }
-.day-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-top: .5rem; }
+.day-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-top: .5rem; touch-action: pan-y; }
 .day-strip-item { display: flex; flex-direction: column; align-items: center; padding: .3rem 0; text-decoration: none; }
 .day-strip-dow { font-size: .68rem; font-weight: 700; color: var(--text-faint); }
 .day-strip-num {
