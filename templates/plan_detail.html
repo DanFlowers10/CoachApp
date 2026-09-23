@@ -90,25 +90,8 @@
   <p class="text-muted">No workouts added yet.</p>
 {% else %}
 
-<div class="cal-legend mb-3">
-  <span><span class="cal-dot done"></span>Done</span>
-  <span><span class="cal-dot today"></span>Today</span>
-  <span><span class="cal-dot missed"></span>Missed</span>
-  <span><span class="cal-dot upcoming"></span>Upcoming</span>
-  <span><span class="cal-dot race"></span>Race day</span>
-  {% if not current_user.is_coach() and current_user.strava_token %}
-    <span><span class="cal-dot strava"></span>Auto-synced from Strava</span>
-  {% endif %}
-</div>
-
-{% if not current_user.is_coach() and not current_user.strava_token %}
-  <div class="connect-prompt mb-3">
-    <a href="{{ url_for('strava_connect') }}">Connect Strava</a> to auto-complete matching workouts from your runs.
-  </div>
-{% endif %}
-
 {% if not current_user.is_coach() and current_user.strava_token %}
-  <div class="strava-sync-banner" id="strava-sync-banner" style="display:none;">
+  <div class="strava-sync-banner mb-3" id="strava-sync-banner" style="display:none;">
     <div class="shim strava-sync-shim"></div>
     <span>Syncing with Strava&hellip;</span>
   </div>
@@ -117,25 +100,25 @@
 {% endif %}
 
 {% for wk in weeks %}
+  {% set active_workouts = wk.workouts | rejectattr('workout_type', 'equalto', 'Rest') | list %}
   <div class="week-card" id="week-{{ wk.index }}">
     <div class="week-header">
       <div class="week-meta">{{ wk.start.strftime('%d %b').upper() }} - {{ wk.end.strftime('%d %b').upper() }}</div>
       <div class="week-title">Week {{ wk.index }}</div>
       <div class="week-progress-segments">
-        {% for w in wk.workouts %}
+        {% for w in active_workouts %}
           <div class="week-progress-segment {{ 'is-done' if w.completed else '' }}"></div>
         {% endfor %}
       </div>
-      <div class="week-progress-sub">Total Workouts: {{ wk.total }}<br>Distance: {{ wk.planned_mi }}mi</div>
+      <div class="week-progress-sub">Total Workouts: {{ active_workouts|length }}<br>Distance: {{ wk.planned_mi }}mi</div>
     </div>
     <div class="week-body">
-      {% for w in wk.workouts %}
+      {% for w in active_workouts %}
         {% set is_long = w.workout_type == 'Long Run' %}
         {% set is_tempo = w.workout_type == 'Tempo' %}
         {% set is_intervals = w.workout_type == 'Intervals' %}
         {% set is_race = w.workout_type == 'Race' %}
-        {% set is_rest = w.workout_type == 'Rest' %}
-        {% set icon_class = 'type-race' if is_race else ('type-long' if is_long else ('type-tempo' if is_tempo else ('type-intervals' if is_intervals else ('type-rest' if is_rest else 'type-easy')))) %}
+        {% set icon_class = 'type-race' if is_race else ('type-long' if is_long else ('type-tempo' if is_tempo else ('type-intervals' if is_intervals else 'type-easy'))) %}
         <div class="workout-row-mini {{ 'is-done' if w.completed else '' }}" id="workout-{{ w.id }}">
           <div class="workout-row-mini-swatch {{ icon_class }}"></div>
           <div class="workout-row-mini-dow">{{ w.date.strftime('%a') }}</div>
@@ -188,22 +171,6 @@
       <button class="btn btn-sm btn-accent">Add</button>
     </div>
   </form>
-</div>
-{% endif %}
-
-{% if not current_user.is_coach() %}
-<div class="card-surface mt-4" style="border-radius: var(--radius); padding: 1.25rem;">
-  <h5 class="mb-2">Strava</h5>
-  {% if current_user.strava_token %}
-    <p class="small text-muted mb-2">Strava connected.</p>
-    <a href="{{ url_for('strava_activities') }}" class="btn btn-outline-success btn-sm">View recent Strava activities</a>
-    <form method="post" action="{{ url_for('strava_disconnect') }}" class="d-inline" onsubmit="return confirm('Disconnect Strava?');">
-      <button type="submit" class="btn btn-outline-danger btn-sm">Disconnect Strava</button>
-    </form>
-  {% else %}
-    <a href="{{ url_for('strava_connect') }}" class="btn btn-outline-success btn-sm">Connect Strava</a>
-  {% endif %}
-  <div class="text-muted small mt-2">Garmin: coming soon &mdash; requires Garmin's approved developer program.</div>
 </div>
 {% endif %}
 

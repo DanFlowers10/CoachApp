@@ -11,6 +11,16 @@
         <button type="button" class="theme-switch" id="theme-switch" onclick="toggleTheme()" aria-label="Toggle light mode"></button>
       </div>
       <a class="account-dropdown-item" href="{{ url_for('change_password') }}"><i class="ti ti-lock"></i> Change password</a>
+      {% if not current_user.is_coach() %}
+        {% if current_user.strava_token %}
+          <a class="account-dropdown-item" href="{{ url_for('strava_activities') }}"><i class="ti ti-brand-strava"></i> Strava activities</a>
+          <form method="post" action="{{ url_for('strava_disconnect') }}" onsubmit="return confirm('Disconnect Strava?');">
+            <button type="submit" class="account-dropdown-item"><i class="ti ti-brand-strava"></i> Disconnect Strava</button>
+          </form>
+        {% else %}
+          <a class="account-dropdown-item" href="{{ url_for('strava_connect') }}"><i class="ti ti-brand-strava"></i> Connect Strava</a>
+        {% endif %}
+      {% endif %}
       <a class="account-dropdown-item is-danger" href="{{ url_for('logout') }}"><i class="ti ti-logout"></i> Log out</a>
     </div>
   </div>
