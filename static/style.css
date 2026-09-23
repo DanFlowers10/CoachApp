@@ -162,6 +162,22 @@ p, .text-muted, .small.text-muted { color: var(--text-dim) !important; }
 .alert-success { border-color: var(--success); color: var(--success); background: var(--success-bg); }
 .alert-danger { border-color: var(--danger); color: var(--danger); background: var(--danger-bg); }
 
+/* bottom nav (athlete) */
+body.has-bottom-nav .container { padding-bottom: 88px; }
+.bottom-nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  display: flex; background: var(--bg-elevated); border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.bottom-nav-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: .2rem;
+  padding: .6rem 0; color: var(--text-faint); text-decoration: none; font-size: .68rem; font-weight: 700;
+}
+.bottom-nav-item i { font-size: 1.15rem; }
+.bottom-nav-item.active { color: var(--accent); }
+.bottom-nav-item:hover { color: var(--text); }
+.bottom-nav-item.active:hover { color: var(--accent); }
+
 /* toasts */
 .toast-stack { position: fixed; top: 76px; right: 16px; z-index: 1050; display: flex; flex-direction: column; gap: .5rem; max-width: 340px; width: calc(100% - 32px); }
 .toast-item {
@@ -234,14 +250,47 @@ p, .text-muted, .small.text-muted { color: var(--text-dim) !important; }
   100% { box-shadow: 0 0 0 0 transparent; }
 }
 
+/* today page */
+.today-avatar {
+  width: 34px; height: 34px; border-radius: 999px; flex: none;
+  background: #3ecf8e; color: #0d0d11; font-weight: 800; font-size: .95rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.day-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.day-strip-item { display: flex; flex-direction: column; align-items: center; padding: .3rem 0; text-decoration: none; }
+.day-strip-dow { font-size: .68rem; font-weight: 700; color: var(--text-faint); }
+.day-strip-num {
+  width: 27px; height: 27px; border-radius: 999px; margin-top: .3rem;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .8rem; font-weight: 800; color: var(--text-dim);
+}
+.day-strip-num.is-selected { background: var(--text); color: var(--bg); }
+.day-strip-num.is-today-ring { box-shadow: 0 0 0 1.5px var(--accent); }
+.day-strip-dot { width: 5px; height: 5px; border-radius: 999px; margin-top: .35rem; }
+
+.today-focus-card {
+  display: flex; gap: .85rem; border-radius: var(--radius); padding: 1rem 1.1rem;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+}
+.today-focus-desc {
+  font-size: .82rem; line-height: 1.4; color: var(--text-dim);
+  background: var(--surface); border-radius: var(--radius-sm); padding: .6rem .75rem;
+}
+
+.week-mini-bars { display: flex; gap: 4px; }
+.week-mini-bar { flex: 1; height: 5px; border-radius: 999px; background: var(--border); }
+.week-mini-bar.is-done { background: var(--success); }
+
 .workout-icon {
   width: 40px; height: 40px; border-radius: 12px; flex: none;
   display: flex; align-items: center; justify-content: center;
   font-size: 1.1rem; background: var(--bg-elevated); border: 1px solid var(--border);
 }
 .workout-icon { color: var(--accent); }
-.workout-icon.type-long { background: rgba(124,108,246,.15); color: var(--accent-2); }
-.workout-icon.type-tempo, .workout-icon.type-intervals { background: rgba(255,106,85,.15); color: var(--accent); }
+.workout-icon.type-easy { background: rgba(62,207,142,.15); color: #3ecf8e; }
+.workout-icon.type-tempo { background: rgba(233,104,199,.15); color: #e968c7; }
+.workout-icon.type-intervals { background: rgba(154,140,249,.15); color: #9a8cf9; }
+.workout-icon.type-long { background: rgba(91,156,246,.15); color: #5b9cf6; }
 .workout-icon.type-race { background: var(--accent-grad); color: #fff; }
 .workout-icon.type-rest { background: rgba(255,255,255,.05); color: var(--text-faint); }
 
@@ -364,7 +413,10 @@ hr { border-color: var(--border); opacity: 1; }
 .cal-empty { background: transparent; border-color: transparent; }
 .cal-daynum { font-size: .7rem; font-weight: 700; color: var(--text-faint); }
 .cal-icon { font-size: 1rem; line-height: 1; margin-top: .15rem; color: var(--accent); }
-.cal-icon.cal-icon-long { color: var(--accent-2); }
+.cal-icon.cal-icon-easy { color: #3ecf8e; }
+.cal-icon.cal-icon-tempo { color: #e968c7; }
+.cal-icon.cal-icon-intervals { color: #9a8cf9; }
+.cal-icon.cal-icon-long { color: #5b9cf6; }
 .cal-icon.cal-icon-rest { color: var(--text-faint); }
 .cal-type { font-size: .62rem; font-weight: 700; margin-top: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cal-dist { font-size: .6rem; color: var(--text-faint); }

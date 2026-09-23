@@ -1,0 +1,18 @@
+{% if current_user.is_authenticated and not current_user.is_coach() %}
+<nav class="bottom-nav">
+  <a href="{{ url_for('client_dashboard') }}" class="bottom-nav-item {{ 'active' if request.endpoint == 'client_dashboard' else '' }}">
+    <i class="ti ti-sun"></i>Today
+  </a>
+  {% if nav_plan_id %}
+    <a href="{{ url_for('plan_detail', plan_id=nav_plan_id) }}" class="bottom-nav-item {{ 'active' if request.endpoint == 'plan_detail' else '' }}">
+      <i class="ti ti-list"></i>Plan
+    </a>
+    <a href="{{ url_for('plan_calendar', plan_id=nav_plan_id) }}" class="bottom-nav-item {{ 'active' if request.endpoint == 'plan_calendar' else '' }}">
+      <i class="ti ti-calendar"></i>Calendar
+    </a>
+  {% endif %}
+  <a href="{{ url_for('strava_overview') }}" class="bottom-nav-item {{ 'active' if request.endpoint == 'strava_overview' else '' }}">
+    <i class="ti ti-chart-bar"></i>Stats
+  </a>
+</nav>
+{% endif %}

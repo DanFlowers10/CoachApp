@@ -5,7 +5,7 @@
 {% if current_user.is_coach() %}
   <a href="{{ url_for('client_detail', client_id=plan.client_id) }}" class="small">&larr; Back to {{ plan.client.name }}</a>
 {% else %}
-  <a href="{{ url_for('client_dashboard') }}" class="small">&larr; My plans</a>
+  <a href="{{ url_for('client_dashboard') }}" class="small">&larr; Today</a>
 {% endif %}
 
 <div class="d-flex justify-content-between align-items-start mt-2 mb-1">
@@ -94,11 +94,12 @@
           {% elif cell.workout %}
             {% set w = cell.workout %}
             {% set is_long = w.workout_type == 'Long Run' %}
-            {% set is_tempo = w.workout_type in ['Tempo', 'Intervals'] %}
+            {% set is_tempo = w.workout_type == 'Tempo' %}
+            {% set is_intervals = w.workout_type == 'Intervals' %}
             {% set is_race = w.workout_type == 'Race' %}
             {% set is_rest = w.workout_type == 'Rest' %}
-            {% set icon = 'ti-flag' if is_race else ('ti-mountain' if is_long else ('ti-bolt' if is_tempo else ('ti-moon' if is_rest else 'ti-run'))) %}
-            {% set icon_color = 'cal-icon-long' if is_long else ('cal-icon-rest' if is_rest else '') %}
+            {% set icon = 'ti-flag' if is_race else ('ti-mountain' if is_long else ('ti-bolt' if (is_tempo or is_intervals) else ('ti-moon' if is_rest else 'ti-run'))) %}
+            {% set icon_color = 'cal-icon-long' if is_long else ('cal-icon-tempo' if is_tempo else ('cal-icon-intervals' if is_intervals else ('cal-icon-rest' if is_rest else ('cal-icon-easy' if not is_race else '')))) %}
             {% set status = 'done' if w.completed else ('today' if w.date == today else ('missed' if w.date < today else 'upcoming')) %}
             <div class="cal-cell cal-status-{{ status }} {{ 'cal-race' if is_race else '' }}"
                  data-jump-to-workout="{{ w.id }}"
@@ -150,11 +151,12 @@
     <div class="week-body">
       {% for w in wk.workouts %}
         {% set is_long = w.workout_type == 'Long Run' %}
-        {% set is_tempo = w.workout_type in ['Tempo', 'Intervals'] %}
+        {% set is_tempo = w.workout_type == 'Tempo' %}
+        {% set is_intervals = w.workout_type == 'Intervals' %}
         {% set is_race = w.workout_type == 'Race' %}
         {% set is_rest = w.workout_type == 'Rest' %}
-        {% set icon = 'ti-flag' if is_race else ('ti-mountain' if is_long else ('ti-bolt' if is_tempo else ('ti-moon' if is_rest else 'ti-run'))) %}
-        {% set icon_class = 'type-race' if is_race else ('type-long' if is_long else ('type-tempo' if is_tempo else ('type-rest' if is_rest else 'type-easy'))) %}
+        {% set icon = 'ti-flag' if is_race else ('ti-mountain' if is_long else ('ti-bolt' if (is_tempo or is_intervals) else ('ti-moon' if is_rest else 'ti-run'))) %}
+        {% set icon_class = 'type-race' if is_race else ('type-long' if is_long else ('type-tempo' if is_tempo else ('type-intervals' if is_intervals else ('type-rest' if is_rest else 'type-easy')))) %}
         {% set status = 'done' if w.completed else ('today' if w.date == today else ('missed' if w.date < today else 'upcoming')) %}
         <div class="workout-card {{ 'is-done' if status == 'done' else '' }} {{ 'is-today' if status == 'today' else '' }} {{ 'is-missed' if status == 'missed' else '' }}" id="workout-{{ w.id }}">
           <div class="workout-icon {{ icon_class }}"><i class="ti {{ icon }}"></i></div>

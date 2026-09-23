@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Today{% endblock %}
+{% block content %}
+
+{% if not plan %}
+  <h2 class="mb-2">Today</h2>
+  <p class="text-muted">Your coach hasn't assigned you a plan yet.</p>
+{% else %}
+
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex align-items-center gap-2">
+      <div class="today-avatar">{{ current_user.name[0]|upper }}</div>
+      <div>
+        <div class="fw-bold" style="font-size:1rem;">{{ plan.title }}</div>
+        {% if current_week %}
+          <a href="{{ url_for('plan_calendar', plan_id=plan.id) }}" class="small text-muted">Week {{ current_week.index }} of {{ plan.workouts|length // 7 }} &rarr;</a>
+        {% endif %}
+      </div>
+    </div>
+    {% if plan_count and plan_count > 1 %}
+      <a href="{{ url_for('client_plans') }}" class="small text-muted">All plans</a>
+    {% endif %}
+  </div>
+
+  {% if not current_user.strava_token %}
+    <div class="connect-prompt mb-3">
+      <a href="{{ url_for('strava_connect') }}">Connect Strava</a> to auto-complete matching workouts from your runs.
+    </div>
+  {% else %}
+    <div class="strava-sync-banner" id="strava-sync-banner" style="display:none;">
+      <div class="shim strava-sync-shim"></div>
+      <span>Syncing with Strava&hellip;</span>
+    </div>
+  {% endif %}
+
+  {% if current_week %}
+    <div class="day-strip mb-3">
+      {% for w in current_week.workouts %}
+        {% set is_selected = selected_workout and w.id == selected_workout.id %}
+        {% set is_today = w.date == today %}
+        <a href="{{ url_for('client_dashboard') }}?day={{ w.date.isoformat() }}" class="day-strip-item">
+          <div class="day-strip-dow">{{ w.date.strftime('%a')[:1] }}</div>
+          <div class="day-strip-num {{ 'is-selected' if is_selected else '' }} {{ 'is-today-ring' if is_today and not is_selected else '' }}">{{ w.date.day }}</div>
+          <div class="day-strip-dot" style="background: {{ '#3ecf8e' if w.workout_type == 'Easy Run' else ('#e968c7' if w.workout_type == 'Tempo' else ('#9a8cf9' if w.workout_type == 'Intervals' else ('#5b9cf6' if w.workout_type == 'Long Run' else ('#ff6a55' if w.workout_type == 'Race' else 'var(--text-faint)')))) }};"></div>
+        </a>
+      {% endfor %}
+    </div>
+
+    {% if selected_workout %}
+      {% set w = selected_workout %}
+      {% set is_long = w.workout_type == 'Long Run' %}
+      {% set is_tempo = w.workout_type == 'Tempo' %}
+      {% set is_intervals = w.workout_type == 'Intervals' %}
+      {% set is_race = w.workout_type == 'Race' %}
+      {% set is_rest = w.workout_type == 'Rest' %}
+      {% set icon = 'ti-flag' if is_race else ('ti-mountain' if is_long else ('ti-bolt' if (is_tempo or is_intervals) else ('ti-moon' if is_rest else 'ti-run'))) %}
+      {% set icon_class = 'type-race' if is_race else ('type-long' if is_long else ('type-tempo' if is_tempo else ('type-intervals' if is_intervals else ('type-rest' if is_rest else 'type-easy')))) %}
+
+      <div class="fw-bold mb-2" style="font-size:1.05rem;">{{ "Today's" if w.date == today else w.date.strftime('%A') + "'s" }} workout</div>
+
+      <div class="today-focus-card mb-3">
+        <div class="workout-icon {{ icon_class }}"><i class="ti {{ icon }}"></i></div>
+        <div class="flex-grow-1">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div>
+              <div class="fw-bold" style="font-size:1.05rem;">{% if w.target_distance_km %}{{ w.target_distance_km }}mi {% endif %}{{ w.workout_type }}</div>
+              <div class="small text-muted">{{ w.date.strftime('%A %d %b') }}{% if w.target_duration_min %} &middot; {{ w.target_duration_min }} min{% endif %}</div>
+            </div>
+            {% if w.completed %}
+              <span class="status-pill done">done</span>
+            {% elif not current_user.is_coach() %}
+              <form method="post" action="{{ url_for('complete_workout', workout_id=w.id) }}">
+                <button class="btn btn-sm btn-accent">Mark done</button>
+              </form>
+            {% endif %}
+          </div>
+          {% if w.description %}<div class="today-focus-desc mt-2">{{ w.description }}</div>{% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="card-surface" style="border-radius: var(--radius); padding: 1rem 1.1rem;">
+      <div class="fw-bold mb-2" style="font-size:.9rem;">Week {{ current_week.index }} overview</div>
+      <div class="week-mini-bars mb-2">
+        {% for w in current_week.workouts %}
+          <div class="week-mini-bar {{ 'is-done' if w.completed else '' }}"></div>
+        {% endfor %}
+      </div>
+      <div class="d-flex justify-content-between small text-muted">
+        <span>Workouts: <strong class="text-reset">{{ current_week.done }}/{{ current_week.total }}</strong></span>
+        <span>Distance: <strong class="text-reset">{{ current_week.actual_mi or 0 }}/{{ current_week.planned_mi }}mi</strong></span>
+      </div>
+    </div>
+  {% else %}
+    <p class="text-muted">No workouts scheduled yet.</p>
+  {% endif %}
+
+{% endif %}
+
+{% if plan and current_user.strava_token %}
+<script>
+(function () {
+  var banner = document.getElementById('strava-sync-banner');
+  if (!banner) return;
+  banner.style.display = '';
+  fetch('{{ url_for("strava_sync", plan_id=plan.id) }}', {method: 'POST'})
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.error) {
+        banner.remove();
+        showToast(data.error, 'error');
+      } else if (data.changed) {
+        location.reload();
+      } else {
+        banner.remove();
+      }
+    })
+    .catch(function () { banner.remove(); });
+})();
+</script>
+{% endif %}
+
+{% endblock %}

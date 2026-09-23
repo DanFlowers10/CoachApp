@@ -11,7 +11,7 @@
   <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css" rel="stylesheet">
   <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 </head>
-<body>
+<body class="{{ 'has-bottom-nav' if current_user.is_authenticated and not current_user.is_coach() else '' }}">
   <nav class="app-nav mb-4">
     <div class="container py-2 d-flex align-items-center justify-content-between">
       <a class="brand" href="{{ url_for('index') }}">
@@ -42,6 +42,8 @@
   <div class="container pb-5">
     {% block content %}{% endblock %}
   </div>
+
+  {% include "_athlete_nav.html" %}
 
   <script>
     function dismissToast(el) {

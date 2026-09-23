@@ -64,6 +64,20 @@ def client_required(fn):
     return wrapper
 
 
+@app.context_processor
+def inject_nav_plan_id():
+    """The athlete bottom nav's Plan/Calendar links need a plan id even on pages
+    (Today, Stats) that don't already have one in their URL."""
+    if current_user.is_authenticated and not current_user.is_coach():
+        plan = (
+            TrainingPlan.query.filter_by(client_id=current_user.id)
+            .order_by(TrainingPlan.created_at.desc())
+            .first()
+        )
+        return {"nav_plan_id": plan.id if plan else None}
+    return {}
+
+
 # -------------------------------------------------------------------- auth --
 
 @app.route("/")
@@ -538,7 +552,7 @@ def complete_workout(workout_id):
     workout.actual_distance_km = request.form.get("actual_distance_km") or workout.target_distance_km
     workout.actual_duration_min = request.form.get("actual_duration_min") or workout.target_duration_min
     db.session.commit()
-    return redirect(url_for("plan_detail", plan_id=workout.plan_id))
+    return redirect(request.referrer or url_for("plan_detail", plan_id=workout.plan_id))
 
 
 @app.route("/workout/<int:workout_id>/delete", methods=["POST"])
@@ -574,6 +588,53 @@ def delete_plan(plan_id):
 @login_required
 @client_required
 def client_dashboard():
+    plan = (
+        TrainingPlan.query.filter_by(client_id=current_user.id)
+        .order_by(TrainingPlan.created_at.desc())
+        .first()
+    )
+    if plan is None:
+        return render_template("today.html", plan=None)
+
+    today = date.today()
+    workouts = plan.workouts
+    _attach_comparisons(workouts)
+    weeks = _plan_weeks(workouts)
+
+    current_week_index = weeks[-1]["index"] if weeks else None
+    for wk in weeks:
+        if wk["end"] >= today and wk["done"] < wk["total"]:
+            current_week_index = wk["index"]
+            break
+    current_week = next((wk for wk in weeks if wk["index"] == current_week_index), None)
+
+    selected_str = request.args.get("day")
+    selected_date = date.fromisoformat(selected_str) if selected_str else today
+
+    selected_workout = None
+    if current_week:
+        selected_workout = next((w for w in current_week["workouts"] if w.date == selected_date), None)
+        if selected_workout is None:
+            selected_workout = next((w for w in current_week["workouts"] if w.date == today), None)
+        if selected_workout is None and current_week["workouts"]:
+            selected_workout = current_week["workouts"][0]
+
+    plan_count = TrainingPlan.query.filter_by(client_id=current_user.id).count()
+
+    return render_template(
+        "today.html",
+        plan=plan,
+        today=today,
+        current_week=current_week,
+        selected_workout=selected_workout,
+        plan_count=plan_count,
+    )
+
+
+@app.route("/athlete/plans")
+@login_required
+@client_required
+def client_plans():
     plans = TrainingPlan.query.filter_by(client_id=current_user.id).order_by(TrainingPlan.created_at.desc()).all()
     return render_template("client_dashboard.html", plans=plans)
 

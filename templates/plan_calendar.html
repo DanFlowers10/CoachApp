@@ -37,11 +37,12 @@
         {% elif cell.workout %}
           {% set w = cell.workout %}
           {% set is_long = w.workout_type == 'Long Run' %}
-          {% set is_tempo = w.workout_type in ['Tempo', 'Intervals'] %}
+          {% set is_tempo = w.workout_type == 'Tempo' %}
+          {% set is_intervals = w.workout_type == 'Intervals' %}
           {% set is_race = w.workout_type == 'Race' %}
           {% set is_rest = w.workout_type == 'Rest' %}
-          {% set icon = 'ti-flag' if is_race else ('ti-mountain' if is_long else ('ti-bolt' if is_tempo else ('ti-moon' if is_rest else 'ti-run'))) %}
-          {% set icon_color = 'cal-icon-long' if is_long else ('cal-icon-rest' if is_rest else '') %}
+          {% set icon = 'ti-flag' if is_race else ('ti-mountain' if is_long else ('ti-bolt' if (is_tempo or is_intervals) else ('ti-moon' if is_rest else 'ti-run'))) %}
+          {% set icon_color = 'cal-icon-long' if is_long else ('cal-icon-tempo' if is_tempo else ('cal-icon-intervals' if is_intervals else ('cal-icon-rest' if is_rest else ('cal-icon-easy' if not is_race else '')))) %}
           {% set status = 'done' if w.completed else ('today' if w.date == today else ('missed' if w.date < today else 'upcoming')) %}
           <a class="cal-cell cal-status-{{ status }} {{ 'cal-race' if is_race else '' }}"
              href="{{ url_for('plan_detail', plan_id=plan.id) }}#workout-{{ w.id }}"
