@@ -236,20 +236,17 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
 .nav-progress.is-active { transform: scaleX(0.7); opacity: 1; }
 
 /* Header stays put; this grows in height below it to reveal the spinner,
-   pushing #page-content down as it opens, same as Runna's pull-to-refresh. */
+   pushing #page-content down as it opens, same as Runna's pull-to-refresh.
+   Just a bare spinner glyph, no button chrome - matches Runna's minimal look. */
 .pull-refresh-gap {
   height: 0; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
 }
 .pull-refresh-spinner {
-  width: 30px; height: 30px; border-radius: 999px; background: var(--bg-elevated);
-  border: 1px solid var(--border); box-shadow: var(--shadow);
-  display: flex; align-items: center; justify-content: center; color: var(--accent);
-  transition: transform .15s ease;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-faint); font-size: 1.3rem;
 }
-.pull-refresh-spinner i { font-size: 1rem; }
-.pull-refresh-gap.is-ready .pull-refresh-spinner { transform: rotate(180deg); }
-.pull-refresh-gap.is-loading .pull-refresh-spinner i { animation: pull-refresh-spin .7s linear infinite; }
+.pull-refresh-gap.is-loading .pull-refresh-spinner i { animation: pull-refresh-spin .7s linear infinite; color: var(--accent); }
 @keyframes pull-refresh-spin { to { transform: rotate(360deg); } }
 
 /* toasts */

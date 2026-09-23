@@ -51,7 +51,7 @@
   {% endblock %}
 
   <div class="pull-refresh-gap" id="pull-refresh-gap">
-    <div class="pull-refresh-spinner"><i class="ti ti-arrow-down" id="pull-refresh-icon"></i></div>
+    <div class="pull-refresh-spinner"><i class="ti ti-loader-2"></i></div>
   </div>
 
   <div class="container pb-5" id="page-content">
@@ -143,10 +143,9 @@
 
       var gap = document.getElementById('pull-refresh-gap');
       var content = document.getElementById('page-content');
-      var icon = document.getElementById('pull-refresh-icon');
-      var DEADZONE = 16;
-      var THRESHOLD = 90;
-      var MAX_PULL = 120;
+      var DEADZONE = 6;
+      var THRESHOLD = 46;
+      var MAX_PULL = 60;
       var startY = null;
       var pulling = false;
       var ready = false;
@@ -162,12 +161,11 @@
       document.addEventListener('touchmove', function (e) {
         if (!pulling || startY === null) return;
         var delta = e.touches[0].clientY - startY - DEADZONE;
-        if (delta <= 0) { gap.style.height = '0px'; content.style.opacity = ''; ready = false; gap.classList.remove('is-ready'); return; }
-        var dist = Math.min(delta * 0.35, MAX_PULL);
+        if (delta <= 0) { gap.style.height = '0px'; content.style.opacity = ''; ready = false; return; }
+        var dist = Math.min(delta * 0.6, MAX_PULL);
         gap.style.height = dist + 'px';
-        content.style.opacity = String(1 - Math.min(dist / MAX_PULL, 1) * 0.5);
+        content.style.opacity = String(1 - Math.min(dist / MAX_PULL, 1) * 0.35);
         ready = dist >= THRESHOLD;
-        gap.classList.toggle('is-ready', ready);
       }, {passive: true});
 
       document.addEventListener('touchend', function () {
@@ -175,14 +173,12 @@
         pulling = false;
         gap.style.transition = 'height .2s cubic-bezier(.2,.8,.2,1)';
         if (ready) {
-          if (icon) icon.className = 'ti ti-loader-2';
           gap.classList.add('is-loading');
           gap.style.height = THRESHOLD + 'px';
           location.reload();
         } else {
           gap.style.height = '0px';
           content.style.opacity = '';
-          gap.classList.remove('is-ready');
         }
         startY = null;
       });
