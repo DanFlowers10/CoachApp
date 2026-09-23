@@ -349,6 +349,47 @@ def _plan_months(workouts):
     return months
 
 
+RACE_ESTIMATE_DISTANCES = [("5K", 3.107), ("10K", 6.214), ("Half", 13.11), ("Full", 26.2)]
+
+
+def _format_race_time(total_minutes):
+    total_seconds = round(total_minutes * 60)
+    h, rem = divmod(total_seconds, 3600)
+    m, s = divmod(rem, 60)
+    return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
+
+
+def _estimate_race_times(workouts, race_date, today):
+    """Rough 5K/10K/Half/Full time predictions from the athlete's single best recent
+    logged pace, via Riegel's formula (T2 = T1 * (D2/D1)^1.06). The "in N weeks" column
+    is a flat, optimistic 3% pace improvement - not a real trend model, just a simple
+    estimate of the sort of gain a normal training block produces."""
+    candidates = [
+        w for w in workouts
+        if w.completed and w.actual_distance_km and w.actual_duration_min and w.actual_distance_km >= 1.5
+    ]
+    if not candidates:
+        return None
+    best = min(candidates, key=lambda w: w.actual_duration_min / w.actual_distance_km)
+
+    weeks_remaining = 0
+    if race_date and race_date > today:
+        weeks_remaining = max(1, round((race_date - today).days / 7))
+
+    rows = []
+    for label, distance in RACE_ESTIMATE_DISTANCES:
+        current_min = best.actual_duration_min * (distance / best.actual_distance_km) ** 1.06
+        projected_min = current_min * 0.97 if weeks_remaining else current_min
+        delta_sec = round((current_min - projected_min) * 60)
+        rows.append({
+            "label": label,
+            "current": _format_race_time(current_min),
+            "projected": _format_race_time(projected_min),
+            "delta": f"-{delta_sec}s" if delta_sec < 60 else f"-{delta_sec // 60}m {delta_sec % 60}s",
+        })
+    return {"weeks_remaining": weeks_remaining, "rows": rows}
+
+
 def _sync_strava_completions(workouts, strava_token):
     """Match same-day Strava runs to not-yet-done workouts and auto-complete them with the
     real distance/time. Returns (error_string_or_None, changed_bool)."""
@@ -439,6 +480,10 @@ def plan_detail(plan_id):
         current_month_label = date(current_week["start"].year, current_week["start"].month, 1).strftime("%B %Y")
     current_month = next((m for m in months if m["label"] == current_month_label), months[0] if months else None)
 
+    weeks_done_count = sum(1 for wk in weeks if wk["done"] == wk["total"])
+    race_workout = next((w for w in workouts if w.workout_type == "Race"), None)
+    race_time_estimates = _estimate_race_times(workouts, race_workout.date if race_workout else None, today)
+
     return render_template(
         "plan_detail.html",
         plan=plan,
@@ -451,6 +496,9 @@ def plan_detail(plan_id):
         total_km=total_km,
         current_week_index=current_week_index,
         strava_error=strava_error,
+        weeks_done_count=weeks_done_count,
+        race_workout=race_workout,
+        race_time_estimates=race_time_estimates,
     )
 
 

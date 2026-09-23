@@ -24,6 +24,11 @@
           <button class="btn btn-sm btn-accent">Mark done</button>
         </form>
       {% endif %}
+    {% else %}
+      <form method="post" action="{{ url_for('delete_workout', workout_id=workout.id) }}"
+            onsubmit="return confirm('Delete this workout?');">
+        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+      </form>
     {% endif %}
   </div>
   <h2 class="mb-0 mt-2">{% if workout.target_distance_km %}{{ workout.target_distance_km }}mi {% endif %}{{ workout.workout_type }}</h2>

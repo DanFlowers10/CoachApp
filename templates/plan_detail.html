@@ -8,33 +8,70 @@
   <a href="{{ url_for('client_dashboard') }}" class="small">&larr; Today</a>
 {% endif %}
 
-<div class="d-flex justify-content-between align-items-start mt-2 mb-1">
-  <h2 class="mb-0">{{ plan.title }}</h2>
-  {% if current_user.is_coach() %}
-    <div class="d-flex gap-2">
+<div class="card-surface plan-hero-card mt-2 mb-3">
+  <div class="d-flex justify-content-between align-items-start gap-2">
+    <div class="plan-hero-title">{{ plan.title }}</div>
+    {% if current_user.is_coach() %}
       <form method="post" action="{{ url_for('delete_plan', plan_id=plan.id) }}"
             onsubmit="return confirm('Delete &quot;{{ plan.title }}&quot;? This removes all its workouts too.');">
-        <button type="submit" class="btn btn-sm btn-outline-danger">Delete plan</button>
+        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
       </form>
+    {% endif %}
+  </div>
+  {% if race_workout %}
+    <div class="plan-hero-race">Your race: <strong>{{ race_workout.date.strftime('%d %b %Y') }}</strong></div>
+  {% endif %}
+  {% if plan.notes %}<p class="mb-0 mt-2 small text-muted">{{ plan.notes }}</p>{% endif %}
+
+  {% if weeks %}
+    <div class="plan-week-segments mt-3">
+      {% for wk in weeks %}
+        <div class="plan-week-segment {{ 'is-done' if wk.done == wk.total else ('is-current' if wk.index == current_week_index else '') }}"></div>
+      {% endfor %}
+    </div>
+    <div class="plan-hero-stats">
+      <div>
+        <div class="plan-hero-stat-label">Total Weeks</div>
+        <div class="plan-hero-stat-value">{{ weeks_done_count }}/{{ weeks|length }}</div>
+      </div>
+      <div class="text-end">
+        <div class="plan-hero-stat-label">Total Distance</div>
+        <div class="plan-hero-stat-value">{{ total_km|round(0, 'floor')|int }} mi</div>
+      </div>
     </div>
   {% endif %}
 </div>
-{% if plan.goal_race %}<p class="text-muted mb-3">Goal: {{ plan.goal_race }}</p>{% endif %}
-{% if plan.notes %}<p class="mb-3">{{ plan.notes }}</p>{% endif %}
 
-{% if weeks %}
-<div class="card-surface plan-progress-card mb-4">
-  <div class="plan-progress-head">
-    <span class="plan-progress-label">Week {{ current_week_index }} of {{ weeks|length }}</span>
-    <span class="plan-progress-total accent">{{ percent_complete }}%</span>
+{% if plan.goal_race %}
+  <div class="card-surface plan-race-row mb-3">
+    <i class="ti ti-flag"></i>
+    <div class="flex-grow-1">{{ plan.goal_race }}</div>
+    {% if race_workout %}<div class="small text-muted">{{ race_workout.date.strftime('%d %b %Y') }}</div>{% endif %}
   </div>
-  <div class="plan-week-segments">
-    {% for wk in weeks %}
-      <div class="plan-week-segment {{ 'is-done' if wk.done == wk.total else ('is-current' if wk.index == current_week_index else '') }}"></div>
-    {% endfor %}
+{% endif %}
+
+{% if race_time_estimates %}
+  <div class="card-surface race-times-card mb-3 collapsed" data-race-times>
+    <div class="race-times-header" data-race-times-toggle>
+      <div>
+        <div class="fw-bold" style="font-size:.92rem;">Estimated Race Times</div>
+        <div class="small text-muted">Rough estimate from your best recent pace</div>
+      </div>
+      <span class="chevron">&#9660;</span>
+    </div>
+    <div class="race-times-body">
+      <div class="race-times-cols">
+        <span></span><span>Current</span><span>In {{ race_time_estimates.weeks_remaining }} weeks</span>
+      </div>
+      {% for row in race_time_estimates.rows %}
+        <div class="race-times-row">
+          <span class="race-times-label">{{ row.label }}</span>
+          <span>{{ row.current }}</span>
+          <span>{{ row.projected }}<span class="race-times-delta">{{ row.delta }}</span></span>
+        </div>
+      {% endfor %}
+    </div>
   </div>
-  <div class="plan-progress-sub">{{ done_workouts }}/{{ total_workouts }} workouts done &middot; {{ total_km|round(0, 'floor')|int }} mi planned</div>
-</div>
 {% endif %}
 
 {% if not weeks %}
@@ -127,16 +164,15 @@
   <div class="week-card card-surface {{ '' if wk.index == current_week_index else 'collapsed' }}" data-week id="week-{{ wk.index }}">
     <div class="week-header" data-week-toggle>
       <div class="flex-grow-1">
+        <div class="week-meta">{{ wk.start.strftime('%d %b') }} &ndash; {{ wk.end.strftime('%d %b') }}</div>
         <div class="week-title">Week {{ wk.index }}</div>
-        <div class="week-meta">{{ wk.start.strftime('%d %b') }} &ndash; {{ wk.end.strftime('%d %b') }} &middot; {{ wk.done }}/{{ wk.total }} done</div>
-        <div class="week-mileage">
-          <span class="week-mileage-figs">
-            {% if wk.actual_mi is not none %}<strong>{{ wk.actual_mi }}</strong> / {% endif %}{{ wk.planned_mi }} mi
-          </span>
-          <div class="week-mileage-track">
-            <div class="week-mileage-fill" style="width: {{ ((wk.actual_mi / wk.planned_mi * 100) if wk.actual_mi and wk.planned_mi else 0)|round(0) }}%;"></div>
-          </div>
+        <div class="week-progress-segments">
+          {% for w in wk.workouts %}
+            {% set wstatus = 'done' if w.completed else ('today' if w.date == today else ('missed' if w.date < today else 'upcoming')) %}
+            <div class="week-progress-segment is-{{ wstatus }}"></div>
+          {% endfor %}
         </div>
+        <div class="week-progress-sub">Total Workouts: {{ wk.total }} &middot; Distance: {{ wk.planned_mi }}mi</div>
       </div>
       <span class="chevron">&#9660;</span>
     </div>
@@ -147,65 +183,15 @@
         {% set is_intervals = w.workout_type == 'Intervals' %}
         {% set is_race = w.workout_type == 'Race' %}
         {% set is_rest = w.workout_type == 'Rest' %}
-        {% set icon = 'ti-flag' if is_race else ('ti-mountain' if is_long else ('ti-bolt' if (is_tempo or is_intervals) else ('ti-moon' if is_rest else 'ti-run'))) %}
         {% set icon_class = 'type-race' if is_race else ('type-long' if is_long else ('type-tempo' if is_tempo else ('type-intervals' if is_intervals else ('type-rest' if is_rest else 'type-easy')))) %}
-        {% set status = 'done' if w.completed else ('today' if w.date == today else ('missed' if w.date < today else 'upcoming')) %}
-        <div class="workout-card {{ icon_class }} {{ 'is-done' if status == 'done' else '' }} {{ 'is-today' if status == 'today' else '' }} {{ 'is-missed' if status == 'missed' else '' }}" id="workout-{{ w.id }}">
-          <div class="workout-icon {{ icon_class }}"><i class="ti {{ icon }}"></i></div>
-          <div class="workout-main">
-            <div class="w-type">{{ w.workout_type }} &middot; <span class="text-muted" style="font-weight:600;">{{ w.date.strftime('%a %d %b') }}</span>{% if w.strava_activity_id %}<span class="strava-tag" title="Auto-synced from Strava"><i class="ti ti-brand-strava"></i> Strava</span>{% endif %}</div>
-            {% if w.completed %}
-              <div class="w-compare">
-                {% if w.target_distance_km or w.target_duration_min %}
-                  <div class="w-compare-col">
-                    <div class="w-compare-label">Target</div>
-                    <div class="w-compare-value">{% if w.target_distance_km %}{{ w.target_distance_km }} mi{% endif %}{% if w.target_duration_min %} &middot; {{ w.target_duration_min }} min{% endif %}</div>
-                  </div>
-                {% endif %}
-                {% if w.actual_distance_km or w.actual_duration_min %}
-                  <div class="w-compare-col">
-                    <div class="w-compare-label">Actual</div>
-                    <div class="w-compare-value strong">{% if w.actual_distance_km %}{{ w.actual_distance_km }} mi{% endif %}{% if w.actual_duration_min %} &middot; {{ w.actual_duration_min }} min{% endif %}</div>
-                  </div>
-                {% endif %}
-                {% if w.actual_pace_str %}
-                  <div class="w-compare-col">
-                    <div class="w-compare-label">Avg pace</div>
-                    <div class="w-compare-value strong">{{ w.actual_pace_str }}</div>
-                  </div>
-                {% endif %}
-              </div>
-              {% if w.distance_badge or w.pace_badge %}
-                <div class="w-badges">
-                  {% if w.distance_badge %}<span class="compare-badge {{ 'ok' if w.distance_badge == 'on target distance' else 'note' }}">{{ w.distance_badge }}</span>{% endif %}
-                  {% if w.pace_badge %}<span class="compare-badge {{ 'ok' if w.pace_badge == 'on target pace' else 'note' }}">{{ w.pace_badge }}</span>{% endif %}
-                </div>
-              {% endif %}
-            {% else %}
-              <div class="w-meta">
-                {% if w.target_distance_km %}{{ w.target_distance_km }} mi{% endif %}
-                {% if w.target_duration_min %} &middot; {{ w.target_duration_min }} min{% endif %}
-              </div>
-            {% endif %}
-            {% if w.description %}<div class="w-desc">{{ w.description }}</div>{% endif %}
+        <a href="{{ url_for('workout_detail', workout_id=w.id) }}" class="workout-row-mini {{ 'is-done' if w.completed else '' }}" id="workout-{{ w.id }}">
+          <div class="workout-row-mini-swatch {{ icon_class }}"></div>
+          <div class="workout-row-mini-dow">{{ w.date.strftime('%a') }}</div>
+          <div class="workout-row-mini-text">
+            <span class="fw-bold">{{ w.workout_type }}</span>{% if w.target_distance_km %}<span class="text-muted"> &middot; {{ w.target_distance_km }}mi</span>{% endif %}{% if w.strava_activity_id %}<i class="ti ti-brand-strava" title="Auto-synced from Strava" style="color:#fc4c02;font-size:.8rem;margin-left:.35rem;"></i>{% endif %}
           </div>
-
-          {% if not current_user.is_coach() and not w.completed %}
-            <form method="post" action="{{ url_for('complete_workout', workout_id=w.id) }}" class="mini-form">
-              <input type="number" step="0.1" name="actual_distance_km" class="form-control form-control-sm" placeholder="mi">
-              <button class="btn btn-sm btn-accent">Done</button>
-            </form>
-          {% else %}
-            <span class="status-pill {{ status }}">{{ status }}</span>
-          {% endif %}
-
-          {% if current_user.is_coach() %}
-            <form method="post" action="{{ url_for('delete_workout', workout_id=w.id) }}"
-                  onsubmit="return confirm('Delete this workout?');">
-              <button class="btn btn-sm btn-outline-danger">&times;</button>
-            </form>
-          {% endif %}
-        </div>
+          <div class="sheet-check {{ 'is-done' if w.completed else '' }}"></div>
+        </a>
       {% endfor %}
     </div>
   </div>
@@ -274,6 +260,12 @@
 document.querySelectorAll('[data-week-toggle]').forEach(function (header) {
   header.addEventListener('click', function () {
     header.closest('[data-week]').classList.toggle('collapsed');
+  });
+});
+
+document.querySelectorAll('[data-race-times-toggle]').forEach(function (header) {
+  header.addEventListener('click', function () {
+    header.closest('[data-race-times]').classList.toggle('collapsed');
   });
 });
 

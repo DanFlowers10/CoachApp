@@ -276,67 +276,78 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
 .table-warning { background: var(--warning-bg) !important; }
 .table > :not(caption) > * > * { background: transparent; }
 
-/* ---------- stat tiles ---------- */
+/* ---------- stat tiles (Strava overview, error page) ---------- */
 .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .75rem; margin-bottom: 1.5rem; }
 .stat-tile { border-radius: var(--radius-sm); padding: 1rem 1.1rem; }
 .stat-tile .stat-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); font-weight: 700; }
 .stat-tile .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--text); margin-top: .15rem; }
 .stat-tile .stat-value.accent { background: var(--accent-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
-/* progress bar */
-.progress-track { height: 10px; border-radius: 999px; background: var(--bg-elevated); border: 1px solid var(--border); overflow: hidden; }
-.progress-fill { height: 100%; background: var(--accent-grad); border-radius: 999px; transition: width .6s cubic-bezier(.4,0,.2,1); animation: bar-fill .9s cubic-bezier(.4,0,.2,1) both; }
-@keyframes bar-fill { from { width: 0; } }
-
-/* plan progress card: one segment per week, colored by status */
-.plan-progress-card { border-radius: var(--radius); padding: 1rem 1.1rem; }
-.plan-progress-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: .65rem; }
-.plan-progress-label { font-size: .82rem; color: var(--text-dim); font-weight: 600; }
-.plan-progress-total { font-size: 1.3rem; font-weight: 800; }
-.plan-progress-total.accent { background: var(--accent-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+/* ---------- plan hero card ---------- */
+.plan-hero-card { border-radius: var(--radius); padding: 1.1rem 1.2rem; }
+.plan-hero-title { font-size: 1.25rem; font-weight: 800; line-height: 1.25; }
+.plan-hero-race { font-size: .85rem; color: var(--text-dim); margin-top: .3rem; }
+.plan-hero-race strong { color: var(--text); }
 .plan-week-segments { display: flex; gap: 3px; }
 .plan-week-segment { flex: 1; height: 6px; border-radius: 999px; background: var(--border); }
 .plan-week-segment.is-done { background: var(--success); }
 .plan-week-segment.is-current { background: var(--accent); }
-.plan-progress-sub { font-size: .78rem; color: var(--text-faint); font-weight: 600; margin-top: .6rem; }
+.plan-hero-stats { display: flex; justify-content: space-between; margin-top: .9rem; }
+.plan-hero-stat-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); font-weight: 700; }
+.plan-hero-stat-value { font-size: 1.15rem; font-weight: 800; margin-top: .15rem; }
+
+.plan-race-row { display: flex; align-items: center; gap: .7rem; padding: .85rem 1rem; border-radius: var(--radius); font-size: .85rem; }
+.plan-race-row i { color: var(--accent); font-size: 1.1rem; }
+
+/* estimated race times: collapsible, same expand pattern as week cards */
+.race-times-card { border-radius: var(--radius); padding: 1rem 1.1rem; }
+.race-times-header { display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+.race-times-header .chevron { transition: transform .2s ease; color: var(--text-faint); flex: none; margin-left: .75rem; }
+.race-times-card.collapsed .chevron { transform: rotate(-90deg); }
+.race-times-card.collapsed .race-times-body { display: none; }
+.race-times-body { margin-top: .9rem; }
+.race-times-cols {
+  display: grid; grid-template-columns: 1fr auto auto; gap: .5rem 1.1rem; text-align: right;
+  font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-faint); font-weight: 700;
+  padding-bottom: .5rem; border-bottom: 1px solid var(--border); margin-bottom: .3rem;
+}
+.race-times-cols span:first-child { text-align: left; }
+.race-times-row { display: grid; grid-template-columns: 1fr auto auto; gap: .5rem 1.1rem; align-items: baseline; text-align: right; padding: .45rem 0; font-size: .88rem; }
+.race-times-row .race-times-label { text-align: left; font-weight: 800; color: var(--text); }
+.race-times-delta { display: block; font-size: .68rem; color: var(--success); font-weight: 700; }
 
 /* ---------- plan / weeks ---------- */
 .week-card { border-radius: var(--radius); margin-bottom: .9rem; overflow: hidden; }
 .week-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; cursor: pointer; user-select: none; }
 .week-header:hover { background: var(--surface-hover); }
-.week-header .week-title { font-weight: 800; font-size: 1rem; }
-.week-header .week-meta { font-size: .78rem; color: var(--text-faint); font-weight: 600; }
-.week-mileage { display: flex; align-items: center; gap: .6rem; margin-top: .4rem; max-width: 260px; }
-.week-mileage-figs { font-size: .74rem; color: var(--text-dim); font-weight: 700; white-space: nowrap; }
-.week-mileage-figs strong { color: var(--accent); font-weight: 800; }
-.week-mileage-track { flex: 1; height: 5px; border-radius: 999px; background: var(--bg-elevated); border: 1px solid var(--border); overflow: hidden; }
-.week-mileage-fill { height: 100%; background: var(--accent-grad); border-radius: 999px; transition: width .4s ease; animation: bar-fill .7s cubic-bezier(.4,0,.2,1) both; }
+.week-header .week-title { font-weight: 800; font-size: 1rem; margin-top: .1rem; }
+.week-header .week-meta { font-size: .7rem; color: var(--text-faint); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.week-progress-segments { display: flex; gap: 3px; margin-top: .55rem; max-width: 260px; }
+.week-progress-segment { flex: 1; height: 5px; border-radius: 999px; background: var(--border); }
+.week-progress-segment.is-done { background: var(--success); }
+.week-progress-segment.is-today { background: var(--accent); }
+.week-progress-segment.is-missed { background: var(--danger); }
+.week-progress-sub { font-size: .74rem; color: var(--text-faint); font-weight: 600; margin-top: .45rem; }
 .week-header .chevron { transition: transform .2s ease; color: var(--text-faint); flex: none; margin-left: .75rem; }
 .week-card.collapsed .chevron { transform: rotate(-90deg); }
 .week-card.collapsed .week-body { display: none; }
-.week-body { padding: 0 1.1rem 1.1rem; display: flex; flex-direction: column; gap: .6rem; }
+.week-body { padding: 0 1.1rem 1.1rem; display: flex; flex-direction: column; }
 
-.workout-card {
-  border-radius: var(--radius-sm);
-  padding: .85rem 1rem .85rem 1.2rem;
-  display: flex;
-  align-items: center;
-  gap: .85rem;
-  position: relative;
-  overflow: hidden;
-}
-.workout-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--text-faint); }
-.workout-card.type-easy::before { background: #3ecf8e; }
-.workout-card.type-tempo::before { background: #e968c7; }
-.workout-card.type-intervals::before { background: #9a8cf9; }
-.workout-card.type-long::before { background: #5b9cf6; }
-.workout-card.type-race::before { background: #ff6a55; }
-.workout-card.type-rest::before { background: var(--text-faint); }
-.workout-card.is-today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.workout-card.is-done { opacity: .7; }
-.workout-card.is-missed { border-color: var(--danger); }
+.workout-row-mini { display: flex; align-items: center; gap: .7rem; padding: .55rem .3rem; border-radius: var(--radius-sm); text-decoration: none; color: inherit; }
+.workout-row-mini:hover { background: var(--surface-hover); color: inherit; }
+.workout-row-mini-swatch { width: 20px; height: 20px; border-radius: 6px; flex: none; }
+.workout-row-mini-swatch.type-easy { background: #3ecf8e; }
+.workout-row-mini-swatch.type-tempo { background: #e968c7; }
+.workout-row-mini-swatch.type-intervals { background: #9a8cf9; }
+.workout-row-mini-swatch.type-long { background: #5b9cf6; }
+.workout-row-mini-swatch.type-race { background: var(--accent-grad); }
+.workout-row-mini-swatch.type-rest { background: var(--text-faint); }
+.workout-row-mini-dow { width: 30px; flex: none; font-size: .76rem; color: var(--text-faint); font-weight: 700; }
+.workout-row-mini-text { flex: 1; min-width: 0; font-size: .85rem; color: var(--text-dim); }
+.workout-row-mini-text .fw-bold { color: var(--text); }
+.workout-row-mini.is-done .workout-row-mini-text { opacity: .65; }
 
-.workout-card.jump-highlight, .week-card.jump-highlight { animation: jump-highlight-pulse 2s ease-out; }
+.workout-row-mini.jump-highlight, .week-card.jump-highlight { animation: jump-highlight-pulse 2s ease-out; }
 @keyframes jump-highlight-pulse {
   0% { box-shadow: 0 0 0 3px var(--accent); border-color: var(--accent); background: var(--surface-hover); }
   100% { box-shadow: 0 0 0 0 transparent; }
