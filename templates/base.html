@@ -4,7 +4,14 @@
   <meta charset="utf-8">
   <title>{% block title %}Marathon Coach{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0d0d11">
+  <meta name="theme-color" content="#0d0d11" id="theme-color-meta">
+  <script>
+    (function () {
+      var saved = null;
+      try { saved = localStorage.getItem('theme'); } catch (e) {}
+      if (saved === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    })();
+  </script>
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -23,14 +30,21 @@
 <body class="{{ 'has-bottom-nav' if current_user.is_authenticated and not current_user.is_coach() else '' }}">
   <nav class="app-nav mb-4">
     <div class="container py-2 d-flex align-items-center justify-content-between">
-      <a class="brand" href="{{ url_for('index') }}">
-        <span class="brand-mark"><i class="ti ti-run"></i></span> Marathon Coach
+      <a href="{{ url_for('index') }}" aria-label="Marathon Coach">
+        <span class="brand-mark"><i class="ti ti-run"></i></span>
       </a>
       {% if current_user.is_authenticated %}
-        <div class="d-flex align-items-center gap-2">
-          <span class="user-chip d-none d-sm-inline">{{ current_user.name }} &middot; {{ 'athlete' if current_user.role == 'client' else current_user.role }}</span>
-          <a class="btn btn-outline-light btn-sm" href="{{ url_for('change_password') }}">Change password</a>
-          <a class="btn btn-outline-light btn-sm" href="{{ url_for('logout') }}">Log out</a>
+        <div class="account-menu">
+          <button type="button" class="account-avatar" id="account-avatar-btn" onclick="toggleAccountMenu()">{{ current_user.initials }}</button>
+          <div class="account-dropdown" id="account-dropdown">
+            <div class="account-dropdown-name">{{ current_user.name }} &middot; {{ 'athlete' if current_user.role == 'client' else current_user.role }}</div>
+            <div class="theme-switch-row">
+              <span>Light mode</span>
+              <button type="button" class="theme-switch" id="theme-switch" onclick="toggleTheme()" aria-label="Toggle light mode"></button>
+            </div>
+            <a class="account-dropdown-item" href="{{ url_for('change_password') }}"><i class="ti ti-lock"></i> Change password</a>
+            <a class="account-dropdown-item is-danger" href="{{ url_for('logout') }}"><i class="ti ti-logout"></i> Log out</a>
+          </div>
         </div>
       {% endif %}
     </div>
@@ -95,6 +109,36 @@
         navigator.serviceWorker.register('/service-worker.js', {scope: '/'});
       });
     }
+  </script>
+
+  <script>
+    function toggleAccountMenu() {
+      document.getElementById('account-dropdown').classList.toggle('is-open');
+    }
+    document.addEventListener('click', function (e) {
+      var menu = document.querySelector('.account-menu');
+      if (menu && !menu.contains(e.target)) {
+        document.getElementById('account-dropdown').classList.remove('is-open');
+      }
+    });
+
+    function applyTheme(theme) {
+      if (theme === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+      }
+      var sw = document.getElementById('theme-switch');
+      if (sw) sw.classList.toggle('is-light', theme === 'light');
+      var meta = document.getElementById('theme-color-meta');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f4f7' : '#0d0d11');
+    }
+    function toggleTheme() {
+      var next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+      try { localStorage.setItem('theme', next); } catch (e) {}
+      applyTheme(next);
+    }
+    applyTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
   </script>
 </body>
 </html>

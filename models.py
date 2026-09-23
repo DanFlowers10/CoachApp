@@ -34,6 +34,13 @@ class User(db.Model, UserMixin):
     def is_coach(self):
         return self.role == "coach"
 
+    @property
+    def initials(self):
+        parts = self.name.split()
+        if len(parts) > 1:
+            return (parts[0][0] + parts[-1][0]).upper()
+        return self.name[:2].upper()
+
 
 class TrainingPlan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
