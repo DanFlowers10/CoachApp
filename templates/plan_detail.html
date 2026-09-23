@@ -123,8 +123,7 @@
       <div class="week-title">Week {{ wk.index }}</div>
       <div class="week-progress-segments">
         {% for w in wk.workouts %}
-          {% set wstatus = 'done' if w.completed else ('today' if w.date == today else ('missed' if w.date < today else 'upcoming')) %}
-          <div class="week-progress-segment is-{{ wstatus }}"></div>
+          <div class="week-progress-segment {{ 'is-done' if w.completed else '' }}"></div>
         {% endfor %}
       </div>
       <div class="week-progress-sub">Total Workouts: {{ wk.total }}<br>Distance: {{ wk.planned_mi }}mi</div>
@@ -137,13 +136,13 @@
         {% set is_race = w.workout_type == 'Race' %}
         {% set is_rest = w.workout_type == 'Rest' %}
         {% set icon_class = 'type-race' if is_race else ('type-long' if is_long else ('type-tempo' if is_tempo else ('type-intervals' if is_intervals else ('type-rest' if is_rest else 'type-easy')))) %}
-        <a href="{{ url_for('workout_detail', workout_id=w.id) }}" class="workout-row-mini {{ 'is-done' if w.completed else '' }}" id="workout-{{ w.id }}">
+        <div class="workout-row-mini {{ 'is-done' if w.completed else '' }}" id="workout-{{ w.id }}">
           <div class="workout-row-mini-swatch {{ icon_class }}"></div>
           <div class="workout-row-mini-dow">{{ w.date.strftime('%a') }}</div>
           <div class="workout-row-mini-text">
             <span class="fw-bold">{{ w.workout_type }}</span>{% if w.target_distance_km %}<span class="text-muted"> &middot; {{ w.target_distance_km }}mi</span>{% endif %}{% if w.strava_activity_id %}<i class="ti ti-brand-strava" title="Auto-synced from Strava" style="color:#fc4c02;font-size:.8rem;margin-left:.35rem;"></i>{% endif %}
           </div>
-        </a>
+        </div>
       {% endfor %}
     </div>
   </div>

@@ -318,31 +318,28 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
 
 /* ---------- plan / weeks ---------- */
 /* Every week renders fully expanded as its own bold-bordered block - no
-   accordion. A future pass will make the block itself tappable to edit
-   that week's activities. */
-.week-card { border-radius: 20px; margin-bottom: 1rem; overflow: hidden; border: 2px solid var(--text-faint); background: var(--surface); padding: 1.2rem 1.25rem 1.4rem; }
+   accordion, nothing inside is tappable yet. A future pass will make the
+   block itself tappable to edit that week's activities. */
+.week-card { border-radius: 14px; margin-bottom: .8rem; overflow: hidden; border: 1.5px solid var(--text-faint); background: var(--surface); padding: .9rem 1rem 1.05rem; }
 .week-header { padding: 0; }
-.week-header .week-title { font-weight: 800; font-size: 1.4rem; margin-top: .1rem; }
-.week-header .week-meta { font-size: .78rem; color: var(--text-dim); font-weight: 700; }
-.week-progress-segments { display: flex; gap: 6px; margin-top: .9rem; }
-.week-progress-segment { flex: 1; height: 7px; border-radius: 999px; background: var(--border); }
+.week-header .week-title { font-weight: 800; font-size: 1.1rem; margin-top: .1rem; }
+.week-header .week-meta { font-size: .74rem; color: var(--text-dim); font-weight: 700; }
+.week-progress-segments { display: flex; gap: 4px; margin-top: .6rem; }
+.week-progress-segment { flex: 1; height: 5px; border-radius: 999px; background: var(--border); }
 .week-progress-segment.is-done { background: var(--success); }
-.week-progress-segment.is-today { background: var(--accent); }
-.week-progress-segment.is-missed { background: var(--danger); }
-.week-progress-sub { font-size: .82rem; color: var(--text-dim); font-weight: 600; margin-top: .7rem; line-height: 1.6; }
-.week-body { padding-top: .5rem; display: flex; flex-direction: column; }
+.week-progress-sub { font-size: .76rem; color: var(--text-dim); font-weight: 600; margin-top: .5rem; line-height: 1.5; }
+.week-body { padding-top: .35rem; display: flex; flex-direction: column; }
 
-.workout-row-mini { display: flex; align-items: center; gap: .85rem; padding: .6rem .1rem; border-radius: var(--radius-sm); text-decoration: none; color: inherit; }
-.workout-row-mini:hover { background: var(--surface-hover); color: inherit; }
-.workout-row-mini-swatch { width: 36px; height: 36px; border-radius: 10px; flex: none; }
+.workout-row-mini { display: flex; align-items: center; gap: .7rem; padding: .45rem .1rem; }
+.workout-row-mini-swatch { width: 28px; height: 28px; border-radius: 8px; flex: none; }
 .workout-row-mini-swatch.type-easy { background: #3ecf8e; }
 .workout-row-mini-swatch.type-tempo { background: #e968c7; }
 .workout-row-mini-swatch.type-intervals { background: #9a8cf9; }
 .workout-row-mini-swatch.type-long { background: #5b9cf6; }
 .workout-row-mini-swatch.type-race { background: var(--accent-grad); }
 .workout-row-mini-swatch.type-rest { background: var(--text-faint); }
-.workout-row-mini-dow { width: 38px; flex: none; font-size: .82rem; color: var(--text-dim); font-weight: 700; }
-.workout-row-mini-text { flex: 1; min-width: 0; font-size: .92rem; color: var(--text-dim); }
+.workout-row-mini-dow { width: 32px; flex: none; font-size: .78rem; color: var(--text-dim); font-weight: 700; }
+.workout-row-mini-text { flex: 1; min-width: 0; font-size: .85rem; color: var(--text-dim); }
 .workout-row-mini-text .fw-bold { color: var(--text); }
 .workout-row-mini.is-done .workout-row-mini-text { opacity: .65; }
 
