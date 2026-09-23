@@ -179,6 +179,13 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
 .bottom-nav-item:hover { color: var(--text); }
 .bottom-nav-item.active:hover { color: var(--accent); }
 
+.nav-progress {
+  position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 100;
+  background: var(--accent-grad); transform: scaleX(0); transform-origin: left;
+  opacity: 0; transition: transform .5s cubic-bezier(.1,.7,.3,1), opacity .15s ease;
+}
+.nav-progress.is-active { transform: scaleX(0.7); opacity: 1; }
+
 /* toasts */
 .toast-stack { position: fixed; top: 76px; right: 16px; z-index: 1050; display: flex; flex-direction: column; gap: .5rem; max-width: 340px; width: calc(100% - 32px); }
 .toast-item {

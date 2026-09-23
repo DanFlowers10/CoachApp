@@ -48,11 +48,26 @@
     {% endwith %}
   </div>
 
+  <div class="nav-progress" id="nav-progress"></div>
+
   <div class="container pb-5">
     {% block content %}{% endblock %}
   </div>
 
   {% include "_athlete_nav.html" %}
+
+  <script>
+    // Instant tap feedback on the bottom nav - the actual page load still takes
+    // as long as the network round-trip does, but showing something the moment
+    // a tap registers makes it feel responsive instead of frozen, especially
+    // installed as a PWA where there's no browser loading spinner to look at.
+    document.querySelectorAll('.bottom-nav-item').forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || link.classList.contains('active')) return;
+        document.getElementById('nav-progress').classList.add('is-active');
+      });
+    });
+  </script>
 
   <script>
     function dismissToast(el) {

@@ -2,7 +2,7 @@ import os
 import calendar as cal_module
 from datetime import datetime, date, timedelta
 
-from flask import Flask, render_template, redirect, url_for, request, flash, abort, jsonify
+from flask import Flask, render_template, redirect, url_for, request, flash, abort, jsonify, g
 from flask_login import (
     LoginManager, login_user, logout_user, login_required, current_user
 )
@@ -67,14 +67,18 @@ def client_required(fn):
 @app.context_processor
 def inject_nav_plan_id():
     """The athlete bottom nav's Plan/Calendar links need a plan id even on pages
-    (Today, Stats) that don't already have one in their URL."""
+    (Today, Stats) that don't already have one in their URL. Routes that already
+    load a plan (plan_detail, plan_calendar, workout_detail, Today) set
+    g.nav_plan_id themselves so this doesn't run a redundant query on every page."""
     if current_user.is_authenticated and not current_user.is_coach():
-        plan = (
-            TrainingPlan.query.filter_by(client_id=current_user.id)
-            .order_by(TrainingPlan.created_at.desc())
-            .first()
-        )
-        return {"nav_plan_id": plan.id if plan else None}
+        if not hasattr(g, "nav_plan_id"):
+            plan = (
+                TrainingPlan.query.filter_by(client_id=current_user.id)
+                .order_by(TrainingPlan.created_at.desc())
+                .first()
+            )
+            g.nav_plan_id = plan.id if plan else None
+        return {"nav_plan_id": g.nav_plan_id}
     return {}
 
 
@@ -404,6 +408,7 @@ def plan_detail(plan_id):
     else:
         if plan.client_id != current_user.id:
             abort(403)
+        g.nav_plan_id = plan.id
 
     today = date.today()
     workouts = plan.workouts  # ordered by date
@@ -475,6 +480,7 @@ def plan_calendar(plan_id):
     else:
         if plan.client_id != current_user.id:
             abort(403)
+        g.nav_plan_id = plan.id
 
     today = date.today()
     workouts = plan.workouts
@@ -559,6 +565,7 @@ def workout_detail(workout_id):
     else:
         if workout.plan.client_id != current_user.id:
             abort(404)
+        g.nav_plan_id = workout.plan_id
 
     _attach_comparisons([workout])
     return render_template("workout_detail.html", workout=workout, plan=workout.plan)
@@ -671,6 +678,7 @@ def client_dashboard():
     )
     if plan is None:
         return render_template("today.html", plan=None)
+    g.nav_plan_id = plan.id
 
     today = date.today()
     workouts = plan.workouts
