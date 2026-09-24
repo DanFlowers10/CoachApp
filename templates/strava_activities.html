@@ -16,7 +16,7 @@
           <td>{{ a.name }}</td>
           <td>{{ a.type }}</td>
           <td>{{ "%.2f"|format(a.distance / 1609.34) }} mi</td>
-          <td>{{ (a.moving_time // 60) }} min</td>
+          <td>{{ (a.moving_time // 60)|duration }}</td>
         </tr>
       {% endfor %}
     </tbody>

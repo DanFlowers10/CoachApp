@@ -49,7 +49,7 @@
   <a href="{{ url_for('workout_detail', workout_id=w.id) }}" class="week-workout-card {{ icon_class }} {{ 'is-done' if w.completed else '' }}" id="workout-{{ w.id }}">
     <div class="week-workout-card-body">
       <div class="week-workout-card-title">{% if w.target_distance_km %}{{ w.target_distance_km }}mi {% endif %}{{ w.workout_type }}{% if w.strava_activity_id %}<i class="ti ti-brand-strava" title="Auto-synced from Strava" style="color:#fc4c02;font-size:.75rem;margin-left:.35rem;"></i>{% endif %}</div>
-      <div class="week-workout-card-meta">{{ w.date.strftime('%A %d %b') }}{% if w.target_duration_min %} &middot; {{ w.target_duration_min }} min{% endif %}</div>
+      <div class="week-workout-card-meta">{{ w.date.strftime('%A %d %b') }}{% if w.target_duration_min %} &middot; {{ w.target_duration_min|duration }}{% endif %}</div>
       <div class="week-workout-card-type">{{ w.workout_type }}{% if w.target_distance_km %} &middot; {{ w.target_distance_km }}mi{% endif %}</div>
     </div>
     <div class="week-workout-card-check {{ 'is-done' if w.completed else '' }}"></div>

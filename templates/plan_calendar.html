@@ -51,7 +51,7 @@
             <div class="cal-daynum">{{ cell.date.day }}</div>
             <div class="cal-icon {{ icon_color }}"><i class="ti {{ icon }}"></i></div>
             <div class="cal-type">{{ w.workout_type }}</div>
-            {% if w.target_distance_km %}<div class="cal-dist">{{ w.target_distance_km }}mi{% if w.target_duration_min %} &middot; {{ w.target_duration_min }} min{% endif %}</div>{% endif %}
+            {% if w.target_distance_km %}<div class="cal-dist">{{ w.target_distance_km }}mi{% if w.target_duration_min %} &middot; {{ w.target_duration_min|duration }}{% endif %}</div>{% endif %}
             {% if w.description %}<div class="cal-desc">{{ w.description }}</div>{% endif %}
           </a>
         {% else %}

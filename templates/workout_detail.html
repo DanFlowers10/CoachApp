@@ -34,7 +34,7 @@
   <h2 class="mb-0 mt-2">{% if workout.target_distance_km %}{{ workout.target_distance_km }}mi {% endif %}{{ workout.workout_type }}</h2>
   {% if workout.target_duration_min %}
     <div class="workout-hero-duration">
-      <i class="ti ti-clock"></i> {{ workout.target_duration_min }} min
+      <i class="ti ti-clock"></i> {{ workout.target_duration_min|duration }}
     </div>
   {% endif %}
 </div>
@@ -50,7 +50,7 @@
   <div class="text-uppercase small fw-bold text-muted mt-4 mb-2" style="letter-spacing:.04em;">Logged</div>
   <div class="card-surface" style="border-radius: var(--radius); padding: 1rem 1.1rem;">
     {% if workout.actual_distance_km %}{{ workout.actual_distance_km }} mi{% endif %}
-    {% if workout.actual_duration_min %} &middot; {{ workout.actual_duration_min }} min{% endif %}
+    {% if workout.actual_duration_min %} &middot; {{ workout.actual_duration_min|duration }}{% endif %}
     {% if workout.distance_badge or workout.pace_badge %}
       <div class="w-badges mt-2">
         {% if workout.distance_badge %}<span class="compare-badge {{ 'ok' if workout.distance_badge == 'on target distance' else 'note' }}">{{ workout.distance_badge }}</span>{% endif %}

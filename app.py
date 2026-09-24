@@ -253,6 +253,18 @@ def _pace_str(duration_min, distance_mi):
     return f"{minutes}:{seconds:02d}/mi"
 
 
+@app.template_filter("duration")
+def format_duration(minutes):
+    """'45 min' under an hour, '1h10m' (or '1h') from 60 minutes up."""
+    if minutes is None:
+        return ""
+    minutes = int(minutes)
+    if minutes < 60:
+        return f"{minutes} min"
+    hours, mins = divmod(minutes, 60)
+    return f"{hours}h{mins}m" if mins else f"{hours}h"
+
+
 def _attach_comparisons(workouts):
     """For completed workouts, attach transient target-vs-actual fields the template can render."""
     for w in workouts:

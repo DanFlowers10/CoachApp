@@ -102,7 +102,7 @@
           <div class="d-flex justify-content-between align-items-start gap-2">
             <div>
               <div class="fw-bold" style="font-size:1.05rem;">{% if w.target_distance_km %}{{ w.target_distance_km }}mi {% endif %}{{ w.workout_type }}{% if w.strava_activity_id %}<span class="strava-tag" title="Auto-synced from Strava"><i class="ti ti-brand-strava"></i> Strava</span>{% endif %}</div>
-              <div class="small text-muted">{{ w.date.strftime('%A %d %b') }}{% if w.target_duration_min %} &middot; {{ w.target_duration_min }} min{% endif %}</div>
+              <div class="small text-muted">{{ w.date.strftime('%A %d %b') }}{% if w.target_duration_min %} &middot; {{ w.target_duration_min|duration }}{% endif %}</div>
             </div>
           </div>
           {% if w.description %}<div class="today-focus-desc mt-2">{{ w.description }}</div>{% endif %}
@@ -133,7 +133,7 @@
             </div>
             <h2 class="mb-0 mt-2">{% if w.target_distance_km %}{{ w.target_distance_km }}mi {% endif %}{{ w.workout_type }}</h2>
             {% if w.target_duration_min %}
-              <div class="workout-hero-duration"><i class="ti ti-clock"></i> {{ w.target_duration_min }} min</div>
+              <div class="workout-hero-duration"><i class="ti ti-clock"></i> {{ w.target_duration_min|duration }}</div>
             {% endif %}
           </div>
 
@@ -146,7 +146,7 @@
             <div class="text-uppercase small fw-bold text-muted mt-4 mb-2" style="letter-spacing:.04em;">Logged</div>
             <div class="card-surface" style="border-radius: var(--radius); padding: 1rem 1.1rem;">
               {% if w.actual_distance_km %}{{ w.actual_distance_km }} mi{% endif %}
-              {% if w.actual_duration_min %} &middot; {{ w.actual_duration_min }} min{% endif %}
+              {% if w.actual_duration_min %} &middot; {{ w.actual_duration_min|duration }}{% endif %}
               {% if w.distance_badge or w.pace_badge %}
                 <div class="w-badges mt-2">
                   {% if w.distance_badge %}<span class="compare-badge {{ 'ok' if w.distance_badge == 'on target distance' else 'note' }}">{{ w.distance_badge }}</span>{% endif %}
@@ -224,7 +224,7 @@
             <a href="{{ url_for('workout_detail', workout_id=w.id) }}" class="sheet-workout-row {{ icon_class }}">
               <div class="flex-grow-1">
                 <div class="fw-bold small">{% if w.target_distance_km %}{{ w.target_distance_km }}mi {% endif %}{{ w.workout_type }}</div>
-                <div class="small text-muted">{{ w.date.strftime('%a %d %b') }}{% if w.target_duration_min %} &middot; {{ w.target_duration_min }} min{% endif %}</div>
+                <div class="small text-muted">{{ w.date.strftime('%a %d %b') }}{% if w.target_duration_min %} &middot; {{ w.target_duration_min|duration }}{% endif %}</div>
               </div>
               <div class="sheet-check {{ 'is-done' if w.completed else '' }}"></div>
             </a>

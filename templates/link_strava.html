@@ -18,7 +18,7 @@
             <div class="fw-bold small">{{ a.name }}</div>
             <div class="small text-muted">
               {{ (a.distance / 1609.34)|round(1) }} mi &middot;
-              {{ (a.moving_time // 60) }} min &middot;
+              {{ (a.moving_time // 60)|duration }} &middot;
               {{ a.start_date_local[:10] }}
             </div>
           </div>
