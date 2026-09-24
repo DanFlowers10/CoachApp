@@ -320,9 +320,14 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
 
 /* ---------- plan / weeks ---------- */
 /* Every week renders fully expanded as its own bold-bordered block - no
-   accordion, nothing inside is tappable yet. A future pass will make the
-   block itself tappable to edit that week's activities. */
-.week-card { border-radius: 12px; margin-bottom: .65rem; overflow: hidden; border: 1.5px solid var(--text-faint); background: var(--surface); padding: .7rem .8rem .8rem; }
+   accordion. The whole block is a single tap target through to that
+   week's full-page detail view; nothing inside it is separately clickable. */
+.week-card {
+  display: block; border-radius: 12px; margin-bottom: .65rem; overflow: hidden;
+  border: 1.5px solid var(--text-faint); background: var(--surface); padding: .7rem .8rem .8rem;
+  text-decoration: none; color: inherit; transition: transform .12s ease, border-color .12s ease;
+}
+.week-card:active { transform: scale(.98); border-color: var(--text-dim); color: inherit; }
 .week-header { padding: 0; }
 .week-header .week-title { font-weight: 800; font-size: .98rem; margin-top: .05rem; }
 .week-header .week-meta { font-size: .68rem; color: var(--text-dim); font-weight: 700; }
@@ -357,6 +362,34 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
   color: var(--text); white-space: nowrap;
 }
 .page-title-badge i { color: var(--text-faint); font-size: .95rem; }
+.header-back-btn { background: none; border: none; color: var(--text); font-size: 1.3rem; padding: 0; width: 1.6rem; display: flex; align-items: center; }
+
+/* plan week detail page: prev/next week nav + full workout cards, reached by
+   tapping a week block on the Plan page */
+.week-nav-row { display: flex; align-items: center; justify-content: space-between; padding: .25rem 0 1rem; }
+.week-nav-arrow { display: flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; color: var(--text-dim); background: none; border: none; text-decoration: none; font-size: 1.1rem; }
+.week-nav-arrow.is-disabled { color: var(--text-faint); opacity: .4; pointer-events: none; }
+.week-nav-title { display: flex; align-items: center; gap: .3rem; font-weight: 800; font-size: 1.15rem; color: var(--text); background: none; border: none; }
+.week-nav-title i { font-size: .85rem; color: var(--text-faint); }
+
+.week-workout-card {
+  position: relative; overflow: hidden; display: flex; align-items: flex-start; gap: .85rem;
+  border-radius: var(--radius); padding: 1rem 1.1rem 1rem 1.35rem; margin-bottom: .8rem;
+  background: var(--bg-elevated); border: 1px solid var(--border); text-decoration: none; color: inherit;
+}
+.week-workout-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; }
+.week-workout-card.type-easy::before { background: #3ecf8e; }
+.week-workout-card.type-tempo::before { background: #e968c7; }
+.week-workout-card.type-intervals::before { background: #9a8cf9; }
+.week-workout-card.type-long::before { background: #5b9cf6; }
+.week-workout-card.type-race::before { background: #ff6a55; }
+.week-workout-card-body { flex: 1; min-width: 0; }
+.week-workout-card-title { font-weight: 800; font-size: 1.05rem; color: var(--text); }
+.week-workout-card-meta { font-size: .8rem; color: var(--text-faint); margin-top: .15rem; }
+.week-workout-card-type { font-size: .85rem; color: var(--text-dim); margin-top: .6rem; }
+.week-workout-card-check { width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--border); flex: none; margin-top: .1rem; }
+.week-workout-card-check.is-done { border-color: var(--success); background: var(--success); }
+.week-workout-card.is-done { opacity: .75; }
 
 /* today page */
 .week-selector-link {

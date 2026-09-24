@@ -101,7 +101,7 @@
 
 {% for wk in weeks %}
   {% set active_workouts = wk.workouts | rejectattr('workout_type', 'equalto', 'Rest') | list %}
-  <div class="week-card" id="week-{{ wk.index }}">
+  <a href="{{ url_for('plan_week_detail', plan_id=plan.id, week_index=wk.index) }}" class="week-card" id="week-{{ wk.index }}">
     <div class="week-header">
       <div class="week-meta">{{ wk.start.strftime('%d %b').upper() }} - {{ wk.end.strftime('%d %b').upper() }}</div>
       <div class="week-title">Week {{ wk.index }}</div>
@@ -128,7 +128,7 @@
         </div>
       {% endfor %}
     </div>
-  </div>
+  </a>
 {% endfor %}
 
 {% if current_user.is_coach() %}

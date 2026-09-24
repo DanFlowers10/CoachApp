@@ -494,6 +494,33 @@ def plan_detail(plan_id):
     )
 
 
+@app.route("/plan/<int:plan_id>/week/<int:week_index>")
+@login_required
+def plan_week_detail(plan_id, week_index):
+    plan = db.session.get(TrainingPlan, plan_id)
+    if plan is None:
+        abort(404)
+
+    if current_user.is_coach():
+        if plan.coach_id != current_user.id:
+            abort(403)
+    else:
+        if plan.client_id != current_user.id:
+            abort(403)
+        g.nav_plan_id = plan.id
+
+    today = date.today()
+    workouts = plan.workouts
+    _attach_comparisons(workouts)
+
+    weeks = _plan_weeks(workouts)
+    wk = next((w for w in weeks if w["index"] == week_index), None)
+    if wk is None:
+        abort(404)
+
+    return render_template("plan_week_detail.html", plan=plan, today=today, weeks=weeks, wk=wk)
+
+
 @app.route("/plan/<int:plan_id>/strava-sync", methods=["POST"])
 @login_required
 def strava_sync(plan_id):

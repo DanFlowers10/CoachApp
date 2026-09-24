@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Week {{ wk.index }} — {{ plan.title }}{% endblock %}
+{% block body_attrs %}data-no-pull-refresh{% endblock %}
+
+{% block header %}
+<nav class="app-nav mb-2">
+  <div class="container py-2">
+    <div class="d-flex align-items-center justify-content-between">
+      <a href="{{ url_for('plan_detail', plan_id=plan.id) }}" class="header-back-btn" aria-label="Back to Plan"><i class="ti ti-chevron-left"></i></a>
+      <span class="page-title-badge">Plan Overview</span>
+      <span style="width:1.6rem;"></span>
+    </div>
+  </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+{% set active_workouts = wk.workouts | rejectattr('workout_type', 'equalto', 'Rest') | list %}
+
+<div class="week-nav-row">
+  {% if wk.index > 1 %}
+    <a href="{{ url_for('plan_week_detail', plan_id=plan.id, week_index=wk.index - 1) }}" class="week-nav-arrow" aria-label="Previous week"><i class="ti ti-chevron-left"></i></a>
+  {% else %}
+    <span class="week-nav-arrow is-disabled"><i class="ti ti-chevron-left"></i></span>
+  {% endif %}
+  <button type="button" class="week-nav-title" onclick="document.getElementById('week-picker-sheet').classList.add('is-open')">
+    Week {{ wk.index }} <i class="ti ti-chevron-down"></i>
+  </button>
+  {% if wk.index < weeks|length %}
+    <a href="{{ url_for('plan_week_detail', plan_id=plan.id, week_index=wk.index + 1) }}" class="week-nav-arrow" aria-label="Next week"><i class="ti ti-chevron-right"></i></a>
+  {% else %}
+    <span class="week-nav-arrow is-disabled"><i class="ti ti-chevron-right"></i></span>
+  {% endif %}
+</div>
+
+<div class="week-progress-segments mb-2">
+  {% for w in active_workouts %}
+    <div class="week-progress-segment {{ 'is-done' if w.completed else '' }}"></div>
+  {% endfor %}
+</div>
+<div class="week-progress-sub mb-4">Total Workouts: {{ active_workouts|length }}<br>Distance: {{ wk.planned_mi }}mi</div>
+
+{% for w in active_workouts %}
+  {% set is_long = w.workout_type == 'Long Run' %}
+  {% set is_tempo = w.workout_type == 'Tempo' %}
+  {% set is_intervals = w.workout_type == 'Intervals' %}
+  {% set is_race = w.workout_type == 'Race' %}
+  {% set icon_class = 'type-race' if is_race else ('type-long' if is_long else ('type-tempo' if is_tempo else ('type-intervals' if is_intervals else 'type-easy'))) %}
+  <a href="{{ url_for('workout_detail', workout_id=w.id) }}" class="week-workout-card {{ icon_class }} {{ 'is-done' if w.completed else '' }}" id="workout-{{ w.id }}">
+    <div class="week-workout-card-body">
+      <div class="week-workout-card-title">{% if w.target_distance_km %}{{ w.target_distance_km }}mi {% endif %}{{ w.workout_type }}{% if w.strava_activity_id %}<i class="ti ti-brand-strava" title="Auto-synced from Strava" style="color:#fc4c02;font-size:.75rem;margin-left:.35rem;"></i>{% endif %}</div>
+      <div class="week-workout-card-meta">{{ w.date.strftime('%A %d %b') }}{% if w.target_duration_min %} &middot; {{ w.target_duration_min }} min{% endif %}</div>
+      <div class="week-workout-card-type">{{ w.workout_type }}{% if w.target_distance_km %} &middot; {{ w.target_distance_km }}mi{% endif %}</div>
+    </div>
+    <div class="week-workout-card-check {{ 'is-done' if w.completed else '' }}"></div>
+  </a>
+{% endfor %}
+
+<div class="bottom-sheet-backdrop" id="week-picker-sheet" onclick="if (event.target === this) this.classList.remove('is-open')">
+  <div class="bottom-sheet">
+    <div class="bottom-sheet-handle"></div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <span class="fw-bold" style="font-size:.95rem;">Jump to a week</span>
+      <button type="button" class="btn-icon" onclick="document.getElementById('week-picker-sheet').classList.remove('is-open')" aria-label="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="bottom-sheet-body">
+      {% for w2 in weeks %}
+        <a href="{{ url_for('plan_week_detail', plan_id=plan.id, week_index=w2.index) }}" class="week-picker-row {{ 'is-current' if w2.index == wk.index else '' }}">
+          <div class="week-picker-dot {{ 'is-done' if w2.done == w2.total else ('is-current' if w2.index == wk.index else '') }}"></div>
+          <div class="flex-grow-1">
+            <div class="fw-bold small">Week {{ w2.index }}</div>
+            <div class="small text-muted">{{ w2.start.strftime('%d %b') }} &ndash; {{ w2.end.strftime('%d %b') }}</div>
+          </div>
+          <div class="small text-muted">{{ w2.done }}/{{ w2.total }} done</div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
