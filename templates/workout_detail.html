@@ -19,11 +19,11 @@
     {% if not current_user.is_coach() %}
       {% if workout.completed %}
         <form method="post" action="{{ url_for('uncomplete_workout', workout_id=workout.id) }}">
-          <button type="submit" class="status-pill done" title="Tap to mark not done">done</button>
+          <button type="submit" class="workout-done-btn is-done" aria-label="Mark not done"><i class="ti ti-check"></i></button>
         </form>
       {% else %}
         <form method="post" action="{{ url_for('complete_workout', workout_id=workout.id) }}">
-          <button class="btn btn-sm btn-accent">Mark done</button>
+          <button type="submit" class="workout-done-btn" aria-label="Mark done"><i class="ti ti-check"></i></button>
         </form>
       {% endif %}
     {% else %}

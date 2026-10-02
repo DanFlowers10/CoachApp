@@ -127,17 +127,15 @@
           <div class="workout-hero {{ icon_class }}" style="--hero-color: {{ {'type-easy': '#3ecf8e', 'type-tempo': '#e968c7', 'type-intervals': '#9a8cf9', 'type-long': '#5b9cf6', 'type-rest': 'var(--text-faint)', 'type-race': '#ff6a55'}[icon_class] }};">
             <div class="d-flex justify-content-between align-items-start">
               <div class="workout-hero-date">{{ w.date.strftime('%A %d %b %Y') }}</div>
-              {% if w.completed %}
-                {% if current_user.is_coach() %}
-                  <span class="status-pill done">done</span>
-                {% else %}
-                  <form method="post" action="{{ url_for('uncomplete_workout', workout_id=w.id) }}">
-                    <button type="submit" class="status-pill done" title="Tap to mark not done">done</button>
-                  </form>
-                {% endif %}
-              {% elif not current_user.is_coach() %}
+              {% if current_user.is_coach() %}
+                {% if w.completed %}<div class="workout-done-btn is-done" aria-label="Done"><i class="ti ti-check"></i></div>{% endif %}
+              {% elif w.completed %}
+                <form method="post" action="{{ url_for('uncomplete_workout', workout_id=w.id) }}">
+                  <button type="submit" class="workout-done-btn is-done" aria-label="Mark not done"><i class="ti ti-check"></i></button>
+                </form>
+              {% else %}
                 <form method="post" action="{{ url_for('complete_workout', workout_id=w.id) }}">
-                  <button class="btn btn-sm btn-accent">Mark done</button>
+                  <button type="submit" class="workout-done-btn" aria-label="Mark done"><i class="ti ti-check"></i></button>
                 </form>
               {% endif %}
             </div>
