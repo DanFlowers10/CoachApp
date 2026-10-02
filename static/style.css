@@ -486,7 +486,10 @@ button.week-workout-card-check:active { transform: scale(.92); }
 
 /* bottom sheet */
 .bottom-sheet-backdrop {
-  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 60;
+  /* Above .page-overlay's z-index (70) - a bottom sheet opened from inside a full-page
+     overlay (e.g. the swap sheet from Today's workout detail view) needs to render on
+     top of it, not get hidden behind it. */
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 80;
   align-items: flex-end; justify-content: center;
 }
 .bottom-sheet-backdrop.is-open { display: flex; }

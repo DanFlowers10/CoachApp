@@ -395,6 +395,33 @@ def _swap_window_indices(weeks, today):
     return {current, current + 1}
 
 
+def _swap_eligibility(workout, weeks, today):
+    """(can_swap, swap_candidates) for an athlete viewing this workout - shared by the
+    workout detail page and Today's focus card so the rule only lives in one place."""
+    can_swap = (
+        not workout.completed
+        and workout.date >= today
+        and workout.workout_type != "Race"
+    )
+    if not can_swap:
+        return False, []
+
+    window = _swap_window_indices(weeks, today)
+    this_week = next((wk for wk in weeks if workout in wk["workouts"]), None)
+    if not this_week or this_week["index"] not in window:
+        return False, []
+
+    candidates = [
+        w for wk in weeks if wk["index"] in window
+        for w in wk["workouts"]
+        if w.id != workout.id
+        and not w.completed
+        and w.date >= today
+        and w.workout_type != "Race"
+    ]
+    return True, candidates
+
+
 def _done_week_indices(weeks):
     """Week indices where every real activity (not Rest) is completed. Rest days are
     excluded because they're essentially never marked done, which otherwise makes a
@@ -740,28 +767,10 @@ def workout_detail(workout_id):
 
     _attach_comparisons([workout])
 
-    swap_candidates = []
-    can_swap = (
-        not current_user.is_coach()
-        and not workout.completed
-        and workout.date >= date.today()
-        and workout.workout_type != "Race"
-    )
-    if can_swap:
-        today = date.today()
+    can_swap, swap_candidates = (False, [])
+    if not current_user.is_coach():
         weeks = _plan_weeks(workout.plan.workouts)
-        window = _swap_window_indices(weeks, today)
-        this_week = next((wk for wk in weeks if workout in wk["workouts"]), None)
-        can_swap = bool(this_week and this_week["index"] in window)
-        if can_swap:
-            swap_candidates = [
-                w for wk in weeks if wk["index"] in window
-                for w in wk["workouts"]
-                if w.id != workout.id
-                and not w.completed
-                and w.date >= today
-                and w.workout_type != "Race"
-            ]
+        can_swap, swap_candidates = _swap_eligibility(workout, weeks, date.today())
 
     return render_template(
         "workout_detail.html", workout=workout, plan=workout.plan,
@@ -974,6 +983,10 @@ def client_dashboard():
     plan_count = TrainingPlan.query.filter_by(client_id=current_user.id).count()
     done_week_indices = _done_week_indices(weeks)
 
+    can_swap, swap_candidates = (False, [])
+    if selected_workout:
+        can_swap, swap_candidates = _swap_eligibility(selected_workout, weeks, today)
+
     return render_template(
         "today.html",
         plan=plan,
@@ -985,6 +998,8 @@ def client_dashboard():
         plan_count=plan_count,
         done_week_indices=done_week_indices,
         strava_sync_due=_strava_sync_due(current_user),
+        can_swap=can_swap,
+        swap_candidates=swap_candidates,
     )
 
 
