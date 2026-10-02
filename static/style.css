@@ -126,7 +126,7 @@ p, .text-muted, .small.text-muted { color: var(--text-dim) !important; }
 .account-menu { position: relative; }
 .account-avatar {
   width: 32px; height: 32px; border-radius: 999px; flex: none;
-  background: var(--success); color: var(--bg);
+  background: var(--progress); color: #fff;
   border: none; display: flex; align-items: center; justify-content: center;
   font-size: .72rem; font-weight: 800; letter-spacing: -0.02em;
 }
@@ -345,22 +345,36 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
 .stat-tile .stat-value.accent { background: var(--accent-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
 /* ---------- plan hero card ---------- */
+/* Background is race-themed (see --race-grad, set inline per plan from its
+   goal_race - e.g. Valencia's orange-to-sea-blue) rather than one fixed
+   gradient, so different athletes' target races read visually distinct. */
 .plan-hero-card {
   border-radius: var(--radius); padding: 1.3rem 1.3rem 1.4rem; position: relative; overflow: hidden;
-  background: var(--surface); border: 1px solid var(--border); color: var(--text);
+  background: var(--race-grad, linear-gradient(135deg, #7000ff 0%, #ff007a 100%)); border: none; color: #fff;
 }
-.plan-hero-title { font-size: 1.2rem; font-weight: 800; line-height: 1.25; }
-.plan-hero-race { font-size: .85rem; color: var(--text-dim); margin-top: .3rem; }
-.plan-hero-race strong { color: var(--text); }
+.plan-hero-card::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at 88% -15%, rgba(255,255,255,.22), transparent 55%);
+}
+.plan-hero-card > * { position: relative; }
+.plan-hero-title { font-size: 1.2rem; font-weight: 800; line-height: 1.25; color: #fff; }
+.plan-hero-race { font-size: .85rem; color: rgba(255,255,255,.8); margin-top: .3rem; }
+.plan-hero-race strong { color: #fff; }
+.plan-hero-card .btn-outline-primary, .plan-hero-card .btn-outline-danger {
+  border-color: rgba(255,255,255,.55); color: #fff;
+}
+.plan-hero-card .btn-outline-primary:hover, .plan-hero-card .btn-outline-danger:hover {
+  background: rgba(255,255,255,.18); border-color: #fff; color: #fff;
+}
 .plan-week-segments { display: flex; gap: 3px; }
-.plan-week-segment { flex: 1; height: 6px; border-radius: 999px; background: var(--border); }
-.plan-week-segment.is-done { background: var(--progress); }
-.plan-week-segment.is-current { background: var(--text); }
+.plan-week-segment { flex: 1; height: 6px; border-radius: 999px; background: rgba(255,255,255,.28); }
+.plan-week-segment.is-done { background: rgba(255,255,255,.95); }
+.plan-week-segment.is-current { background: #fff; }
 .plan-hero-stats-row { display: flex; align-items: center; gap: 1rem; margin-top: 1.1rem; }
 .plan-hero-ring { flex: none; }
-.plan-hero-distance-num { font-size: 2rem; font-weight: 800; color: var(--text); letter-spacing: -0.02em; line-height: 1; }
-.plan-hero-distance-unit { font-size: .95rem; font-weight: 700; color: var(--text-dim); }
-.plan-hero-distance-label { font-size: .72rem; font-weight: 700; color: var(--text-dim); margin-top: .35rem; }
+.plan-hero-distance-num { font-size: 2rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; line-height: 1; }
+.plan-hero-distance-unit { font-size: .95rem; font-weight: 700; color: rgba(255,255,255,.8); }
+.plan-hero-distance-label { font-size: .72rem; font-weight: 700; color: rgba(255,255,255,.8); margin-top: .35rem; }
 
 .plan-race-row { display: flex; align-items: center; gap: .7rem; padding: .85rem 1rem; border-radius: var(--radius); font-size: .85rem; }
 .plan-race-row i { color: var(--accent); font-size: 1.1rem; }
