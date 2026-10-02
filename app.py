@@ -765,6 +765,25 @@ def complete_workout(workout_id):
     return redirect(request.referrer or url_for("plan_detail", plan_id=workout.plan_id))
 
 
+@app.route("/workout/<int:workout_id>/uncomplete", methods=["POST"])
+@login_required
+@client_required
+def uncomplete_workout(workout_id):
+    workout = db.session.get(Workout, workout_id)
+    if workout is None or workout.plan.client_id != current_user.id:
+        abort(404)
+
+    # Full reset, not just flipping the flag: if it was Strava-matched, leaving
+    # strava_activity_id set would make the next sync just mark it done again
+    # (it matches on date, not on this id), silently undoing the athlete's undo.
+    workout.completed = False
+    workout.actual_distance_km = None
+    workout.actual_duration_min = None
+    workout.strava_activity_id = None
+    db.session.commit()
+    return redirect(request.referrer or url_for("plan_detail", plan_id=workout.plan_id))
+
+
 @app.route("/workout/<int:workout_id>/delete", methods=["POST"])
 @login_required
 @coach_required

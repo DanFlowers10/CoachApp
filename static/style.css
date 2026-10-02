@@ -396,12 +396,20 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
 .week-workout-card.type-intervals::before { background: #9a8cf9; }
 .week-workout-card.type-long::before { background: #5b9cf6; }
 .week-workout-card.type-race::before { background: #ff6a55; }
-.week-workout-card-body { flex: 1; min-width: 0; }
+.week-workout-card-body { flex: 1; min-width: 0; display: block; text-decoration: none; color: inherit; }
 .week-workout-card-title { font-weight: 800; font-size: 1.05rem; color: var(--text); }
 .week-workout-card-meta { font-size: .8rem; color: var(--text-faint); margin-top: .15rem; }
 .week-workout-card-type { font-size: .85rem; color: var(--text-dim); margin-top: .6rem; }
-.week-workout-card-check { width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--border); flex: none; margin-top: .1rem; }
-.week-workout-card-check.is-done { border-color: var(--success); background: var(--success); }
+/* Also a <button> (inside its own <form>) for the athlete, toggling done/not-done -
+   a plain div only for the coach, who can view but not mark it. */
+.week-workout-card-check {
+  width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--border); flex: none; margin-top: .1rem;
+  padding: 0; background: var(--bg-elevated); color: transparent;
+  display: flex; align-items: center; justify-content: center;
+}
+.week-workout-card-check i { font-size: .8rem; }
+.week-workout-card-check.is-done { border-color: var(--success); background: var(--success); color: #fff; }
+button.week-workout-card-check:active { transform: scale(.92); }
 .week-workout-card.is-done { opacity: .75; }
 
 /* today page */
@@ -558,6 +566,8 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
 .compare-badge.note { background: var(--warning-bg); color: var(--warning); }
 
 .status-pill { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; padding: .3rem .6rem; border-radius: 999px; flex: none; }
+button.status-pill { border: none; cursor: pointer; font-family: inherit; }
+button.status-pill:active { transform: scale(.95); }
 .status-pill.done { background: var(--success-bg); color: var(--success); }
 .status-pill.today { background: rgba(255,106,85,.15); color: var(--accent); }
 .status-pill.missed { background: var(--danger-bg); color: var(--danger); }
