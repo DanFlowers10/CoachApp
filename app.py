@@ -101,7 +101,14 @@ def index():
 def service_worker():
     # Served from the root (not /static/) so its default scope covers the whole
     # app - a service worker registered from /static/ only controls that folder.
-    return app.send_static_file("service-worker.js")
+    response = app.send_static_file("service-worker.js")
+    # Browsers only pick up a new service worker if they actually re-fetch this
+    # file - if this response is left cacheable, a browser can keep running the
+    # OLD service worker indefinitely because it never even asks the server
+    # whether there's a newer one. Service worker files must always be
+    # re-validated, unlike normal static assets.
+    response.headers["Cache-Control"] = "no-cache, must-revalidate"
+    return response
 
 
 @app.route("/register", methods=["GET", "POST"])
