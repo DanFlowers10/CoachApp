@@ -273,6 +273,50 @@ def new_plan(client_id):
     return render_template("new_plan.html", client=client)
 
 
+@app.route("/plan/<int:plan_id>/duplicate", methods=["GET", "POST"])
+@login_required
+@coach_required
+def duplicate_plan(plan_id):
+    plan = db.session.get(TrainingPlan, plan_id)
+    if plan is None or plan.coach_id != current_user.id:
+        abort(404)
+
+    clients = User.query.filter_by(coach_id=current_user.id, role="client").order_by(User.name).all()
+
+    if request.method == "POST":
+        target = next((c for c in clients if c.id == request.form.get("client_id", type=int)), None)
+        if target is None:
+            flash("Pick an athlete to duplicate this plan to.", "error")
+            return render_template("duplicate_plan.html", plan=plan, clients=clients)
+
+        new_plan = TrainingPlan(
+            client_id=target.id,
+            coach_id=current_user.id,
+            title=plan.title,
+            goal_race=plan.goal_race,
+            notes=plan.notes,
+        )
+        db.session.add(new_plan)
+        db.session.flush()  # assigns new_plan.id, needed below, before the commit
+
+        # Fresh copies, not the source workouts' progress - a new athlete starts a
+        # duplicated plan with nothing done, nothing logged, no Strava links carried over.
+        for w in plan.workouts:
+            db.session.add(Workout(
+                plan_id=new_plan.id,
+                date=w.date,
+                workout_type=w.workout_type,
+                target_distance_km=w.target_distance_km,
+                target_duration_min=w.target_duration_min,
+                description=w.description,
+            ))
+        db.session.commit()
+        flash(f'Duplicated "{plan.title}" to {target.name}.', "success")
+        return redirect(url_for("plan_detail", plan_id=new_plan.id))
+
+    return render_template("duplicate_plan.html", plan=plan, clients=clients)
+
+
 def _pace_str(duration_min, distance_mi):
     """'7:12/mi' from a duration and distance, or None if either is missing."""
     if not duration_min or not distance_mi:

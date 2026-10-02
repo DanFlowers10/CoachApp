@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Duplicate plan{% endblock %}
+{% block content %}
+<a href="{{ url_for('plan_detail', plan_id=plan.id) }}" class="small d-block mb-2">&larr; Back to {{ plan.title }}</a>
+<h2 class="mb-1">Duplicate "{{ plan.title }}"</h2>
+<p class="text-muted mb-3">Copies every workout (dates, type, distance, duration, notes) to a new plan for another athlete. The new plan starts fresh - nothing marked done, no Strava links.</p>
+
+<div class="row">
+  <div class="col-md-6">
+    <div class="auth-card">
+      {% if not clients %}
+        <p class="text-muted mb-0">You don't have any other athletes to duplicate this to yet.</p>
+      {% else %}
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">Duplicate to</label>
+            <select name="client_id" class="form-select" required>
+              <option value="" disabled selected>Choose an athlete&hellip;</option>
+              {% for client in clients %}
+                <option value="{{ client.id }}">{{ client.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button class="btn btn-accent">Duplicate plan</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
