@@ -8,6 +8,7 @@ from flask_login import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
+from sqlalchemy import inspect as sa_inspect, text as sa_text
 
 from models import db, User, TrainingPlan, Workout, StravaToken
 import strava
@@ -30,6 +31,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 STRAVA_CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID")
 STRAVA_CLIENT_SECRET = os.environ.get("STRAVA_CLIENT_SECRET")
 STRAVA_REDIRECT_URI = os.environ.get("STRAVA_REDIRECT_URI", "http://localhost:5000/strava/callback")
+STRAVA_SYNC_THROTTLE = timedelta(minutes=30)
 
 db.init_app(app)
 
@@ -564,10 +566,20 @@ def strava_sync(plan_id):
     plan = db.session.get(TrainingPlan, plan_id)
     if plan is None or plan.client_id != current_user.id:
         abort(404)
-    if not current_user.strava_token:
+    token = current_user.strava_token
+    if not token:
         return jsonify(changed=False, error=None)
 
-    error, changed = _sync_strava_completions(plan.workouts, current_user.strava_token)
+    # Switching tabs re-triggers this on every page load, which otherwise hits Strava's
+    # API every time - throttle to once per window unless the athlete explicitly pulls
+    # to refresh (force=1), which should always check for real.
+    force = request.args.get("force") == "1"
+    if not force and token.last_synced_at and datetime.utcnow() - token.last_synced_at < STRAVA_SYNC_THROTTLE:
+        return jsonify(changed=False, error=None)
+
+    error, changed = _sync_strava_completions(plan.workouts, token)
+    token.last_synced_at = datetime.utcnow()
+    db.session.commit()
     return jsonify(changed=changed, error=error)
 
 
@@ -1020,6 +1032,17 @@ def not_found(e):
 
 with app.app_context():
     db.create_all()
+
+    # db.create_all() only creates missing tables, not new columns on ones that
+    # already exist - there's no migration tool (Alembic/Flask-Migrate) set up here,
+    # so new columns on existing tables are added by hand like this instead.
+    inspector = sa_inspect(db.engine)
+    if "strava_token" in inspector.get_table_names():
+        existing_columns = {col["name"] for col in inspector.get_columns("strava_token")}
+        if "last_synced_at" not in existing_columns:
+            with db.engine.connect() as conn:
+                conn.execute(sa_text("ALTER TABLE strava_token ADD COLUMN last_synced_at TIMESTAMP"))
+                conn.commit()
 
 
 if __name__ == "__main__":

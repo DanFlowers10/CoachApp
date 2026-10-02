@@ -84,3 +84,4 @@ class StravaToken(db.Model):
     refresh_token = db.Column(db.String(255))
     expires_at = db.Column(db.Integer)  # unix timestamp
     athlete_id = db.Column(db.String(50))
+    last_synced_at = db.Column(db.DateTime)  # throttles the auto-sync on page load

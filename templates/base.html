@@ -175,6 +175,9 @@
         if (ready) {
           gap.classList.add('is-loading');
           gap.style.height = THRESHOLD + 'px';
+          // A manual pull-to-refresh should always force a real Strava check,
+          // even if the normal on-load sync was throttled recently.
+          try { sessionStorage.setItem('force_strava_sync', '1'); } catch (e) {}
           location.reload();
         } else {
           gap.style.height = '0px';
