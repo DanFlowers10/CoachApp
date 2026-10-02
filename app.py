@@ -373,6 +373,28 @@ def _plan_weeks(workouts):
     return weeks
 
 
+def _current_week_index(weeks, today):
+    """The athlete's actual current week - the first upcoming-or-in-progress week, same
+    logic used to pick which week Today/Plan default to. Falls back to the last week
+    once everything's done or the plan's finished."""
+    if not weeks:
+        return None
+    for wk in weeks:
+        if wk["end"] >= today and wk["done"] < wk["total"]:
+            return wk["index"]
+    return weeks[-1]["index"]
+
+
+def _swap_window_indices(weeks, today):
+    """Week indices an athlete is allowed to swap workouts within: the actual current
+    week plus the one after it - fixed to "now", the same for every workout regardless
+    of which one happens to be open, not relative to whichever workout you tapped into."""
+    current = _current_week_index(weeks, today)
+    if current is None:
+        return set()
+    return {current, current + 1}
+
+
 def _done_week_indices(weeks):
     """Week indices where every real activity (not Rest) is completed. Rest days are
     excluded because they're essentially never marked done, which otherwise makes a
@@ -535,12 +557,7 @@ def plan_detail(plan_id):
     total_km = sum(w.target_distance_km for w in workouts if w.target_distance_km)
     total_actual_km = sum(w.actual_distance_km for w in workouts if w.completed and w.actual_distance_km)
 
-    current_week_index = weeks[-1]["index"] if weeks else None
-    for wk in weeks:
-        if wk["end"] >= today and wk["done"] < wk["total"]:
-            current_week_index = wk["index"]
-            break
-
+    current_week_index = _current_week_index(weeks, today)
     done_week_indices = _done_week_indices(weeks)
     weeks_done_count = len(done_week_indices)
     race_workout = next((w for w in workouts if w.workout_type == "Race"), None)
@@ -731,12 +748,15 @@ def workout_detail(workout_id):
         and workout.workout_type != "Race"
     )
     if can_swap:
+        today = date.today()
         weeks = _plan_weeks(workout.plan.workouts)
+        window = _swap_window_indices(weeks, today)
         this_week = next((wk for wk in weeks if workout in wk["workouts"]), None)
-        if this_week:
-            today = date.today()
+        can_swap = bool(this_week and this_week["index"] in window)
+        if can_swap:
             swap_candidates = [
-                w for w in this_week["workouts"]
+                w for wk in weeks if wk["index"] in window
+                for w in wk["workouts"]
                 if w.id != workout.id
                 and not w.completed
                 and w.date >= today
@@ -761,7 +781,8 @@ def swap_workout_day(workout_id, other_id):
         abort(404)
 
     # Re-check eligibility server-side rather than trusting the picker list - both
-    # must still be not-done, today-or-later, non-Race, and in the same week.
+    # must still be not-done, today-or-later, non-Race, and inside the current
+    # swap window (this week or next - see _swap_window_indices).
     today = date.today()
     for w in (workout, other):
         if w.completed or w.date < today or w.workout_type == "Race":
@@ -769,9 +790,11 @@ def swap_workout_day(workout_id, other_id):
             return redirect(url_for("workout_detail", workout_id=workout_id))
 
     weeks = _plan_weeks(workout.plan.workouts)
-    this_week = next((wk for wk in weeks if workout in wk["workouts"]), None)
-    if not this_week or other not in this_week["workouts"]:
-        flash("Those workouts aren't in the same week.", "error")
+    window = _swap_window_indices(weeks, today)
+    workout_week = next((wk["index"] for wk in weeks if workout in wk["workouts"]), None)
+    other_week = next((wk["index"] for wk in weeks if other in wk["workouts"]), None)
+    if workout_week not in window or other_week not in window:
+        flash("Those workouts are outside the swap window.", "error")
         return redirect(url_for("workout_detail", workout_id=workout_id))
 
     workout.date, other.date = other.date, workout.date
@@ -915,12 +938,7 @@ def client_dashboard():
     workouts = plan.workouts
     _attach_comparisons(workouts)
     weeks = _plan_weeks(workouts)
-
-    current_week_index = weeks[-1]["index"] if weeks else None
-    for wk in weeks:
-        if wk["end"] >= today and wk["done"] < wk["total"]:
-            current_week_index = wk["index"]
-            break
+    current_week_index = _current_week_index(weeks, today)
 
     # ?week=N lets the week picker (or a swipe) jump to any week, overriding the
     # auto-detected "current" one.
