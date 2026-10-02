@@ -27,6 +27,13 @@ elif db_url.startswith("postgresql://"):
     db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+# Static files (style.css etc.) were being sent with Cache-Control: no-cache, so the
+# browser revalidated them with the server on every single page load - measured at
+# 500ms+ per navigation in production, the actual bulk of the "still feels slow"
+# complaint, not the page HTML itself. Cache them hard; static_url() below appends a
+# version based on each file's own mtime, so a changed file gets a new URL instead of
+# serving stale content.
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 31536000
 
 STRAVA_CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID")
 STRAVA_CLIENT_SECRET = os.environ.get("STRAVA_CLIENT_SECRET")
@@ -86,6 +93,19 @@ def inject_nav_plan_id():
             g.nav_plan_id = plan.id if plan else None
         return {"nav_plan_id": g.nav_plan_id}
     return {}
+
+
+@app.template_global()
+def static_url(filename):
+    """url_for('static', ...) plus a ?v=<mtime> so a changed file gets a new URL -
+    lets static assets be cached forever (see SEND_FILE_MAX_AGE_DEFAULT above)
+    without ever risking a stale file surviving past its next deploy."""
+    path = os.path.join(app.static_folder, filename)
+    try:
+        version = str(int(os.path.getmtime(path)))
+    except OSError:
+        version = "0"
+    return url_for("static", filename=filename) + "?v=" + version
 
 
 # -------------------------------------------------------------------- auth --
