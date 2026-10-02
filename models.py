@@ -75,6 +75,7 @@ class Workout(db.Model):
     actual_distance_km = db.Column(db.Float)
     actual_duration_min = db.Column(db.Integer)
     strava_activity_id = db.Column(db.String(50))  # set automatically if matched to a Strava activity
+    swapped_at = db.Column(db.DateTime)  # set on both workouts when an athlete swaps their days
 
 
 class StravaToken(db.Model):

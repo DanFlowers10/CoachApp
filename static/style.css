@@ -507,6 +507,7 @@ button.week-workout-card-check:active { transform: scale(.92); }
   border-left: 3px solid var(--accent); background: var(--surface); border-radius: var(--radius-sm);
   padding: .65rem .8rem; margin-bottom: .5rem;
 }
+button.sheet-workout-row { border-top: none; border-right: none; border-bottom: none; font: inherit; text-align: inherit; cursor: pointer; }
 .sheet-workout-row.type-easy { border-left-color: #3ecf8e; }
 .sheet-workout-row.type-tempo { border-left-color: #e968c7; }
 .sheet-workout-row.type-intervals { border-left-color: #9a8cf9; }

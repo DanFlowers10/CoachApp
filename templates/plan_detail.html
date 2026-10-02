@@ -123,7 +123,7 @@
           <div class="workout-row-mini-swatch {{ icon_class }}"></div>
           <div class="workout-row-mini-dow">{{ w.date.strftime('%a') }}</div>
           <div class="workout-row-mini-text">
-            <span class="fw-bold">{{ w.workout_type }}</span>{% if w.target_distance_km %}<span class="text-muted"> &middot; {{ w.target_distance_km }}mi</span>{% endif %}{% if w.strava_activity_id %}<i class="ti ti-brand-strava" title="Auto-synced from Strava" style="color:#fc4c02;font-size:.8rem;margin-left:.35rem;"></i>{% endif %}
+            <span class="fw-bold">{{ w.workout_type }}</span>{% if w.target_distance_km %}<span class="text-muted"> &middot; {{ w.target_distance_km }}mi</span>{% endif %}{% if w.strava_activity_id %}<i class="ti ti-brand-strava" title="Auto-synced from Strava" style="color:#fc4c02;font-size:.8rem;margin-left:.35rem;"></i>{% endif %}{% if w.swapped_at %}<i class="ti ti-arrows-exchange" title="Rescheduled by athlete" style="color:var(--text-faint);font-size:.78rem;margin-left:.35rem;"></i>{% endif %}
           </div>
         </div>
       {% endfor %}

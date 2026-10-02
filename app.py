@@ -722,7 +722,65 @@ def workout_detail(workout_id):
         g.nav_plan_id = workout.plan_id
 
     _attach_comparisons([workout])
-    return render_template("workout_detail.html", workout=workout, plan=workout.plan)
+
+    swap_candidates = []
+    can_swap = (
+        not current_user.is_coach()
+        and not workout.completed
+        and workout.date >= date.today()
+        and workout.workout_type != "Race"
+    )
+    if can_swap:
+        weeks = _plan_weeks(workout.plan.workouts)
+        this_week = next((wk for wk in weeks if workout in wk["workouts"]), None)
+        if this_week:
+            today = date.today()
+            swap_candidates = [
+                w for w in this_week["workouts"]
+                if w.id != workout.id
+                and not w.completed
+                and w.date >= today
+                and w.workout_type != "Race"
+            ]
+
+    return render_template(
+        "workout_detail.html", workout=workout, plan=workout.plan,
+        can_swap=can_swap, swap_candidates=swap_candidates,
+    )
+
+
+@app.route("/workout/<int:workout_id>/swap/<int:other_id>", methods=["POST"])
+@login_required
+@client_required
+def swap_workout_day(workout_id, other_id):
+    workout = db.session.get(Workout, workout_id)
+    other = db.session.get(Workout, other_id)
+    if workout is None or other is None or workout.plan_id != other.plan_id:
+        abort(404)
+    if workout.plan.client_id != current_user.id:
+        abort(404)
+
+    # Re-check eligibility server-side rather than trusting the picker list - both
+    # must still be not-done, today-or-later, non-Race, and in the same week.
+    today = date.today()
+    for w in (workout, other):
+        if w.completed or w.date < today or w.workout_type == "Race":
+            flash("That workout can't be swapped.", "error")
+            return redirect(url_for("workout_detail", workout_id=workout_id))
+
+    weeks = _plan_weeks(workout.plan.workouts)
+    this_week = next((wk for wk in weeks if workout in wk["workouts"]), None)
+    if not this_week or other not in this_week["workouts"]:
+        flash("Those workouts aren't in the same week.", "error")
+        return redirect(url_for("workout_detail", workout_id=workout_id))
+
+    workout.date, other.date = other.date, workout.date
+    now = datetime.utcnow()
+    workout.swapped_at = now
+    other.swapped_at = now
+    db.session.commit()
+    flash("Workout swapped.", "success")
+    return redirect(url_for("workout_detail", workout_id=workout_id))
 
 
 @app.route("/workout/<int:workout_id>/link-strava")
@@ -1100,6 +1158,12 @@ with app.app_context():
         if "last_synced_at" not in existing_columns:
             with db.engine.connect() as conn:
                 conn.execute(sa_text("ALTER TABLE strava_token ADD COLUMN last_synced_at TIMESTAMP"))
+                conn.commit()
+    if "workout" in inspector.get_table_names():
+        existing_columns = {col["name"] for col in inspector.get_columns("workout")}
+        if "swapped_at" not in existing_columns:
+            with db.engine.connect() as conn:
+                conn.execute(sa_text("ALTER TABLE workout ADD COLUMN swapped_at TIMESTAMP"))
                 conn.commit()
 
 
