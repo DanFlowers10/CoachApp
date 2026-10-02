@@ -436,9 +436,15 @@ button.week-workout-card-check:active { transform: scale(.92); }
 .day-strip-dot { width: 5px; height: 5px; border-radius: 999px; margin-top: .35rem; }
 
 .today-focus-card {
-  display: flex; align-items: flex-start; gap: .85rem; border-radius: var(--radius); padding: 1rem 1.1rem;
-  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1.1rem 1.2rem 1.25rem;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--hero-color, var(--accent)) 22%, var(--bg-elevated)) 0%, var(--bg-elevated) 70%);
+  border: 1px solid var(--border);
 }
+.today-focus-tap { display: block; }
+.today-focus-stat { display: flex; align-items: flex-end; gap: .3rem; line-height: 1; margin-bottom: .15rem; }
+.today-focus-stat-num { font-size: 2.6rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
+.today-focus-stat-unit { font-size: .95rem; font-weight: 700; color: var(--text-dim); padding-bottom: .35rem; }
+.today-focus-type { font-size: 1.05rem; font-weight: 800; color: var(--text); }
 .today-focus-desc {
   font-size: .82rem; line-height: 1.4; color: var(--text-dim);
   background: var(--surface); border-radius: var(--radius-sm); padding: .6rem .75rem;
