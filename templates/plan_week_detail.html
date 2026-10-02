@@ -55,12 +55,12 @@
     {% if current_user.is_coach() %}
       <div class="week-workout-card-check {{ 'is-done' if w.completed else '' }}"></div>
     {% elif w.completed %}
-      <form method="post" action="{{ url_for('uncomplete_workout', workout_id=w.id) }}">
+      <form method="post" action="{{ url_for('uncomplete_workout', workout_id=w.id) }}" data-done-form data-workout-id="{{ w.id }}" data-action-type="uncomplete">
         <button type="submit" class="week-workout-card-check is-done" aria-label="Mark not done"><i class="ti ti-check"></i></button>
       </form>
     {% else %}
-      <form method="post" action="{{ url_for('complete_workout', workout_id=w.id) }}">
-        <button type="submit" class="week-workout-card-check" aria-label="Mark done"></button>
+      <form method="post" action="{{ url_for('complete_workout', workout_id=w.id) }}" data-done-form data-workout-id="{{ w.id }}" data-action-type="complete">
+        <button type="submit" class="week-workout-card-check" aria-label="Mark done"><i class="ti ti-check"></i></button>
       </form>
     {% endif %}
   </div>

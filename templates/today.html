@@ -102,11 +102,11 @@
           {% if current_user.is_coach() %}
             {% if w.completed %}<div class="workout-done-btn is-done" aria-label="Done"><i class="ti ti-check"></i></div>{% endif %}
           {% elif w.completed %}
-            <form method="post" action="{{ url_for('uncomplete_workout', workout_id=w.id) }}">
+            <form method="post" action="{{ url_for('uncomplete_workout', workout_id=w.id) }}" data-done-form data-workout-id="{{ w.id }}" data-action-type="uncomplete">
               <button type="submit" class="workout-done-btn is-done" aria-label="Mark not done"><i class="ti ti-check"></i></button>
             </form>
           {% else %}
-            <form method="post" action="{{ url_for('complete_workout', workout_id=w.id) }}">
+            <form method="post" action="{{ url_for('complete_workout', workout_id=w.id) }}" data-done-form data-workout-id="{{ w.id }}" data-action-type="complete">
               <button type="submit" class="workout-done-btn" aria-label="Mark done"><i class="ti ti-check"></i></button>
             </form>
           {% endif %}
@@ -133,11 +133,11 @@
               {% if current_user.is_coach() %}
                 {% if w.completed %}<div class="workout-done-btn is-done" aria-label="Done"><i class="ti ti-check"></i></div>{% endif %}
               {% elif w.completed %}
-                <form method="post" action="{{ url_for('uncomplete_workout', workout_id=w.id) }}">
+                <form method="post" action="{{ url_for('uncomplete_workout', workout_id=w.id) }}" data-done-form data-workout-id="{{ w.id }}" data-action-type="uncomplete">
                   <button type="submit" class="workout-done-btn is-done" aria-label="Mark not done"><i class="ti ti-check"></i></button>
                 </form>
               {% else %}
-                <form method="post" action="{{ url_for('complete_workout', workout_id=w.id) }}">
+                <form method="post" action="{{ url_for('complete_workout', workout_id=w.id) }}" data-done-form data-workout-id="{{ w.id }}" data-action-type="complete">
                   <button type="submit" class="workout-done-btn" aria-label="Mark done"><i class="ti ti-check"></i></button>
                 </form>
               {% endif %}

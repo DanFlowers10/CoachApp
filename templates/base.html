@@ -77,7 +77,30 @@
       return url.toString();
     }
 
+    // Warm the destination into the page cache the instant a finger touches
+    // the tab (touchstart fires well before click on mobile) so that by the
+    // time the tap actually registers, the page is often already cached and
+    // the subsequent navigation is a cache hit instead of a cold fetch.
+    var warmedHrefs = {};
+    function warmNavTarget(href) {
+      if (warmedHrefs[href] || !('caches' in window)) return;
+      warmedHrefs[href] = true;
+      caches.open('page-cache-v1').then(function (cache) {
+        cache.match(navCacheKey(href)).then(function (cached) {
+          if (cached) return;
+          fetch(href, {credentials: 'same-origin'}).then(function (resp) {
+            if (resp.ok) cache.put(navCacheKey(href), resp.clone());
+          }).catch(function () {});
+        });
+      });
+    }
+
     document.querySelectorAll('.bottom-nav-item').forEach(function (link) {
+      if (link.classList.contains('active')) return;
+      var href = link.getAttribute('href');
+      link.addEventListener('touchstart', function () { warmNavTarget(href); }, {passive: true});
+      link.addEventListener('pointerdown', function () { warmNavTarget(href); });
+
       link.addEventListener('click', function (e) {
         if (e.metaKey || e.ctrlKey || e.shiftKey || link.classList.contains('active')) return;
 
@@ -87,7 +110,6 @@
         }
 
         e.preventDefault();
-        var href = link.getAttribute('href');
         caches.open('page-cache-v1')
           .then(function (cache) { return cache.match(navCacheKey(href)); })
           .then(function (cached) {
@@ -146,6 +168,47 @@
       });
       setTimeout(function () { el.remove(); }, 220);
     }
+  </script>
+
+  <script>
+    // Optimistic Mark Done / Mark Not Done: flips every instance of this
+    // workout's done-button on the page (e.g. Today's focus card AND its
+    // overlay both show the same workout) immediately, then fires the POST
+    // silently in the background instead of doing a full page reload. Only
+    // reverts if the request actually fails. Aggregate stats elsewhere on
+    // the page (week totals, the progress ring %) are refreshed on the next
+    // natural page load rather than live-recomputed here.
+    document.addEventListener('submit', function (e) {
+      var form = e.target;
+      if (!form.matches('[data-done-form]')) return;
+      e.preventDefault();
+
+      var postUrl = form.getAttribute('action');
+      var workoutId = form.getAttribute('data-workout-id');
+      var willBeDone = form.getAttribute('data-action-type') === 'complete';
+      if (navigator.vibrate) navigator.vibrate(12);
+
+      function applyState(done) {
+        document.querySelectorAll('form[data-done-form][data-workout-id="' + workoutId + '"]').forEach(function (f) {
+          var btn = f.querySelector('button, [role="button"]');
+          if (btn) {
+            btn.classList.toggle('is-done', done);
+            btn.setAttribute('aria-label', done ? 'Mark not done' : 'Mark done');
+          }
+          f.setAttribute('action', '/workout/' + workoutId + (done ? '/uncomplete' : '/complete'));
+          f.setAttribute('data-action-type', done ? 'uncomplete' : 'complete');
+        });
+      }
+
+      applyState(willBeDone);
+
+      fetch(postUrl, {method: 'POST', headers: {'X-Requested-With': 'fetch'}, credentials: 'same-origin'})
+        .then(function (r) { if (!r.ok) throw new Error('bad status'); })
+        .catch(function () {
+          applyState(!willBeDone);
+          showToast("Couldn't save - check your connection.", 'error');
+        });
+    });
   </script>
 
   <script>

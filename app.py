@@ -930,6 +930,13 @@ def unlink_strava_activity(workout_id):
     return redirect(url_for("workout_detail", workout_id=workout_id))
 
 
+def _is_fetch_request():
+    # The client-side optimistic-update JS tags its fetch() calls with this
+    # header so these routes can skip the redirect/HTML round-trip - the
+    # button already updated itself before the request was even sent.
+    return request.headers.get("X-Requested-With") == "fetch"
+
+
 @app.route("/workout/<int:workout_id>/complete", methods=["POST"])
 @login_required
 @client_required
@@ -942,6 +949,9 @@ def complete_workout(workout_id):
     workout.actual_distance_km = request.form.get("actual_distance_km") or workout.target_distance_km
     workout.actual_duration_min = request.form.get("actual_duration_min") or workout.target_duration_min
     db.session.commit()
+
+    if _is_fetch_request():
+        return {"ok": True}
     return redirect(request.referrer or url_for("plan_detail", plan_id=workout.plan_id))
 
 
@@ -961,6 +971,9 @@ def uncomplete_workout(workout_id):
     workout.actual_duration_min = None
     workout.strava_activity_id = None
     db.session.commit()
+
+    if _is_fetch_request():
+        return {"ok": True}
     return redirect(request.referrer or url_for("plan_detail", plan_id=workout.plan_id))
 
 

@@ -18,11 +18,11 @@
     <div class="workout-hero-date">{{ workout.date.strftime('%A %d %b %Y') }}</div>
     {% if not current_user.is_coach() %}
       {% if workout.completed %}
-        <form method="post" action="{{ url_for('uncomplete_workout', workout_id=workout.id) }}">
+        <form method="post" action="{{ url_for('uncomplete_workout', workout_id=workout.id) }}" data-done-form data-workout-id="{{ workout.id }}" data-action-type="uncomplete">
           <button type="submit" class="workout-done-btn is-done" aria-label="Mark not done"><i class="ti ti-check"></i></button>
         </form>
       {% else %}
-        <form method="post" action="{{ url_for('complete_workout', workout_id=workout.id) }}">
+        <form method="post" action="{{ url_for('complete_workout', workout_id=workout.id) }}" data-done-form data-workout-id="{{ workout.id }}" data-action-type="complete">
           <button type="submit" class="workout-done-btn" aria-label="Mark done"><i class="ti ti-check"></i></button>
         </form>
       {% endif %}
