@@ -18,8 +18,12 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 db_url = os.environ.get("DATABASE_URL", "sqlite:///coach.db")
 if db_url.startswith("postgres://"):
-    # Some hosts (Render, Heroku) hand back the old-style scheme; SQLAlchemy needs the new one.
-    db_url = db_url.replace("postgres://", "postgresql://", 1)
+    # Some hosts (Render, Heroku) hand back the old-style scheme; SQLAlchemy needs the new
+    # one, and needs the driver named explicitly (psycopg2-binary, in requirements.txt) -
+    # otherwise it defaults to the psycopg (v3) dialect, which isn't installed.
+    db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+elif db_url.startswith("postgresql://"):
+    db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
