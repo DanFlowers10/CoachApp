@@ -1,5 +1,19 @@
 {% extends "base.html" %}
 {% block title %}{{ plan.title }} — Calendar{% endblock %}
+
+{% block header %}
+<nav class="app-nav mb-4">
+  <div class="container py-2">
+    <div class="d-flex align-items-center justify-content-between position-relative">
+      {% include "_account_menu.html" %}
+      <span class="page-title-badge position-absolute top-50 start-50 translate-middle">
+        <i class="ti ti-calendar"></i> Your Calendar
+      </span>
+    </div>
+  </div>
+</nav>
+{% endblock %}
+
 {% block content %}
 <a href="{{ url_for('plan_detail', plan_id=plan.id) }}" class="small">&larr; Back to {{ plan.title }}</a>
 <h2 class="mt-2 mb-3">{{ plan.title }} &mdash; Full calendar</h2>
