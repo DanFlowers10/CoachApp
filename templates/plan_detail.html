@@ -38,7 +38,7 @@
   {% if weeks %}
     <div class="plan-week-segments mt-3">
       {% for wk in weeks %}
-        <div class="plan-week-segment {{ 'is-done' if wk.done == wk.total else ('is-current' if wk.index == current_week_index else '') }}"></div>
+        <div class="plan-week-segment {{ 'is-done' if wk.index in done_week_indices else ('is-current' if wk.index == current_week_index else '') }}"></div>
       {% endfor %}
     </div>
     <div class="plan-hero-stats">
@@ -48,7 +48,7 @@
       </div>
       <div class="text-end">
         <div class="plan-hero-stat-label">Total Distance</div>
-        <div class="plan-hero-stat-value">{{ total_km|round(0, 'floor')|int }} mi</div>
+        <div class="plan-hero-stat-value">{{ total_actual_km|round(0, 'floor')|int }}/{{ total_km|round(0, 'floor')|int }} mi</div>
       </div>
     </div>
   {% endif %}
@@ -110,7 +110,7 @@
           <div class="week-progress-segment {{ 'is-done' if w.completed else '' }}"></div>
         {% endfor %}
       </div>
-      <div class="week-progress-sub">Total Workouts: {{ active_workouts|length }}<br>Distance: {{ wk.planned_mi }}mi</div>
+      <div class="week-progress-sub">Total Workouts: {{ active_workouts|length }}<br>Distance: {{ wk.actual_mi or 0 }}/{{ wk.planned_mi }}mi</div>
     </div>
     <div class="week-body">
       {% for w in active_workouts %}

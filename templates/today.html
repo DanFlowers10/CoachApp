@@ -45,7 +45,7 @@
       <div class="bottom-sheet-body">
         {% for wk in weeks %}
           <a href="{{ url_for('client_dashboard') }}?week={{ wk.index }}&dow={{ selected_dow }}" class="week-picker-row {{ 'is-current' if wk.index == current_week.index else '' }}">
-            <div class="week-picker-dot {{ 'is-done' if wk.done == wk.total else ('is-current' if wk.index == current_week.index else '') }}"></div>
+            <div class="week-picker-dot {{ 'is-done' if wk.index in done_week_indices else ('is-current' if wk.index == current_week.index else '') }}"></div>
             <div class="flex-grow-1">
               <div class="fw-bold small">Week {{ wk.index }}</div>
               <div class="small text-muted">{{ wk.start.strftime('%d %b') }} &ndash; {{ wk.end.strftime('%d %b') }}</div>

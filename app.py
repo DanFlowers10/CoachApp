@@ -330,6 +330,18 @@ def _plan_weeks(workouts):
     return weeks
 
 
+def _done_week_indices(weeks):
+    """Week indices where every real activity (not Rest) is completed. Rest days are
+    excluded because they're essentially never marked done, which otherwise makes a
+    week's "done == total" check permanently false even once everything else is done."""
+    done = set()
+    for wk in weeks:
+        active = [w for w in wk["workouts"] if w.workout_type != "Rest"]
+        if active and all(w.completed for w in active):
+            done.add(wk["index"])
+    return done
+
+
 def _plan_months(workouts):
     """One Mon-Sun grid per calendar month the plan spans, using stdlib calendar for correct padding."""
     months = []
@@ -478,6 +490,7 @@ def plan_detail(plan_id):
     done_workouts = sum(1 for w in workouts if w.completed)
     percent_complete = round(done_workouts / total_workouts * 100) if total_workouts else 0
     total_km = sum(w.target_distance_km for w in workouts if w.target_distance_km)
+    total_actual_km = sum(w.actual_distance_km for w in workouts if w.completed and w.actual_distance_km)
 
     current_week_index = weeks[-1]["index"] if weeks else None
     for wk in weeks:
@@ -485,7 +498,8 @@ def plan_detail(plan_id):
             current_week_index = wk["index"]
             break
 
-    weeks_done_count = sum(1 for wk in weeks if wk["done"] == wk["total"])
+    done_week_indices = _done_week_indices(weeks)
+    weeks_done_count = len(done_week_indices)
     race_workout = next((w for w in workouts if w.workout_type == "Race"), None)
     race_time_estimates = _estimate_race_times(workouts, race_workout.date if race_workout else None, today)
 
@@ -498,7 +512,9 @@ def plan_detail(plan_id):
         done_workouts=done_workouts,
         percent_complete=percent_complete,
         total_km=total_km,
+        total_actual_km=total_actual_km,
         current_week_index=current_week_index,
+        done_week_indices=done_week_indices,
         strava_error=strava_error,
         weeks_done_count=weeks_done_count,
         race_workout=race_workout,
@@ -530,7 +546,12 @@ def plan_week_detail(plan_id, week_index):
     if wk is None:
         abort(404)
 
-    return render_template("plan_week_detail.html", plan=plan, today=today, weeks=weeks, wk=wk)
+    done_week_indices = _done_week_indices(weeks)
+
+    return render_template(
+        "plan_week_detail.html", plan=plan, today=today, weeks=weeks, wk=wk,
+        done_week_indices=done_week_indices,
+    )
 
 
 @app.route("/plan/<int:plan_id>/strava-sync", methods=["POST"])
@@ -802,6 +823,7 @@ def client_dashboard():
         selected_dow = current_week["workouts"].index(selected_workout)
 
     plan_count = TrainingPlan.query.filter_by(client_id=current_user.id).count()
+    done_week_indices = _done_week_indices(weeks)
 
     return render_template(
         "today.html",
@@ -812,6 +834,7 @@ def client_dashboard():
         selected_workout=selected_workout,
         selected_dow=selected_dow,
         plan_count=plan_count,
+        done_week_indices=done_week_indices,
     )
 
 

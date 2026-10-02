@@ -38,7 +38,7 @@
     <div class="week-progress-segment {{ 'is-done' if w.completed else '' }}"></div>
   {% endfor %}
 </div>
-<div class="week-progress-sub mb-4">Total Workouts: {{ active_workouts|length }}<br>Distance: {{ wk.planned_mi }}mi</div>
+<div class="week-progress-sub mb-4">Total Workouts: {{ active_workouts|length }}<br>Distance: {{ wk.actual_mi or 0 }}/{{ wk.planned_mi }}mi</div>
 
 {% for w in active_workouts %}
   {% set is_long = w.workout_type == 'Long Run' %}
@@ -66,7 +66,7 @@
     <div class="bottom-sheet-body">
       {% for w2 in weeks %}
         <a href="{{ url_for('plan_week_detail', plan_id=plan.id, week_index=w2.index) }}" class="week-picker-row {{ 'is-current' if w2.index == wk.index else '' }}">
-          <div class="week-picker-dot {{ 'is-done' if w2.done == w2.total else ('is-current' if w2.index == wk.index else '') }}"></div>
+          <div class="week-picker-dot {{ 'is-done' if w2.index in done_week_indices else ('is-current' if w2.index == wk.index else '') }}"></div>
           <div class="flex-grow-1">
             <div class="fw-bold small">Week {{ w2.index }}</div>
             <div class="small text-muted">{{ w2.start.strftime('%d %b') }} &ndash; {{ w2.end.strftime('%d %b') }}</div>
