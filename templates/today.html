@@ -108,10 +108,10 @@
           {% if w.description %}<div class="today-focus-desc mt-2">{{ w.description }}</div>{% endif %}
         </button>
         {% if w.completed %}
-          <span class="status-pill done">done</span>
+          <div class="workout-done-btn is-done" aria-label="Done"><i class="ti ti-check"></i></div>
         {% elif not current_user.is_coach() %}
           <form method="post" action="{{ url_for('complete_workout', workout_id=w.id) }}">
-            <button class="btn btn-sm btn-accent">Mark done</button>
+            <button type="submit" class="workout-done-btn" aria-label="Mark done"><i class="ti ti-check"></i></button>
           </form>
         {% endif %}
       </div>

@@ -423,6 +423,19 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
   background: var(--surface); border-radius: var(--radius-sm); padding: .6rem .75rem;
 }
 
+/* icon-only "mark done" control - same check-square language as the Plan page's
+   workout rows, so it doesn't clash as a separate wordy pill button. */
+.workout-done-btn {
+  width: 34px; height: 34px; border-radius: 9px; flex: none; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--border); background: var(--bg-elevated); color: transparent;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.workout-done-btn:hover { border-color: var(--accent); color: var(--accent); }
+.workout-done-btn:active { transform: scale(.94); }
+.workout-done-btn.is-done { border-color: var(--success); background: var(--success); color: #fff; }
+.workout-done-btn i { font-size: 1rem; }
+
 .week-mini-bars { display: flex; gap: 4px; }
 .week-mini-bar { flex: 1; height: 5px; border-radius: 999px; background: var(--border); }
 .week-mini-bar.is-done { background: var(--success); }
