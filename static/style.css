@@ -1,3 +1,16 @@
+/* Native cross-document view transition (Chrome/Edge, Safari 18+): crossfades
+   between pages on same-origin navigation instead of the jarring flash-to-blank-
+   then-repaint of a hard page load. No JS, no caching, fails silently (plain
+   navigation) wherever it isn't supported. */
+@view-transition {
+  navigation: auto;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: .18s;
+  animation-timing-function: ease-out;
+}
+
 /* ---------- design tokens ---------- */
 :root {
   --bg: #0d0d11;
