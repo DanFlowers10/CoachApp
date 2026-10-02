@@ -44,14 +44,19 @@
         <div class="plan-week-segment {{ 'is-done' if wk.index in done_week_indices else ('is-current' if wk.index == current_week_index else '') }}"></div>
       {% endfor %}
     </div>
-    <div class="plan-hero-stats">
+    {% set weeks_pct = (weeks_done_count / weeks|length) if weeks|length else 0 %}
+    {% set weeks_ring_offset = 163.36 * (1 - weeks_pct) %}
+    <div class="plan-hero-stats-row">
+      <svg class="plan-hero-ring" width="76" height="76" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="7"></circle>
+        <circle cx="32" cy="32" r="26" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"
+          stroke-dasharray="163.36" stroke-dashoffset="{{ weeks_ring_offset }}" transform="rotate(-90 32 32)"></circle>
+        <text x="32" y="29" text-anchor="middle" font-size="15" font-weight="800" fill="#fff">{{ weeks_done_count }}/{{ weeks|length }}</text>
+        <text x="32" y="42" text-anchor="middle" font-size="7" font-weight="700" fill="rgba(255,255,255,.8)">WEEKS</text>
+      </svg>
       <div>
-        <div class="plan-hero-stat-label">Total Weeks</div>
-        <div class="plan-hero-stat-value">{{ weeks_done_count }}/{{ weeks|length }}</div>
-      </div>
-      <div class="text-end">
-        <div class="plan-hero-stat-label">Total Distance</div>
-        <div class="plan-hero-stat-value">{{ total_actual_km|round(0, 'floor')|int }}/{{ total_km|round(0, 'floor')|int }} mi</div>
+        <div class="plan-hero-distance-num">{{ total_actual_km|round(0, 'floor')|int }}<span class="plan-hero-distance-unit">/{{ total_km|round(0, 'floor')|int }} mi</span></div>
+        <div class="plan-hero-distance-label">total distance so far</div>
       </div>
     </div>
   {% endif %}
@@ -104,7 +109,9 @@
 
 {% for wk in weeks %}
   {% set active_workouts = wk.workouts | rejectattr('workout_type', 'equalto', 'Rest') | list %}
-  <a href="{{ url_for('plan_week_detail', plan_id=plan.id, week_index=wk.index) }}" class="week-card" id="week-{{ wk.index }}">
+  {% set wk_types = active_workouts | map(attribute='workout_type') | list %}
+  {% set wk_accent = '#ff6a55' if 'Race' in wk_types else ('#5b9cf6' if 'Long Run' in wk_types else ('#e968c7' if 'Tempo' in wk_types else ('#9a8cf9' if 'Intervals' in wk_types else '#3ecf8e'))) %}
+  <a href="{{ url_for('plan_week_detail', plan_id=plan.id, week_index=wk.index) }}" class="week-card" id="week-{{ wk.index }}" style="--week-accent: {{ wk_accent }};">
     <div class="week-header">
       <div class="week-meta">{{ wk.start.strftime('%d %b').upper() }} - {{ wk.end.strftime('%d %b').upper() }}</div>
       <div class="week-title">Week {{ wk.index }}</div>

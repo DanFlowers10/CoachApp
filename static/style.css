@@ -91,6 +91,11 @@ p, .text-muted, .small.text-muted { color: var(--text-dim) !important; }
   top: 0;
   z-index: 20;
 }
+.app-nav::after {
+  content: ''; display: block; height: 2px; margin-top: .5rem;
+  background: var(--accent-grad); opacity: .45;
+}
+.app-nav.app-nav-merged::after { display: none; }
 
 /* Merged with the component directly below it (e.g. Today's day strip) so the
    sticky header reads as one panel instead of a separate bar sitting on top. */
@@ -238,7 +243,11 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: .2rem;
   padding: .6rem 0; color: var(--text-faint); text-decoration: none; font-size: .68rem; font-weight: 700;
 }
-.bottom-nav-item i { font-size: 1.15rem; }
+.bottom-nav-item i {
+  font-size: 1.15rem; width: 30px; height: 26px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center; transition: background .15s ease;
+}
+.bottom-nav-item.active i { background: color-mix(in srgb, var(--accent) 16%, transparent); }
 .bottom-nav-item.active { color: var(--accent); }
 .bottom-nav-item:hover { color: var(--text); }
 .bottom-nav-item.active:hover { color: var(--accent); }
@@ -299,17 +308,33 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
 .stat-tile .stat-value.accent { background: var(--accent-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
 /* ---------- plan hero card ---------- */
-.plan-hero-card { border-radius: var(--radius); padding: 1.1rem 1.2rem; }
-.plan-hero-title { font-size: 1.25rem; font-weight: 800; line-height: 1.25; }
-.plan-hero-race { font-size: .85rem; color: var(--text-dim); margin-top: .3rem; }
-.plan-hero-race strong { color: var(--text); }
+.plan-hero-card {
+  border-radius: var(--radius); padding: 1.3rem 1.3rem 1.4rem; position: relative; overflow: hidden;
+  background: var(--accent-grad); border: none; color: #fff;
+}
+.plan-hero-card::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at 88% -15%, rgba(255,255,255,.25), transparent 55%);
+}
+.plan-hero-card > * { position: relative; }
+.plan-hero-title { font-size: 1.2rem; font-weight: 800; line-height: 1.25; color: #fff; }
+.plan-hero-race { font-size: .85rem; color: rgba(255,255,255,.8); margin-top: .3rem; }
+.plan-hero-race strong { color: #fff; }
+.plan-hero-card .btn-outline-primary, .plan-hero-card .btn-outline-danger {
+  border-color: rgba(255,255,255,.55); color: #fff;
+}
+.plan-hero-card .btn-outline-primary:hover, .plan-hero-card .btn-outline-danger:hover {
+  background: rgba(255,255,255,.18); border-color: #fff; color: #fff;
+}
 .plan-week-segments { display: flex; gap: 3px; }
-.plan-week-segment { flex: 1; height: 6px; border-radius: 999px; background: var(--border); }
-.plan-week-segment.is-done { background: var(--success); }
-.plan-week-segment.is-current { background: var(--accent); }
-.plan-hero-stats { display: flex; justify-content: space-between; margin-top: .9rem; }
-.plan-hero-stat-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); font-weight: 700; }
-.plan-hero-stat-value { font-size: 1.15rem; font-weight: 800; margin-top: .15rem; }
+.plan-week-segment { flex: 1; height: 6px; border-radius: 999px; background: rgba(255,255,255,.28); }
+.plan-week-segment.is-done { background: rgba(255,255,255,.95); }
+.plan-week-segment.is-current { background: #fff; }
+.plan-hero-stats-row { display: flex; align-items: center; gap: 1rem; margin-top: 1.1rem; }
+.plan-hero-ring { flex: none; }
+.plan-hero-distance-num { font-size: 2rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; line-height: 1; }
+.plan-hero-distance-unit { font-size: .95rem; font-weight: 700; color: rgba(255,255,255,.8); }
+.plan-hero-distance-label { font-size: .72rem; font-weight: 700; color: rgba(255,255,255,.8); margin-top: .35rem; }
 
 .plan-race-row { display: flex; align-items: center; gap: .7rem; padding: .85rem 1rem; border-radius: var(--radius); font-size: .85rem; }
 .plan-race-row i { color: var(--accent); font-size: 1.1rem; }
@@ -336,9 +361,13 @@ body.has-bottom-nav .container { padding-bottom: 88px; }
    accordion. The whole block is a single tap target through to that
    week's full-page detail view; nothing inside it is separately clickable. */
 .week-card {
-  display: block; border-radius: 12px; margin-bottom: .65rem; overflow: hidden;
-  border: 1.5px solid var(--text-faint); background: var(--surface); padding: .7rem .8rem .8rem;
+  display: block; border-radius: 12px; margin-bottom: .65rem; overflow: hidden; position: relative;
+  border: 1.5px solid var(--text-faint); background: var(--surface); padding: .7rem .8rem .8rem 1.15rem;
   text-decoration: none; color: inherit; transition: transform .12s ease, border-color .12s ease;
+}
+.week-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+  background: var(--week-accent, var(--text-faint));
 }
 .week-card:active { transform: scale(.98); border-color: var(--text-dim); color: inherit; }
 .week-header { padding: 0; }
@@ -466,6 +495,29 @@ button.week-workout-card-check:active { transform: scale(.92); }
 .week-mini-bars { display: flex; gap: 4px; }
 .week-mini-bar { flex: 1; height: 5px; border-radius: 999px; background: var(--border); }
 .week-mini-bar.is-done { background: var(--success); }
+
+.today-week-stat-card {
+  flex: 1; border-radius: var(--radius); padding: 1rem 1.1rem; text-align: left;
+}
+.today-week-stat-label { font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); margin-bottom: .4rem; }
+.today-week-stat-value { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
+.today-week-stat-value span { font-size: 1rem; color: var(--text-faint); font-weight: 700; }
+.today-week-stat-sub { font-size: .72rem; color: var(--text-dim); font-weight: 600; }
+.today-week-ring-card {
+  flex: 1; border-radius: var(--radius); padding: .5rem; display: flex; align-items: center; justify-content: center;
+}
+
+.today-upcoming-row {
+  display: flex; align-items: center; gap: .7rem; text-decoration: none; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: .65rem .8rem; margin-bottom: .5rem;
+}
+.today-upcoming-row:hover { border-color: var(--accent); color: var(--text); }
+.today-upcoming-bar { width: 6px; height: 30px; border-radius: 4px; flex: none; background: var(--text-faint); }
+.today-upcoming-row.type-easy .today-upcoming-bar { background: #3ecf8e; }
+.today-upcoming-row.type-tempo .today-upcoming-bar { background: #e968c7; }
+.today-upcoming-row.type-intervals .today-upcoming-bar { background: #9a8cf9; }
+.today-upcoming-row.type-long .today-upcoming-bar { background: #5b9cf6; }
 
 /* workout detail page */
 .workout-hero {
@@ -603,13 +655,18 @@ hr { border-color: var(--border); opacity: 1; }
 
 /* ---------- Strava stats overview ---------- */
 .streak-banner {
-  display: flex; align-items: center; gap: 1rem; border-radius: var(--radius);
-  padding: 1.25rem 1.5rem; background: linear-gradient(120deg, rgba(255,106,85,.18), rgba(124,108,246,.12));
-  border: 1px solid var(--border);
+  display: flex; align-items: center; gap: 1rem; border-radius: var(--radius); position: relative; overflow: hidden;
+  padding: 1.25rem 1.5rem; background: linear-gradient(135deg, #ff6a55 0%, #e5533f 100%);
+  border: none;
 }
-.streak-flame { font-size: 2.5rem; line-height: 1; color: var(--accent); }
-.streak-days { font-size: 1.4rem; font-weight: 800; }
-.streak-sub { font-size: .85rem; color: var(--text-dim); }
+.streak-banner::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at 88% -20%, rgba(255,255,255,.25), transparent 55%);
+}
+.streak-banner > * { position: relative; }
+.streak-flame { font-size: 2.5rem; line-height: 1; color: #fff; }
+.streak-days { font-size: 1.4rem; font-weight: 800; color: #fff; }
+.streak-sub { font-size: .85rem; color: rgba(255,255,255,.85); }
 
 .week-trend { font-size: .8rem; font-weight: 700; color: var(--text-dim); }
 .week-trend.up { color: var(--success); }
@@ -679,7 +736,7 @@ hr { border-color: var(--border); opacity: 1; }
 .cal-cell[data-jump-to-workout], a.cal-cell { cursor: pointer; }
 .cal-cell[data-jump-to-workout]:hover, a.cal-cell:hover { border-color: var(--accent); color: var(--text); transform: translateY(-1px); }
 .cal-empty { background: transparent; border-color: transparent; }
-.cal-daynum { font-size: .7rem; font-weight: 700; color: var(--text-faint); }
+.cal-daynum { font-size: .8rem; font-weight: 800; color: var(--text); }
 .cal-icon { font-size: 1rem; line-height: 1; margin-top: .15rem; color: var(--accent); }
 .cal-icon.cal-icon-easy { color: #3ecf8e; }
 .cal-icon.cal-icon-tempo { color: #e968c7; }
