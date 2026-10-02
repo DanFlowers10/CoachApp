@@ -48,11 +48,11 @@
     {% set weeks_ring_offset = 163.36 * (1 - weeks_pct) %}
     <div class="plan-hero-stats-row">
       <svg class="plan-hero-ring" width="76" height="76" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="7"></circle>
-        <circle cx="32" cy="32" r="26" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"
+        <circle cx="32" cy="32" r="26" fill="none" stroke="var(--border)" stroke-width="7"></circle>
+        <circle cx="32" cy="32" r="26" fill="none" stroke="var(--progress)" stroke-width="7" stroke-linecap="round"
           stroke-dasharray="163.36" stroke-dashoffset="{{ weeks_ring_offset }}" transform="rotate(-90 32 32)"></circle>
-        <text x="32" y="29" text-anchor="middle" font-size="15" font-weight="800" fill="#fff">{{ weeks_done_count }}/{{ weeks|length }}</text>
-        <text x="32" y="42" text-anchor="middle" font-size="7" font-weight="700" fill="rgba(255,255,255,.8)">WEEKS</text>
+        <text x="32" y="29" text-anchor="middle" font-size="15" font-weight="800" fill="var(--text)">{{ weeks_done_count }}/{{ weeks|length }}</text>
+        <text x="32" y="42" text-anchor="middle" font-size="7" font-weight="700" fill="var(--text-faint)">WEEKS</text>
       </svg>
       <div>
         <div class="plan-hero-distance-num">{{ total_actual_km|round(0, 'floor')|int }}<span class="plan-hero-distance-unit">/{{ total_km|round(0, 'floor')|int }} mi</span></div>
