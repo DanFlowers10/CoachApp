@@ -35,6 +35,25 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # serving stale content.
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 31536000
 
+# Login used to issue a plain session cookie with no expiry set, so it only lasted
+# until the browser/app's own session ended - which for an installed PWA can be any
+# time the OS reclaims a backgrounded app, not a predictable duration. Flask-Login's
+# "remember me" cookie (always on, via remember=True at login - see login()/register())
+# is a separate, long-lived cookie built for exactly this, so now a login survives
+# restarts until someone explicitly logs out.
+app.config["REMEMBER_COOKIE_DURATION"] = timedelta(days=90)
+# Rolling, not fixed: refreshed on every request, so the 90-day countdown restarts
+# each time the app's actually used. Someone active regularly effectively never gets
+# logged out; someone who genuinely goes quiet for 90+ days does.
+app.config["REMEMBER_COOKIE_REFRESH_EACH_REQUEST"] = True
+
+IS_PRODUCTION = os.environ.get("FLASK_DEBUG", "true").lower() != "true"
+if IS_PRODUCTION:
+    # Only sent over HTTPS - Render always serves over HTTPS, but local dev (plain
+    # http://127.0.0.1) would silently never send the cookie at all if this were on.
+    app.config["SESSION_COOKIE_SECURE"] = True
+    app.config["REMEMBER_COOKIE_SECURE"] = True
+
 STRAVA_CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID")
 STRAVA_CLIENT_SECRET = os.environ.get("STRAVA_CLIENT_SECRET")
 STRAVA_REDIRECT_URI = os.environ.get("STRAVA_REDIRECT_URI", "http://localhost:5000/strava/callback")
@@ -151,7 +170,7 @@ def register():
         )
         db.session.add(user)
         db.session.commit()
-        login_user(user)
+        login_user(user, remember=True)
         flash("Welcome! Start by adding your first athlete.", "success")
         return redirect(url_for("coach_dashboard"))
 
@@ -166,7 +185,7 @@ def login():
         user = User.query.filter_by(email=email).first()
 
         if user and check_password_hash(user.password_hash, password):
-            login_user(user)
+            login_user(user, remember=True)
             return redirect(url_for("index"))
 
         flash("Incorrect email or password.", "error")
