@@ -259,6 +259,16 @@ def _pace_str(duration_min, distance_mi):
     return f"{minutes}:{seconds:02d}/mi"
 
 
+def _strava_sync_due(user):
+    """Whether client_dashboard/plan_detail should show the sync banner and fire the
+    background sync fetch at all - mirrors the throttle check in strava_sync() so the
+    banner doesn't flash on every page load when a sync isn't actually going to run."""
+    if not user.strava_token:
+        return False
+    last = user.strava_token.last_synced_at
+    return not last or datetime.utcnow() - last >= STRAVA_SYNC_THROTTLE
+
+
 @app.template_filter("duration")
 def format_duration(minutes):
     """'45 min' under an hour, '1h10m' (or '1h') from 60 minutes up."""
@@ -525,6 +535,7 @@ def plan_detail(plan_id):
         weeks_done_count=weeks_done_count,
         race_workout=race_workout,
         race_time_estimates=race_time_estimates,
+        strava_sync_due=_strava_sync_due(current_user),
     )
 
 
@@ -851,6 +862,7 @@ def client_dashboard():
         selected_dow=selected_dow,
         plan_count=plan_count,
         done_week_indices=done_week_indices,
+        strava_sync_due=_strava_sync_due(current_user),
     )
 
 

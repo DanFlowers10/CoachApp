@@ -244,26 +244,30 @@
 (function () {
   var banner = document.getElementById('strava-sync-banner');
   if (!banner) return;
-  banner.style.display = '';
   var forceSync = false;
   try {
     forceSync = sessionStorage.getItem('force_strava_sync') === '1';
     sessionStorage.removeItem('force_strava_sync');
   } catch (e) {}
+  // Only show the banner (and fire the fetch) when a sync is actually going to run -
+  // otherwise it flashes on every tab switch even though the throttle skips the work.
+  if (!{{ 'true' if strava_sync_due else 'false' }} && !forceSync) return;
+
+  banner.style.display = '';
   var syncUrl = '{{ url_for("strava_sync", plan_id=plan.id) }}' + (forceSync ? '?force=1' : '');
   fetch(syncUrl, {method: 'POST'})
     .then(function (r) { return r.json(); })
     .then(function (data) {
       if (data.error) {
-        banner.remove();
+        collapseAndRemove(banner);
         showToast(data.error, 'error');
       } else if (data.changed) {
         location.reload();
       } else {
-        banner.remove();
+        collapseAndRemove(banner);
       }
     })
-    .catch(function () { banner.remove(); });
+    .catch(function () { collapseAndRemove(banner); });
 })();
 </script>
 {% endif %}

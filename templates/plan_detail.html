@@ -234,26 +234,30 @@ if (location.hash.startsWith('#workout-')) {
 {% if not current_user.is_coach() and current_user.strava_token %}
 var syncBanner = document.getElementById('strava-sync-banner');
 if (syncBanner) {
-  syncBanner.style.display = '';
   var forceSync = false;
   try {
     forceSync = sessionStorage.getItem('force_strava_sync') === '1';
     sessionStorage.removeItem('force_strava_sync');
   } catch (e) {}
-  var syncUrl = '{{ url_for("strava_sync", plan_id=plan.id) }}' + (forceSync ? '?force=1' : '');
-  fetch(syncUrl, {method: 'POST'})
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-      if (data.error) {
-        syncBanner.remove();
-        showToast(data.error, 'error');
-      } else if (data.changed) {
-        location.reload();
-      } else {
-        syncBanner.remove();
-      }
-    })
-    .catch(function () { syncBanner.remove(); });
+  // Only show the banner (and fire the fetch) when a sync is actually going to run -
+  // otherwise it flashes on every tab switch even though the throttle skips the work.
+  if ({{ 'true' if strava_sync_due else 'false' }} || forceSync) {
+    syncBanner.style.display = '';
+    var syncUrl = '{{ url_for("strava_sync", plan_id=plan.id) }}' + (forceSync ? '?force=1' : '');
+    fetch(syncUrl, {method: 'POST'})
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.error) {
+          collapseAndRemove(syncBanner);
+          showToast(data.error, 'error');
+        } else if (data.changed) {
+          location.reload();
+        } else {
+          collapseAndRemove(syncBanner);
+        }
+      })
+      .catch(function () { collapseAndRemove(syncBanner); });
+  }
 }
 {% endif %}
 </script>

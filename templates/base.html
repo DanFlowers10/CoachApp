@@ -99,6 +99,24 @@
         navigator.serviceWorker.register('/service-worker.js', {scope: '/'});
       });
     }
+
+    // Shrinks an element's height to 0 before removing it, instead of an abrupt
+    // DOM removal, so the content below doesn't visibly snap up into its place.
+    function collapseAndRemove(el) {
+      if (!el) return;
+      var startHeight = el.offsetHeight;
+      el.style.height = startHeight + 'px';
+      el.style.overflow = 'hidden';
+      el.style.transition = 'height .2s ease, opacity .2s ease, margin .2s ease';
+      void el.offsetHeight; // force layout so the transition below actually animates
+      requestAnimationFrame(function () {
+        el.style.height = '0px';
+        el.style.marginTop = '0px';
+        el.style.marginBottom = '0px';
+        el.style.opacity = '0';
+      });
+      setTimeout(function () { el.remove(); }, 220);
+    }
   </script>
 
   <script>
