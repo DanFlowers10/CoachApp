@@ -788,11 +788,42 @@ def _format_race_time(total_minutes):
     return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
 
 
-def _estimate_race_times(workouts, race_date, today):
-    """Rough 5K/10K/Half/Full time predictions from the athlete's single best recent
-    logged pace, via Riegel's formula (T2 = T1 * (D2/D1)^1.06). The "in N weeks" column
-    is a flat, optimistic 3% pace improvement - not a real trend model, just a simple
-    estimate of the sort of gain a normal training block produces."""
+REF_DISTANCE_LABELS = {"5k": "5K", "10k": "10K", "half": "half marathon", "marathon": "marathon"}
+RACE_ESTIMATE_ROWS = [("5K", "5k"), ("10K", "10k"), ("Half", "half"), ("Full", "marathon")]
+
+
+def _race_result_estimates(plan):
+    """Predicted times from the race result the coach set on the plan (Daniels-Gilbert VDOT,
+    the same maths as the training paces). None when there's no usable result."""
+    distance_m = pacing.RACE_DISTANCES_M.get(plan.ref_distance or "")
+    if not (distance_m and plan.ref_time_sec):
+        return None
+    v_dot = pacing.vdot(distance_m, plan.ref_time_sec)
+    rows = []
+    for label, key in RACE_ESTIMATE_ROWS:
+        meters = pacing.RACE_DISTANCES_M[key]
+        seconds = pacing.predict_time_sec(v_dot, meters)
+        rows.append({
+            "label": label,
+            "current": pacing.fmt_time(seconds),
+            "pace": pacing.fmt_pace(seconds / (meters / pacing.METRES_PER_MILE)) + "/mi",
+            "anchor": key == plan.ref_distance,
+        })
+    basis = f"{pacing.fmt_time(plan.ref_time_sec)} {REF_DISTANCE_LABELS.get(plan.ref_distance, plan.ref_distance)}"
+    if plan.ref_date:
+        basis += f", {plan.ref_date.strftime('%d %b')}"
+    return {"mode": "result", "basis": basis, "rows": rows}
+
+
+def _estimate_race_times(workouts, race_date, today, plan=None):
+    """Predicted 5K/10K/Half/Full times. Anchored on the plan's race result when the coach has
+    set one; otherwise a rough guess from the athlete's single best recent logged pace, via
+    Riegel's formula (T2 = T1 * (D2/D1)^1.06). In that fallback the "in N weeks" column is a
+    flat, optimistic 3% pace improvement - not a real trend model."""
+    if plan is not None:
+        from_result = _race_result_estimates(plan)
+        if from_result:
+            return from_result
     candidates = [
         w for w in workouts
         if w.completed and w.actual_distance_km and w.actual_duration_min and w.actual_distance_km >= 1.5
@@ -816,7 +847,7 @@ def _estimate_race_times(workouts, race_date, today):
             "projected": _format_race_time(projected_min),
             "delta": f"-{delta_sec}s" if delta_sec < 60 else f"-{delta_sec // 60}m {delta_sec % 60}s",
         })
-    return {"weeks_remaining": weeks_remaining, "rows": rows}
+    return {"mode": "logged", "weeks_remaining": weeks_remaining, "rows": rows}
 
 
 def _sync_strava_completions(workouts, strava_token):
@@ -901,10 +932,11 @@ def plan_detail(plan_id):
     done_week_indices = _done_week_indices(weeks)
     weeks_done_count = len(done_week_indices)
     race_workout = next((w for w in workouts if w.workout_type == "Race"), None)
-    race_time_estimates = _estimate_race_times(workouts, race_workout.date if race_workout else None, today)
+    race_time_estimates = _estimate_race_times(workouts, race_workout.date if race_workout else None, today, plan)
 
     return render_template(
         "plan_detail.html",
+        ref_distances=RACE_DISTANCE_LABELS,
         plan=plan,
         today=today,
         weeks=weeks,
@@ -1487,6 +1519,10 @@ def repace_plan(plan_id):
                 if row["new_duration"]:
                     w.target_duration_min = row["new_duration"]
                 applied += 1
+            # Keep the result: it's also what the plan's estimated race times are based on.
+            plan.ref_distance = request.form.get("race_distance")
+            plan.ref_time_sec = time_sec
+            plan.ref_date = date.today()
             db.session.commit()
             flash(f"Updated target paces on {applied} upcoming sessions.", "success")
             return redirect(url_for("plan_detail", plan_id=plan.id))
@@ -1499,6 +1535,40 @@ def repace_plan(plan_id):
         )
 
     return render_template("repace_plan.html", **context)
+
+
+@app.route("/plan/<int:plan_id>/race-result", methods=["POST"])
+@login_required
+def set_race_result(plan_id):
+    """Set (or clear) the race result the plan's estimated race times are based on.
+    The plan's coach and its athlete can both do this - it's the athlete's own fitness."""
+    plan = db.session.get(TrainingPlan, plan_id)
+    if plan is None:
+        abort(404)
+    owner_id = plan.coach_id if current_user.is_coach() else plan.client_id
+    if owner_id != current_user.id:
+        abort(404)
+
+    if request.form.get("action") == "clear":
+        plan.ref_distance = plan.ref_time_sec = plan.ref_date = None
+        db.session.commit()
+        flash("Race result removed.", "success")
+        return redirect(url_for("plan_detail", plan_id=plan.id))
+
+    distance = request.form.get("race_distance")
+    distance_m = pacing.RACE_DISTANCES_M.get(distance)
+    time_sec = pacing.parse_time(request.form.get("race_time", ""))
+    ok = bool(distance_m and time_sec and 5 * 60 <= time_sec <= 12 * 3600)
+    if ok and not 25 <= pacing.vdot(distance_m, time_sec) <= 85:
+        ok = False
+    if not ok:
+        flash("Enter a race distance and a time like 19:20 or 1:34:10.", "error")
+        return redirect(url_for("plan_detail", plan_id=plan.id))
+
+    plan.ref_distance, plan.ref_time_sec, plan.ref_date = distance, time_sec, date.today()
+    db.session.commit()
+    flash("Race result saved. Estimated race times updated.", "success")
+    return redirect(url_for("plan_detail", plan_id=plan.id))
 
 
 STEPS_TYPES = ("Easy Run", "Long Run", "Tempo", "Intervals")
@@ -1974,6 +2044,13 @@ with app.app_context():
             if column_name not in existing_columns:
                 with db.engine.connect() as conn:
                     conn.execute(sa_text(f"ALTER TABLE strava_token ADD COLUMN {column_name} {column_type}"))
+                    conn.commit()
+    if "training_plan" in inspector.get_table_names():
+        existing_columns = {col["name"] for col in inspector.get_columns("training_plan")}
+        for column_name, column_type in {"ref_distance": "VARCHAR(10)", "ref_time_sec": "INTEGER", "ref_date": "DATE"}.items():
+            if column_name not in existing_columns:
+                with db.engine.connect() as conn:
+                    conn.execute(sa_text(f"ALTER TABLE training_plan ADD COLUMN {column_name} {column_type}"))
                     conn.commit()
     if "workout" in inspector.get_table_names():
         existing_columns = {col["name"] for col in inspector.get_columns("workout")}

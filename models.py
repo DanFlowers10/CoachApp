@@ -50,6 +50,11 @@ class TrainingPlan(db.Model):
     goal_race = db.Column(db.String(200))
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # A recent race result the coach has set (e.g. a 19:20 5K): the anchor for the estimated
+    # race times. ref_distance is a pacing.RACE_DISTANCES_M key ("5k", "10k", "half", "marathon").
+    ref_distance = db.Column(db.String(10))
+    ref_time_sec = db.Column(db.Integer)
+    ref_date = db.Column(db.Date)
 
     workouts = db.relationship(
         "Workout",
