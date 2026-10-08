@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Re-pace plan{% endblock %}
+{% block content %}
+<a href="{{ url_for('plan_detail', plan_id=plan.id) }}" class="small d-block mb-2">&larr; Back to {{ plan.title }}</a>
+<h2 class="mb-1">Re-pace plan</h2>
+<p class="text-muted mb-3">Enter a recent race result and get training paces for {{ plan.client.name }}. You'll see exactly what changes before anything is saved, and sessions already done or in the past are never touched.</p>
+
+<form method="post">
+  <div class="auth-card mb-4" style="max-width: 520px;">
+    <div class="row g-2 align-items-end">
+      <div class="col-6">
+        <label class="form-label">Race distance</label>
+        <select name="race_distance" class="form-select">
+          {% for key, label in distances %}
+            <option value="{{ key }}" {{ 'selected' if form.get('race_distance', '5k') == key else '' }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6">
+        <label class="form-label">Time</label>
+        <input type="text" name="race_time" class="form-control" placeholder="19:20 or 1:34:10" value="{{ form.get('race_time', '') }}" required>
+      </div>
+    </div>
+    <button name="action" value="preview" class="btn btn-accent mt-3">Preview paces</button>
+  </div>
+
+  {% if paces %}
+    <div class="card-surface mb-4" style="border-radius: var(--radius); padding: 1.25rem; max-width: 520px;">
+      <div class="d-flex justify-content-between align-items-baseline mb-2">
+        <h5 class="mb-0">Training paces</h5>
+        <span class="small text-muted">VDOT {{ vdot }}</span>
+      </div>
+      <div class="race-times-row"><span class="race-times-label">Easy</span><span></span><span>{{ fmt_range(*paces['easy']) }}</span></div>
+      <div class="race-times-row"><span class="race-times-label">Marathon</span><span></span><span>{{ fmt_range(*paces['marathon']) }}</span></div>
+      <div class="race-times-row"><span class="race-times-label">Tempo</span><span></span><span>{{ fmt_range(*paces['tempo']) }}</span></div>
+      <div class="race-times-row"><span class="race-times-label">Intervals</span><span></span><span>{{ fmt_range(*paces['interval']) }}</span></div>
+      <div class="small text-muted mt-2">This fitness predicts a marathon of about {{ marathon_time }}. Treat that as a ceiling: predictions run optimistic for lower weekly mileage. Marathon pace isn't applied to any session automatically - set it by hand where you want it.</div>
+    </div>
+
+    <h5 class="mb-2">Upcoming sessions</h5>
+    {% if not rows %}
+      <p class="text-muted">There are no upcoming easy, long, tempo or interval sessions to re-pace.</p>
+    {% else %}
+      <div class="d-flex flex-column gap-2 mb-3" style="max-width: 520px;">
+        {% for row in rows %}
+          {% set w = row.workout %}
+          <label class="card-surface d-flex gap-3 align-items-start" style="border-radius: var(--radius-sm); padding: .8rem .95rem; {{ 'opacity:.6;' if row.skip else 'cursor:pointer;' }}">
+            <input type="checkbox" name="workout_ids" value="{{ w.id }}" class="mt-1" {{ '' if row.skip else 'checked' }} {{ 'disabled' if row.skip else '' }}>
+            <div class="flex-grow-1">
+              <div class="fw-bold small">{{ w.date.strftime('%a %d %b') }} &middot; {% if w.target_distance_km %}{{ w.target_distance_km }}mi {% endif %}{{ w.workout_type }}</div>
+              {% if row.skip %}
+                <div class="small text-muted">{{ row.skip }}</div>
+              {% else %}
+                <div class="small">
+                  <span class="text-muted">{{ w.pace_range_str or 'no pace set' }}</span>
+                  &rarr; <strong>{{ row.new_range }}</strong>
+                </div>
+                {% if row.new_duration and row.new_duration != w.target_duration_min %}
+                  <div class="small text-muted">Duration {{ w.target_duration_min|duration or 'not set' }} &rarr; {{ row.new_duration|duration }}</div>
+                {% endif %}
+                {% if row.notes_have_paces %}
+                  <div class="small" style="color: var(--warning);"><i class="ti ti-alert-triangle"></i> Notes mention paces - check they still match.</div>
+                {% endif %}
+              {% endif %}
+            </div>
+          </label>
+        {% endfor %}
+      </div>
+      <button name="action" value="apply" class="btn btn-accent" onclick="return confirm('Apply these target paces to the selected sessions?');">Apply to selected sessions</button>
+    {% endif %}
+  {% endif %}
+</form>
+{% endblock %}

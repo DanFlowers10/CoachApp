@@ -1,4 +1,5 @@
 import os
+import re
 import calendar as cal_module
 from datetime import datetime, date, timedelta
 
@@ -12,6 +13,7 @@ from sqlalchemy import inspect as sa_inspect, text as sa_text
 
 from models import db, User, TrainingPlan, Workout, StravaToken
 import strava
+import pacing
 
 load_dotenv()
 
@@ -328,6 +330,8 @@ def duplicate_plan(plan_id):
                 target_distance_km=w.target_distance_km,
                 target_duration_min=w.target_duration_min,
                 description=w.description,
+                pace_low_sec=w.pace_low_sec,
+                pace_high_sec=w.pace_high_sec,
             ))
         db.session.commit()
         flash(f'Duplicated "{plan.title}" to {target.name}.', "success")
@@ -990,6 +994,175 @@ def delete_workout(workout_id):
     return redirect(url_for("plan_detail", plan_id=plan_id))
 
 
+WORKOUT_TYPES = ["Easy Run", "Long Run", "Tempo", "Intervals", "Rest", "Race"]
+
+
+@app.route("/workout/<int:workout_id>/edit", methods=["GET", "POST"])
+@login_required
+@coach_required
+def edit_workout(workout_id):
+    workout = db.session.get(Workout, workout_id)
+    if workout is None or workout.plan.coach_id != current_user.id:
+        abort(404)
+
+    if request.method == "POST":
+        errors = []
+
+        try:
+            new_date = datetime.strptime(request.form.get("date", ""), "%Y-%m-%d").date()
+        except ValueError:
+            new_date = None
+            errors.append("Enter a valid date.")
+
+        workout_type = request.form.get("workout_type")
+        if workout_type not in WORKOUT_TYPES:
+            errors.append("Pick a workout type.")
+
+        def optional_number(field, cast, label):
+            raw = request.form.get(field, "").strip()
+            if not raw:
+                return None
+            try:
+                value = cast(raw)
+            except ValueError:
+                errors.append(f"{label} must be a number.")
+                return None
+            if value < 0:
+                errors.append(f"{label} can't be negative.")
+                return None
+            return value
+
+        distance = optional_number("target_distance_km", float, "Distance")
+        duration = optional_number("target_duration_min", int, "Duration")
+
+        def optional_pace(field, label):
+            raw = request.form.get(field, "").strip()
+            if not raw:
+                return None
+            seconds = pacing.parse_pace(raw)
+            if seconds is None:
+                errors.append(f"{label} should look like 6:45 (min:sec per mile).")
+            return seconds
+
+        pace_low = optional_pace("pace_low", "Fast pace")
+        pace_high = optional_pace("pace_high", "Slow pace")
+        if pace_low and not pace_high:
+            pace_high = pace_low
+        elif pace_high and not pace_low:
+            pace_low = pace_high
+        if pace_low and pace_high and pace_low > pace_high:
+            pace_low, pace_high = pace_high, pace_low
+
+        if errors:
+            for message in errors:
+                flash(message, "error")
+            return render_template("edit_workout.html", workout=workout, types=WORKOUT_TYPES, values=request.form)
+
+        workout.date = new_date
+        workout.workout_type = workout_type
+        workout.target_distance_km = distance
+        workout.target_duration_min = duration
+        workout.description = request.form.get("description", "").strip()
+        workout.pace_low_sec = pace_low
+        workout.pace_high_sec = pace_high
+        db.session.commit()
+        flash("Workout updated.", "success")
+        return redirect(url_for("workout_detail", workout_id=workout.id))
+
+    values = {
+        "date": workout.date.isoformat(),
+        "workout_type": workout.workout_type,
+        "target_distance_km": "" if workout.target_distance_km is None else workout.target_distance_km,
+        "target_duration_min": "" if workout.target_duration_min is None else workout.target_duration_min,
+        "description": workout.description or "",
+        "pace_low": pacing.fmt_pace(workout.pace_low_sec) if workout.pace_low_sec else "",
+        "pace_high": pacing.fmt_pace(workout.pace_high_sec) if workout.pace_high_sec else "",
+    }
+    return render_template("edit_workout.html", workout=workout, types=WORKOUT_TYPES, values=values)
+
+
+# Which training zone each workout type is paced from when re-pacing a plan.
+REPACE_TYPE_ZONES = {"Easy Run": "easy", "Long Run": "easy", "Tempo": "tempo", "Intervals": "interval"}
+_MARATHON_PACE_NOTE = re.compile(r"marathon pace|\bMP\b", re.IGNORECASE)
+_PACE_IN_NOTES = re.compile(r"\d:\d\d")
+RACE_DISTANCE_LABELS = [("5k", "5K"), ("10k", "10K"), ("half", "Half marathon"), ("marathon", "Marathon")]
+
+
+def _repace_rows(plan, paces, today):
+    """Upcoming, not-yet-done sessions and what re-pacing would change on each."""
+    rows = []
+    for w in plan.workouts:
+        zone = REPACE_TYPE_ZONES.get(w.workout_type)
+        if w.completed or w.date < today or not zone:
+            continue
+        notes = w.description or ""
+        if w.workout_type == "Long Run" and _MARATHON_PACE_NOTE.search(notes):
+            rows.append({"workout": w, "skip": "Has a marathon-pace section - set its paces by hand."})
+            continue
+        low, high = paces[zone]
+        new_duration = None
+        if zone == "easy" and w.target_distance_km:
+            new_duration = round(w.target_distance_km * ((low + high) / 2) / 60)
+        rows.append({
+            "workout": w, "skip": None, "zone": zone, "low": low, "high": high,
+            "new_range": pacing.fmt_pace_range(low, high),
+            "new_duration": new_duration,
+            "notes_have_paces": bool(_PACE_IN_NOTES.search(notes)),
+        })
+    return rows
+
+
+@app.route("/plan/<int:plan_id>/repace", methods=["GET", "POST"])
+@login_required
+@coach_required
+def repace_plan(plan_id):
+    plan = db.session.get(TrainingPlan, plan_id)
+    if plan is None or plan.coach_id != current_user.id:
+        abort(404)
+
+    context = {"plan": plan, "distances": RACE_DISTANCE_LABELS, "form": request.form, "paces": None, "rows": None}
+
+    if request.method == "POST":
+        distance_m = pacing.RACE_DISTANCES_M.get(request.form.get("race_distance"))
+        time_sec = pacing.parse_time(request.form.get("race_time", ""))
+        paces = None
+        if distance_m and time_sec and 5 * 60 <= time_sec <= 12 * 3600:
+            paces = pacing.training_paces(distance_m, time_sec)
+            if not 25 <= paces["vdot"] <= 85:
+                paces = None
+        if paces is None:
+            flash("Enter a race distance and a time like 19:20 or 1:34:10.", "error")
+            return render_template("repace_plan.html", **context)
+
+        # Recomputed from the submitted race result on every request (including
+        # apply) rather than trusting any paces posted back from the preview.
+        rows = _repace_rows(plan, paces, date.today())
+
+        if request.form.get("action") == "apply":
+            chosen = set(request.form.getlist("workout_ids"))
+            applied = 0
+            for row in rows:
+                w = row["workout"]
+                if row["skip"] or str(w.id) not in chosen:
+                    continue
+                w.pace_low_sec, w.pace_high_sec = row["low"], row["high"]
+                if row["new_duration"]:
+                    w.target_duration_min = row["new_duration"]
+                applied += 1
+            db.session.commit()
+            flash(f"Updated target paces on {applied} upcoming sessions.", "success")
+            return redirect(url_for("plan_detail", plan_id=plan.id))
+
+        context.update(
+            paces=paces, rows=rows,
+            fmt_range=pacing.fmt_pace_range,
+            marathon_time=pacing.fmt_time(paces["marathon_time_sec"]),
+            vdot=round(paces["vdot"], 1),
+        )
+
+    return render_template("repace_plan.html", **context)
+
+
 @app.route("/plan/<int:plan_id>/delete", methods=["POST"])
 @login_required
 @coach_required
@@ -1274,6 +1447,11 @@ with app.app_context():
             with db.engine.connect() as conn:
                 conn.execute(sa_text("ALTER TABLE workout ADD COLUMN swapped_at TIMESTAMP"))
                 conn.commit()
+        for pace_column in ("pace_low_sec", "pace_high_sec"):
+            if pace_column not in existing_columns:
+                with db.engine.connect() as conn:
+                    conn.execute(sa_text(f"ALTER TABLE workout ADD COLUMN {pace_column} INTEGER"))
+                    conn.commit()
 
 
 if __name__ == "__main__":

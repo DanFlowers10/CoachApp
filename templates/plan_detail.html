@@ -32,6 +32,7 @@
     <div class="plan-hero-title">{{ plan.title }}</div>
     {% if current_user.is_coach() %}
       <div class="d-flex gap-2">
+        <a href="{{ url_for('repace_plan', plan_id=plan.id) }}" class="btn btn-sm btn-outline-primary">Re-pace</a>
         <a href="{{ url_for('duplicate_plan', plan_id=plan.id) }}" class="btn btn-sm btn-outline-primary">Duplicate</a>
         <form method="post" action="{{ url_for('delete_plan', plan_id=plan.id) }}"
               onsubmit="return confirm('Delete &quot;{{ plan.title }}&quot;? This removes all its workouts too.');">

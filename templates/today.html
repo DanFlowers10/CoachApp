@@ -153,9 +153,17 @@
             {% endif %}
           </div>
 
-          {% if w.description %}
+          {% if w.description or w.pace_range_str %}
             <div class="text-uppercase small fw-bold text-muted mt-4 mb-2" style="letter-spacing:.04em;">Session</div>
-            <div class="card-surface" style="border-radius: var(--radius); padding: 1rem 1.1rem;">{{ w.description }}</div>
+            <div class="card-surface" style="border-radius: var(--radius); padding: 1rem 1.1rem;">
+              {% if w.pace_range_str %}
+                <div class="d-flex align-items-baseline gap-2 {{ 'mb-2' if w.description else '' }}">
+                  <span class="small text-muted fw-bold" style="text-transform:uppercase; letter-spacing:.04em;">Target pace</span>
+                  <span class="fw-bold">{{ w.pace_range_str }}</span>
+                </div>
+              {% endif %}
+              {{ w.description }}
+            </div>
           {% endif %}
 
           {% if w.completed %}

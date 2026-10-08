@@ -76,6 +76,15 @@ class Workout(db.Model):
     actual_duration_min = db.Column(db.Integer)
     strava_activity_id = db.Column(db.String(50))  # set automatically if matched to a Strava activity
     swapped_at = db.Column(db.DateTime)  # set on both workouts when an athlete swaps their days
+    # Target pace range (seconds per mile) for the session's key effort - the tempo
+    # block, the rep pace, or the easy pace for an easy day. low = faster bound.
+    pace_low_sec = db.Column(db.Integer)
+    pace_high_sec = db.Column(db.Integer)
+
+    @property
+    def pace_range_str(self):
+        from pacing import fmt_pace_range
+        return fmt_pace_range(self.pace_low_sec, self.pace_high_sec)
 
 
 class StravaToken(db.Model):
