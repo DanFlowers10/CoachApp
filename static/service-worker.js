@@ -5,10 +5,10 @@
 //
 // Strategy: stale-while-revalidate for the cacheable pages (serve the cached
 // copy immediately, quietly re-fetch in the background and update the cache
-// for next time), plus a hard wipe of the whole page cache on any POST. That
-// guarantees your own actions (mark done, link Strava, etc.) are never left
-// showing a stale cached page - the very next navigation after one always
-// does a normal fresh fetch, then caching resumes from there.
+// for next time). After any successful POST the cache is emptied so your own
+// actions (mark done, link Strava, etc.) are never left showing a stale page,
+// and the four tab pages are immediately re-fetched in the background - so the
+// next tap on a tab is both fresh AND instant, instead of a cold network fetch.
 
 const PAGE_CACHE = "page-cache-v1";
 
@@ -32,6 +32,63 @@ function cacheKeyFor(request) {
     url.searchParams.set("_cachedate", new Date().toISOString().slice(0, 10));
   }
   return url.toString();
+}
+
+// Only the canonical bottom-nav tab URLs are re-fetched eagerly after a save;
+// anything else that was cached (week-detail pages, ?week=&day= variants of
+// Today) is just dropped, so one tap doesn't trigger a burst of requests.
+function isTabPage(pathname) {
+  return pathname === "/athlete" || pathname === "/strava/overview" || /^\/plan\/\d+(\/calendar)?$/.test(pathname);
+}
+
+async function rebuildPageCache() {
+  const cache = await caches.open(PAGE_CACHE);
+  const keys = await cache.keys();
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Drop everything first, so nothing from before the change can be served...
+  await Promise.all(keys.map((key) => cache.delete(key)));
+
+  // ...then re-fetch the tab pages so the next tap on one is fresh and instant.
+  await Promise.all(
+    keys.map(async (key) => {
+      const url = new URL(key.url);
+      if (!isTabPage(url.pathname)) return;
+      if (url.pathname === "/athlete") {
+        if (url.searchParams.get("_cachedate") !== today) return; // an old day's entry
+        url.searchParams.delete("_cachedate");
+      }
+      if (url.search) return;
+      try {
+        const response = await fetch(url.toString());
+        // A redirect means we were bounced (e.g. to the login page) - never
+        // cache that under a tab's key.
+        if (response.ok && !response.redirected) await cache.put(key, response);
+      } catch (e) {
+        // Offline or the server hiccuped: the page just gets fetched normally next visit.
+      }
+    })
+  );
+}
+
+// Several saves in a row (ticking off a few workouts) shouldn't each start a
+// full rebuild - if one is running, ask for exactly one more pass afterwards.
+let rebuildRunning = false;
+let rebuildPending = false;
+async function refreshPageCache() {
+  if (rebuildRunning) {
+    rebuildPending = true;
+    return;
+  }
+  rebuildRunning = true;
+  try {
+    do {
+      rebuildPending = false;
+      await rebuildPageCache();
+    } while (rebuildPending);
+  } finally {
+    rebuildRunning = false;
+  }
 }
 
 self.addEventListener("install", (event) => {
@@ -84,12 +141,19 @@ self.addEventListener("fetch", (event) => {
   const req = event.request;
 
   if (req.method !== "GET") {
-    // Any mutation: let it through, then drop the whole page cache so the
-    // next navigation - wherever it lands - fetches fresh instead of
-    // reusing anything cached from before this change.
+    // Any mutation: let it through, then rebuild the page cache so the next
+    // navigation can't reuse anything from before this change. A 4xx/5xx means
+    // nothing changed, so the cache is still good. (A form POST's manual
+    // redirect comes back as status 0, which counts as success.)
     event.respondWith(
       fetch(req).then((res) => {
-        caches.delete(PAGE_CACHE);
+        if (res.status < 400) {
+          try {
+            event.waitUntil(refreshPageCache());
+          } catch (e) {
+            refreshPageCache();
+          }
+        }
         return res;
       })
     );

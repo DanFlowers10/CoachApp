@@ -89,7 +89,7 @@
         cache.match(navCacheKey(href)).then(function (cached) {
           if (cached) return;
           fetch(href, {credentials: 'same-origin'}).then(function (resp) {
-            if (resp.ok) cache.put(navCacheKey(href), resp.clone());
+            if (resp.ok && !resp.redirected) cache.put(navCacheKey(href), resp.clone());
           }).catch(function () {});
         });
       });
