@@ -1077,24 +1077,29 @@ hr { border-color: var(--border); opacity: 1; }
 
 /* ---------- estimated race times card ---------- */
 .rt-card { border-radius: 22px; overflow: hidden; background: var(--surface); border: 1px solid var(--border); margin-bottom: 1rem; }
-.rt-head { display: flex; align-items: center; justify-content: space-between; padding: .9rem 1.1rem .2rem; color: var(--text); }
-.rt-head-title { display: inline-flex; align-items: center; gap: .65rem; font-size: .95rem; font-weight: 800; }
-.rt-head-title i { width: 30px; height: 30px; border-radius: 9px; background: var(--progress); color: #fff; font-size: 1.1rem; display: inline-flex; align-items: center; justify-content: center; }
+.rt-top { display: flex; align-items: center; justify-content: space-between; padding: .75rem 1rem .1rem; color: var(--text); cursor: pointer; user-select: none; }
+.rt-top-right { display: inline-flex; align-items: center; gap: .6rem; }
+.rt-chevron { transition: transform .2s ease; color: var(--text-faint); font-size: 1.15rem; }
+.rt-card.collapsed .rt-chevron { transform: rotate(-90deg); }
+.rt-summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .35rem .75rem; padding: .3rem 1rem .8rem; cursor: pointer; }
+.rt-head-title { display: inline-flex; align-items: center; gap: .6rem; font-size: .9rem; font-weight: 800; }
+.rt-head-title i { width: 26px; height: 26px; border-radius: 8px; background: var(--progress); color: #fff; font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; }
 .rt-info-btn { background: none; border: none; color: var(--text-faint); font-size: 1.3rem; line-height: 1; padding: 0; cursor: pointer; }
 .rt-info { display: none; padding: .8rem 1.1rem; font-size: .75rem; line-height: 1.5; color: var(--text-dim); background: var(--inverse-wash); border-bottom: 1px solid var(--border); }
 .rt-info.is-open { display: block; }
-.rt-marathon { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.1rem .4rem; }
-.rt-marathon-main { text-align: right; }
-.rt-range { font-size: 1.7rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
-.rt-range span { font-size: 1.05rem; color: var(--text-dim); }
+.rt-marathon { display: flex; align-items: center; gap: .85rem; padding: .8rem 0 .2rem; }
+.rt-marathon-main { min-width: 0; }
+.rt-marathon-main .rt-basis { margin-top: 0; }
+.rt-marathon-main .rt-basis + .rt-basis { margin-top: .15rem; }
+.rt-range { font-size: 1.25rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; white-space: nowrap; }
+.rt-range span { font-size: .85rem; color: var(--text-dim); }
 .rt-basis { font-size: .75rem; font-weight: 600; color: var(--text-dim); margin-top: .25rem; }
-.rt-meta { padding: .2rem 1.1rem 1rem; }
-.rt-goal { display: inline-flex; align-items: center; gap: .45rem; margin-top: .6rem; padding: .35rem .8rem .35rem .6rem; border-radius: 999px; font-size: .75rem; font-weight: 800; }
+.rt-goal { display: inline-flex; align-items: center; gap: .4rem; padding: .25rem .7rem .25rem .5rem; border-radius: 999px; font-size: .7rem; font-weight: 800; }
 .rt-goal-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; background: currentColor; }
 .rt-goal.is-good { background: var(--success-bg); color: var(--success); }
 .rt-goal.is-warn { background: var(--warning-bg); color: var(--warning); }
 .rt-card.collapsed .rt-body { display: none; }
-.rt-body { padding: 0 1.1rem .4rem; border-top: 1px solid var(--border); }
+.rt-body { padding: 0 1.1rem .9rem; border-top: 1px solid var(--border); }
 .rt-cols, .rt-row { display: grid; grid-template-columns: 3.2rem 1fr 1fr auto; gap: .5rem .75rem; align-items: center; }
 .rt-cols.is-single, .rt-row.is-single { grid-template-columns: 3.2rem 1fr; }
 .rt-cols { padding: .85rem 0 .5rem; font-size: .62rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--text-faint); }
@@ -1114,9 +1119,6 @@ hr { border-color: var(--border); opacity: 1; }
 .rt-form-title { font-size: .78rem; font-weight: 700; color: var(--text); margin: .9rem 0 .5rem; padding-top: .9rem; border-top: 1px solid var(--border); }
 .rt-form-title span { font-weight: 600; color: var(--text-faint); }
 .rt-form { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; padding-bottom: .8rem; }
-.rt-toggle { width: 100%; border: none; border-top: 1px solid var(--border); background: transparent; color: var(--text); font-family: inherit; font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: .85rem 0; cursor: pointer; }
-.rt-toggle i { margin-left: .25rem; }
-.rt-card.collapsed .rt-toggle-less, .rt-card:not(.collapsed) .rt-toggle-more { display: none; }
 
 /* ---------- plan week carousel ---------- */
 .wk-carousel { margin-bottom: 1rem; }
@@ -1166,10 +1168,24 @@ hr { border-color: var(--border); opacity: 1; }
   border: 1px solid var(--border); font-size: .82rem; font-weight: 800; color: var(--text);
 }
 .wk-row.jump-highlight, .wk-card.jump-highlight { animation: jump-highlight-pulse 2s ease-out; }
-.wk-nav { display: flex; align-items: center; justify-content: center; gap: .9rem; margin-top: .85rem; }
+.wk-nav { display: flex; align-items: center; justify-content: center; gap: .9rem; margin-top: .6rem; }
+.wk-nav-mid { display: flex; flex-direction: column; align-items: center; gap: .15rem; min-width: 0; }
+.wk-dots { display: flex; flex-wrap: wrap; justify-content: center; }
+.wk-dot { position: relative; width: 18px; height: 24px; padding: 0; border: 0; background: none; cursor: pointer; }
+.wk-dot::before {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; transform: translate(-50%, -50%);
+  border-radius: 999px; background: color-mix(in srgb, var(--text-faint) 55%, transparent);
+  transition: width .2s ease, background .2s ease;
+}
+.wk-dot.is-now::before { background: var(--progress); }
+.wk-dot.is-active::before { width: 18px; background: var(--text); }
+.wk-dot.is-active.is-now::before { background: var(--progress); }
 .wk-nav-btn {
   width: 38px; height: 38px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border);
   color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; padding: 0;
 }
 .wk-nav-btn:disabled { opacity: .35; cursor: default; }
-.wk-nav-hint { min-width: 8rem; text-align: center; font-size: .78rem; font-weight: 700; color: var(--text-dim); }
+/* Arrows are only for mouse users - on a phone you swipe, and the dots show where you are. */
+.wk-nav-arrow { display: none; }
+@media (hover: hover) and (pointer: fine) { .wk-nav-arrow { display: flex; } }
+.wk-nav-hint { text-align: center; font-size: .78rem; font-weight: 700; color: var(--text-dim); }

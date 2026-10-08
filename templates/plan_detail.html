@@ -74,32 +74,36 @@
 
   {% set est = race_time_estimates %}
   <div class="rt-card collapsed" data-race-times>
-    <div class="rt-head">
+    <div class="rt-top" data-race-times-toggle role="button" tabindex="0" aria-label="Show or hide all distances">
       <span class="rt-head-title"><i class="ti ti-stopwatch"></i> Estimated race times</span>
-      <button type="button" class="rt-info-btn" aria-label="How this is worked out" onclick="this.closest('[data-race-times]').querySelector('.rt-info').classList.toggle('is-open')"><i class="ti ti-info-circle"></i></button>
+      <span class="rt-top-right">
+        <button type="button" class="rt-info-btn" aria-label="How this is worked out" onclick="event.stopPropagation(); this.closest('[data-race-times]').querySelector('.rt-info').classList.toggle('is-open')"><i class="ti ti-info-circle"></i></button>
+        <i class="ti ti-chevron-down rt-chevron"></i>
+      </span>
     </div>
+
+    {% if est %}
+      <div class="rt-summary" data-race-times-toggle>
+        <div class="rt-range">{{ est.range_low }}<span> &ndash; {{ est.range_high }}</span></div>
+        {% if est.goal %}<div class="rt-goal is-{{ est.goal.tone }}"><i class="rt-goal-dot"></i>{{ est.goal.text }}</div>{% endif %}
+      </div>
+    {% else %}
+      <div class="rt-summary" data-race-times-toggle><div class="rt-basis">Add a recent race result to see your estimated times.</div></div>
+    {% endif %}
+
     <div class="rt-info">
       {% if est and est.mode == 'result' %}Predicted from your race result with the same maths as your training paces. The race-day column assumes the training block goes to plan, and the marathon figures assume marathon-specific training.{% else %}A rough guess from your fastest logged run. Add a recent race result for a better estimate.{% endif %}
     </div>
 
-    {% if est %}
-      <div class="rt-marathon">
-        <span class="rt-badge rt-badge-full">26.2</span>
-        <div class="rt-marathon-main">
-          <div class="rt-range">{{ est.range_low }}<span> &ndash; {{ est.range_high }}</span></div>
-          <div class="rt-basis">{% if est.weeks_remaining %}Race day estimate &middot; now {{ est.rows[3].current }}{% else %}Current estimate{% endif %}</div>
-        </div>
-      </div>
-      <div class="rt-meta">
-        <div class="rt-basis">{{ est.basis }}</div>
-        {% if est.goal %}<div class="rt-goal is-{{ est.goal.tone }}"><i class="rt-goal-dot"></i>{{ est.goal.text }}</div>{% endif %}
-      </div>
-    {% else %}
-      <div class="rt-meta"><div class="rt-basis">Add a recent race result to see your estimated times.</div></div>
-    {% endif %}
-
     <div class="rt-body">
       {% if est %}
+        <div class="rt-marathon">
+          <span class="rt-badge rt-badge-full">26.2</span>
+          <div class="rt-marathon-main">
+            <div class="rt-basis">{% if est.weeks_remaining %}Marathon race day estimate &middot; now {{ est.rows[3].current }}{% else %}Marathon estimate now{% endif %}</div>
+            <div class="rt-basis">{{ est.basis }}</div>
+          </div>
+        </div>
         <div class="rt-cols {{ '' if est.weeks_remaining else 'is-single' }}">
           <span></span>
           <span>Current est.</span>
@@ -129,11 +133,6 @@
         {% endif %}
       </form>
     </div>
-
-    <button type="button" class="rt-toggle" data-race-times-toggle>
-      <span class="rt-toggle-more">See more <i class="ti ti-chevron-down"></i></span>
-      <span class="rt-toggle-less">See less <i class="ti ti-chevron-up"></i></span>
-    </button>
   </div>
 
 {% if not weeks %}
@@ -191,9 +190,14 @@
   </div>
 
   <div class="wk-nav">
-    <button type="button" class="wk-nav-btn" id="wk-prev" aria-label="Previous week"><i class="ti ti-chevron-left"></i></button>
-    <div class="wk-nav-hint" id="wk-hint">This week</div>
-    <button type="button" class="wk-nav-btn" id="wk-next" aria-label="Next week"><i class="ti ti-chevron-right"></i></button>
+    <button type="button" class="wk-nav-btn wk-nav-arrow" id="wk-prev" aria-label="Previous week"><i class="ti ti-chevron-left"></i></button>
+    <div class="wk-nav-mid">
+      <div class="wk-dots" id="wk-dots">
+        {% for wk in weeks %}<button type="button" class="wk-dot {{ 'is-now' if wk.index == current_week_index else '' }}" data-week="{{ wk.index }}" aria-label="Week {{ wk.index }}"></button>{% endfor %}
+      </div>
+      <div class="wk-nav-hint" id="wk-hint">This week</div>
+    </div>
+    <button type="button" class="wk-nav-btn wk-nav-arrow" id="wk-next" aria-label="Next week"><i class="ti ti-chevron-right"></i></button>
   </div>
 </div>
 {% endif %}
@@ -265,6 +269,7 @@ function wkSetActive(i) {
   if (i === wkActive) return;
   wkActive = i;
   wkSlides.forEach(function (slide, idx) { slide.classList.toggle('is-active', idx === i); });
+  Array.prototype.forEach.call(document.querySelectorAll('#wk-dots .wk-dot'), function (dot, idx) { dot.classList.toggle('is-active', idx === i); });
   document.getElementById('wk-prev').disabled = i === 0;
   document.getElementById('wk-next').disabled = i === wkSlides.length - 1;
   var week = i + 1, diff = week - wkCurrent, hint;
@@ -280,6 +285,9 @@ if (wkSlides.length) {
     var step = wkSlides.length > 1 ? wkSlides[1].offsetLeft - wkSlides[0].offsetLeft : 1;
     wkSetActive(Math.max(0, Math.min(wkSlides.length - 1, Math.round(wkTrack.scrollLeft / step))));
   }, {passive: true});
+  Array.prototype.forEach.call(document.querySelectorAll('#wk-dots .wk-dot'), function (dot, idx) {
+    dot.addEventListener('click', function () { wkGoTo(idx, true); });
+  });
   document.getElementById('wk-prev').addEventListener('click', function () { wkGoTo(wkActive - 1, true); });
   document.getElementById('wk-next').addEventListener('click', function () { wkGoTo(wkActive + 1, true); });
   wkGoTo(wkCurrent - 1, false);
