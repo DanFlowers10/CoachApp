@@ -23,7 +23,7 @@
 
 {% set race_name = (plan.goal_race or '') %}
 {% if 'valencia' in race_name|lower %}
-  {% set race_grad = 'linear-gradient(135deg, #ffc83c 0%, #ff6a3d 50%, #f02c54 100%)' %}
+  {% set race_grad = 'linear-gradient(135deg, #f0b43a 0%, #f0623f 50%, #d92a52 100%)' %}
 {% else %}
   {% set race_grad = none %}
 {% endif %}
@@ -79,7 +79,7 @@
 {% endif %}
 
   {% set est = race_time_estimates %}
-  <div class="rt-card collapsed" data-race-times {% if race_grad %}style="--race-grad: {{ race_grad }};"{% endif %}>
+  <div class="rt-card collapsed" data-race-times>
     <div class="rt-head">
       <span class="rt-head-title"><i class="ti ti-stopwatch"></i> Estimated race times</span>
       <button type="button" class="rt-info-btn" aria-label="How this is worked out" onclick="this.closest('[data-race-times]').querySelector('.rt-info').classList.toggle('is-open')"><i class="ti ti-info-circle"></i></button>

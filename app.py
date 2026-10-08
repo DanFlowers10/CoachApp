@@ -809,7 +809,8 @@ def _goal_note(plan, low_sec, high_sec):
     goal = _goal_seconds(plan)
     if not goal:
         return None
-    label = pacing.fmt_time(goal)
+    # A round goal reads as "3:20", not "3:20:00" - this is the only time shown without seconds.
+    label = f"{goal // 3600}:{goal % 3600 // 60:02d}" if goal % 60 == 0 else pacing.fmt_time(goal)
     if high_sec <= goal:
         return {"tone": "good", "text": f"Inside your {label} goal"}
     if low_sec <= goal:

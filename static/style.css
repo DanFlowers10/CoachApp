@@ -994,7 +994,7 @@ hr { border-color: var(--border); opacity: 1; }
 .sv-pane[hidden] { display: none; }
 
 .sv-hero { border-radius: 22px; padding: 1.25rem; margin-bottom: .8rem; border: 1px solid var(--border); background: linear-gradient(150deg, rgba(112, 0, 255, .28) 0%, var(--surface) 75%); }
-.sv-hero-race { background: linear-gradient(135deg, rgba(255, 200, 60, .22) 0%, rgba(255, 106, 61, .2) 50%, rgba(240, 44, 84, .22) 100%), var(--surface); }
+.sv-hero-race { background: linear-gradient(135deg, rgba(240, 180, 58, .2) 0%, rgba(240, 98, 63, .18) 50%, rgba(217, 42, 82, .2) 100%), var(--surface); }
 .sv-hero-label { font-size: .78rem; font-weight: 700; color: var(--text-dim); margin-bottom: .3rem; }
 .sv-hero-value { font-size: 2.9rem; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
 .sv-hero-value span { font-size: 1rem; font-weight: 700; color: var(--text-dim); letter-spacing: 0; }
@@ -1077,7 +1077,7 @@ hr { border-color: var(--border); opacity: 1; }
 
 /* ---------- estimated race times card ---------- */
 .rt-card { border-radius: 22px; overflow: hidden; background: var(--surface); border: 1px solid var(--border); margin-bottom: 1rem; }
-.rt-head { display: flex; align-items: center; justify-content: space-between; padding: .8rem 1.1rem; color: #fff; background: var(--race-grad, var(--progress)); }
+.rt-head { display: flex; align-items: center; justify-content: space-between; padding: .8rem 1.1rem; color: #fff; background: var(--progress); }
 .rt-head-title { display: inline-flex; align-items: center; gap: .55rem; font-size: .95rem; font-weight: 800; }
 .rt-head-title i { font-size: 1.2rem; }
 .rt-info-btn { background: none; border: none; color: #fff; font-size: 1.3rem; line-height: 1; padding: 0; cursor: pointer; opacity: .9; }
