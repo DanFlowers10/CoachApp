@@ -805,12 +805,19 @@ def _goal_seconds(plan):
     return seconds if seconds and 2 * 3600 <= seconds <= 8 * 3600 else None
 
 
+def _goal_label(plan):
+    """The plan's goal time as shown on the hero, e.g. '3:20' (seconds only when it has some)."""
+    goal = _goal_seconds(plan)
+    if not goal:
+        return None
+    return f"{goal // 3600}:{goal % 3600 // 60:02d}" if goal % 60 == 0 else pacing.fmt_time(goal)
+
+
 def _goal_note(plan, low_sec, high_sec):
     goal = _goal_seconds(plan)
     if not goal:
         return None
-    # A round goal reads as "3:20", not "3:20:00" - this is the only time shown without seconds.
-    label = f"{goal // 3600}:{goal % 3600 // 60:02d}" if goal % 60 == 0 else pacing.fmt_time(goal)
+    label = _goal_label(plan)
     if high_sec <= goal:
         return {"tone": "good", "text": f"Inside your {label} goal"}
     if low_sec <= goal:
@@ -973,6 +980,7 @@ def plan_detail(plan_id):
     return render_template(
         "plan_detail.html",
         ref_distances=RACE_DISTANCE_LABELS,
+        goal_label=_goal_label(plan),
         plan=plan,
         today=today,
         weeks=weeks,

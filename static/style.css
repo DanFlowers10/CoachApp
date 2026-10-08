@@ -350,7 +350,7 @@ body.has-bottom-nav #page-content { padding-bottom: calc(6rem + env(safe-area-in
    goal_race - e.g. Valencia's orange-to-sea-blue) rather than one fixed
    gradient, so different athletes' target races read visually distinct. */
 .plan-hero-card {
-  border-radius: var(--radius); padding: 1.3rem 1.3rem 1.4rem; position: relative; overflow: hidden;
+  border-radius: var(--radius); padding: 1.05rem 1.15rem 1.15rem; position: relative; overflow: hidden;
   background: var(--race-grad, linear-gradient(135deg, #7000ff 0%, #ff007a 100%)); border: none; color: #fff;
 }
 .plan-hero-card::before {
@@ -358,7 +358,7 @@ body.has-bottom-nav #page-content { padding-bottom: calc(6rem + env(safe-area-in
   background: radial-gradient(circle at 88% -15%, rgba(255,255,255,.22), transparent 55%);
 }
 .plan-hero-card > * { position: relative; }
-.plan-hero-title { font-size: 1.2rem; font-weight: 800; line-height: 1.25; color: #fff; }
+.plan-hero-title { font-size: 1.1rem; font-weight: 800; line-height: 1.25; color: #fff; }
 .plan-hero-race { font-size: .85rem; color: rgba(255,255,255,.8); margin-top: .3rem; }
 .plan-hero-race strong { color: #fff; }
 .plan-hero-card .btn-outline-primary, .plan-hero-card .btn-outline-danger {
@@ -371,9 +371,9 @@ body.has-bottom-nav #page-content { padding-bottom: calc(6rem + env(safe-area-in
 .plan-week-segment { flex: 1; height: 6px; border-radius: 999px; background: rgba(255,255,255,.28); }
 .plan-week-segment.is-done { background: rgba(255,255,255,.95); }
 .plan-week-segment.is-current { background: #fff; }
-.plan-hero-stats-row { display: flex; align-items: center; gap: 1rem; margin-top: 1.1rem; }
+.plan-hero-stats-row { display: flex; align-items: center; gap: .9rem; margin-top: .85rem; }
 .plan-hero-ring { flex: none; }
-.plan-hero-distance-num { font-size: 2rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; line-height: 1; }
+.plan-hero-distance-num { font-size: 1.75rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; line-height: 1; }
 .plan-hero-distance-unit { font-size: .95rem; font-weight: 700; color: rgba(255,255,255,.8); }
 .plan-hero-distance-label { font-size: .72rem; font-weight: 700; color: rgba(255,255,255,.8); margin-top: .35rem; }
 
@@ -1117,3 +1117,59 @@ hr { border-color: var(--border); opacity: 1; }
 .rt-toggle { width: 100%; border: none; border-top: 1px solid var(--border); background: transparent; color: var(--text); font-family: inherit; font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: .85rem 0; cursor: pointer; }
 .rt-toggle i { margin-left: .25rem; }
 .rt-card.collapsed .rt-toggle-less, .rt-card:not(.collapsed) .rt-toggle-more { display: none; }
+
+/* ---------- plan week carousel ---------- */
+.wk-carousel { margin-bottom: 1rem; }
+.wk-track {
+  display: flex; gap: 12px; overflow-x: auto; position: relative; margin: 0 -12px; padding: 0 12px;
+  scroll-snap-type: x mandatory; scroll-padding: 0 12px; overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.wk-track::-webkit-scrollbar { display: none; }
+.wk-slide { flex: 0 0 90%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; opacity: .55; transition: opacity .25s ease; }
+.wk-slide.is-active { opacity: 1; }
+.wk-card {
+  display: block; border-radius: 22px; overflow: hidden; background: var(--surface); border: 1px solid var(--border);
+  color: inherit; text-decoration: none; transition: transform .12s ease;
+}
+.wk-card:active { transform: scale(.985); color: inherit; }
+.wk-head {
+  padding: 1rem 1.1rem .95rem;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--week-accent, var(--text-faint)) 30%, var(--surface)) 0%, var(--surface) 75%);
+}
+.wk-head-top { display: flex; justify-content: space-between; align-items: center; }
+.wk-range { font-size: .68rem; font-weight: 800; letter-spacing: .05em; color: var(--text-dim); }
+.wk-pill { font-size: .65rem; font-weight: 800; padding: .18rem .55rem; border-radius: 999px; background: var(--progress); color: #fff; }
+.wk-title { font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; margin-top: .2rem; }
+.wk-stats { display: flex; justify-content: space-between; font-size: .75rem; font-weight: 700; color: var(--text-dim); margin-top: .6rem; }
+.wk-stats strong { color: var(--text); font-weight: 800; }
+.wk-bar { height: 6px; border-radius: 999px; background: var(--border); margin-top: .45rem; overflow: hidden; }
+.wk-bar-fill { height: 100%; border-radius: 999px; background: var(--progress); }
+.wk-rows { padding: .15rem 1.1rem .3rem; }
+.wk-row { display: flex; align-items: center; gap: .75rem; padding: .7rem 0; border-top: 1px solid var(--border); }
+.wk-row-bar { width: 4px; height: 28px; border-radius: 2px; flex: none; }
+.wk-row-bar.type-easy { background: #3ecf8e; }
+.wk-row-bar.type-tempo { background: #e968c7; }
+.wk-row-bar.type-intervals { background: #9a8cf9; }
+.wk-row-bar.type-long { background: #5b9cf6; }
+.wk-row-bar.type-race { background: var(--accent); }
+.wk-row-dow { width: 32px; flex: none; font-size: .75rem; font-weight: 800; color: var(--text-dim); }
+.wk-row-text { flex: 1; min-width: 0; font-size: .88rem; }
+.wk-row-name { font-weight: 700; color: var(--text); }
+.wk-row-dist { font-weight: 600; color: var(--text-dim); }
+.wk-row.is-done .wk-row-text { opacity: .65; }
+.wk-tick { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); flex: none; display: flex; align-items: center; justify-content: center; color: #fff; font-size: .7rem; }
+.wk-tick.is-done { background: var(--success); border-color: var(--success); }
+.wk-tick.is-today { border-color: var(--progress); }
+.wk-open {
+  display: block; margin: .4rem 1.1rem 1.1rem; height: 42px; line-height: 40px; text-align: center; border-radius: 999px;
+  border: 1px solid var(--border); font-size: .82rem; font-weight: 800; color: var(--text);
+}
+.wk-row.jump-highlight, .wk-card.jump-highlight { animation: jump-highlight-pulse 2s ease-out; }
+.wk-nav { display: flex; align-items: center; justify-content: center; gap: .9rem; margin-top: .85rem; }
+.wk-nav-btn {
+  width: 38px; height: 38px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; padding: 0;
+}
+.wk-nav-btn:disabled { opacity: .35; cursor: default; }
+.wk-nav-hint { min-width: 8rem; text-align: center; font-size: .78rem; font-weight: 700; color: var(--text-dim); }

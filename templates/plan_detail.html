@@ -43,7 +43,9 @@
     {% endif %}
   </div>
   {% if race_workout %}
-    <div class="plan-hero-race">Your race: <strong>{{ race_workout.date.strftime('%d %b %Y') }}</strong></div>
+    <div class="plan-hero-race">Your race: <strong>{{ race_workout.date.strftime('%d %b %Y') }}</strong>{% if goal_label %} &middot; Goal <strong>{{ goal_label }}</strong>{% endif %}</div>
+  {% elif plan.goal_race %}
+    <div class="plan-hero-race">{{ plan.goal_race }}</div>
   {% endif %}
 
   {% if weeks %}
@@ -69,14 +71,6 @@
     </div>
   {% endif %}
 </div>
-
-{% if plan.goal_race %}
-  <div class="card-surface plan-race-row mb-3">
-    <i class="ti ti-flag"></i>
-    <div class="flex-grow-1">{{ plan.goal_race }}</div>
-    {% if race_workout %}<div class="small text-muted">{{ race_workout.date.strftime('%d %b %Y') }}</div>{% endif %}
-  </div>
-{% endif %}
 
   {% set est = race_time_estimates %}
   <div class="rt-card collapsed" data-race-times>
@@ -155,39 +149,54 @@
 
 {% endif %}
 
-{% for wk in weeks %}
-  {% set active_workouts = wk.workouts | rejectattr('workout_type', 'equalto', 'Rest') | list %}
-  {% set wk_types = active_workouts | map(attribute='workout_type') | list %}
-  {% set wk_accent = '#ff6a55' if 'Race' in wk_types else ('#5b9cf6' if 'Long Run' in wk_types else ('#e968c7' if 'Tempo' in wk_types else ('#9a8cf9' if 'Intervals' in wk_types else '#3ecf8e'))) %}
-  <a href="{{ url_for('plan_week_detail', plan_id=plan.id, week_index=wk.index) }}" class="week-card" id="week-{{ wk.index }}" style="--week-accent: {{ wk_accent }};">
-    <div class="week-header">
-      <div class="week-meta">{{ wk.start.strftime('%d %b').upper() }} - {{ wk.end.strftime('%d %b').upper() }}</div>
-      <div class="week-title">Week {{ wk.index }}</div>
-      <div class="week-progress-segments">
-        {% for w in active_workouts %}
-          <div class="week-progress-segment {{ 'is-done' if w.completed else '' }}"></div>
-        {% endfor %}
-      </div>
-      <div class="week-progress-sub">Total Workouts: {{ active_workouts|length }}<br>Distance: {{ wk.actual_mi or 0 }}/{{ wk.planned_mi }}mi</div>
-    </div>
-    <div class="week-body">
-      {% for w in active_workouts %}
-        {% set is_long = w.workout_type == 'Long Run' %}
-        {% set is_tempo = w.workout_type == 'Tempo' %}
-        {% set is_intervals = w.workout_type == 'Intervals' %}
-        {% set is_race = w.workout_type == 'Race' %}
-        {% set icon_class = 'type-race' if is_race else ('type-long' if is_long else ('type-tempo' if is_tempo else ('type-intervals' if is_intervals else 'type-easy'))) %}
-        <div class="workout-row-mini {{ 'is-done' if w.completed else '' }}" id="workout-{{ w.id }}">
-          <div class="workout-row-mini-swatch {{ icon_class }}"></div>
-          <div class="workout-row-mini-dow">{{ w.date.strftime('%a') }}</div>
-          <div class="workout-row-mini-text">
-            <span class="fw-bold">{{ w.workout_type }}</span>{% if w.target_distance_km %}<span class="text-muted"> &middot; {{ w.target_distance_km }}mi</span>{% endif %}{% if w.strava_activity_id %}<i class="ti ti-brand-strava" title="Auto-synced from Strava" style="color:#fc4c02;font-size:.8rem;margin-left:.35rem;"></i>{% endif %}{% if w.swapped_at %}<i class="ti ti-arrows-exchange" title="Rescheduled by athlete" style="color:var(--text-faint);font-size:.78rem;margin-left:.35rem;"></i>{% endif %}
+{% if weeks %}
+<div class="wk-carousel" id="wk-carousel" data-current="{{ current_week_index or 1 }}">
+  <div class="wk-track" id="wk-track">
+    {% for wk in weeks %}
+      {% set active_workouts = wk.workouts | rejectattr('workout_type', 'equalto', 'Rest') | list %}
+      {% set wk_types = active_workouts | map(attribute='workout_type') | list %}
+      {% set wk_accent = '#ff6a55' if 'Race' in wk_types else ('#5b9cf6' if 'Long Run' in wk_types else ('#e968c7' if 'Tempo' in wk_types else ('#9a8cf9' if 'Intervals' in wk_types else '#3ecf8e'))) %}
+      {% set wk_pct = ((wk.actual_mi or 0) / wk.planned_mi * 100)|round(0)|int if wk.planned_mi else 0 %}
+      <div class="wk-slide" id="week-{{ wk.index }}" data-week="{{ wk.index }}">
+        <a href="{{ url_for('plan_week_detail', plan_id=plan.id, week_index=wk.index) }}" class="wk-card" style="--week-accent: {{ wk_accent }};">
+          <div class="wk-head">
+            <div class="wk-head-top">
+              <span class="wk-range">{{ wk.start.strftime('%d %b').upper() }} - {{ wk.end.strftime('%d %b').upper() }}</span>
+              {% if wk.index == current_week_index %}<span class="wk-pill">This week</span>{% endif %}
+            </div>
+            <div class="wk-title">Week {{ wk.index }}</div>
+            <div class="wk-stats">
+              <span>{{ wk.sessions_done }} of {{ wk.sessions_total }} done</span>
+              <strong>{{ wk.actual_mi or 0 }} / {{ wk.planned_mi }} mi</strong>
+            </div>
+            <div class="wk-bar"><div class="wk-bar-fill" style="width: {{ wk_pct }}%;"></div></div>
           </div>
-        </div>
-      {% endfor %}
-    </div>
-  </a>
-{% endfor %}
+          <div class="wk-rows">
+            {% for w in active_workouts %}
+              {% set icon_class = 'type-race' if w.workout_type == 'Race' else ('type-long' if w.workout_type == 'Long Run' else ('type-tempo' if w.workout_type == 'Tempo' else ('type-intervals' if w.workout_type == 'Intervals' else 'type-easy'))) %}
+              <div class="wk-row {{ 'is-done' if w.completed else '' }}" id="workout-{{ w.id }}">
+                <span class="wk-row-bar {{ icon_class }}"></span>
+                <span class="wk-row-dow">{{ w.date.strftime('%a') }}</span>
+                <span class="wk-row-text">
+                  <span class="wk-row-name">{{ w.workout_type }}</span>{% if w.target_distance_km %}<span class="wk-row-dist"> &middot; {{ w.target_distance_km }}mi</span>{% endif %}{% if w.strava_activity_id %}<i class="ti ti-brand-strava" title="Auto-synced from Strava" style="color:#fc4c02;font-size:.85rem;margin-left:.4rem;"></i>{% endif %}{% if w.swapped_at %}<i class="ti ti-arrows-exchange" title="Rescheduled by athlete" style="color:var(--text-faint);font-size:.82rem;margin-left:.4rem;"></i>{% endif %}
+                </span>
+                <span class="wk-tick {{ 'is-done' if w.completed else ('is-today' if w.date == today else '') }}">{% if w.completed %}<i class="ti ti-check"></i>{% endif %}</span>
+              </div>
+            {% endfor %}
+          </div>
+          <span class="wk-open">Open week {{ wk.index }}</span>
+        </a>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="wk-nav">
+    <button type="button" class="wk-nav-btn" id="wk-prev" aria-label="Previous week"><i class="ti ti-chevron-left"></i></button>
+    <div class="wk-nav-hint" id="wk-hint">This week</div>
+    <button type="button" class="wk-nav-btn" id="wk-next" aria-label="Next week"><i class="ti ti-chevron-right"></i></button>
+  </div>
+</div>
+{% endif %}
 
 {% if current_user.is_coach() %}
 <div class="card-surface mt-4" style="border-radius: var(--radius); padding: 1.25rem 1.25rem 1.5rem;">
@@ -239,44 +248,79 @@ document.querySelectorAll('[data-race-times-toggle]').forEach(function (header) 
   });
 });
 
-function jumpToWorkout(workoutId, smooth) {
-  var card = document.getElementById('workout-' + workoutId);
-  if (!card) return;
+var wkCarousel = document.getElementById('wk-carousel');
+var wkTrack = document.getElementById('wk-track');
+var wkSlides = wkTrack ? Array.prototype.slice.call(wkTrack.querySelectorAll('.wk-slide')) : [];
+var wkCurrent = wkCarousel ? parseInt(wkCarousel.getAttribute('data-current'), 10) || 1 : 1;
+var wkActive = -1;
 
-  // Scroll so the whole week is visible (not just this one card centered),
-  // offset below the sticky nav so the week header isn't hidden under it.
-  var week = card.closest('.week-card');
-  var target = week || card;
+function wkGoTo(i, smooth) {
+  if (!wkSlides.length) return;
+  i = Math.max(0, Math.min(wkSlides.length - 1, i));
+  wkTrack.scrollTo({left: wkSlides[i].offsetLeft - wkSlides[0].offsetLeft, behavior: smooth ? 'smooth' : 'instant'});
+  wkSetActive(i);
+}
+
+function wkSetActive(i) {
+  if (i === wkActive) return;
+  wkActive = i;
+  wkSlides.forEach(function (slide, idx) { slide.classList.toggle('is-active', idx === i); });
+  document.getElementById('wk-prev').disabled = i === 0;
+  document.getElementById('wk-next').disabled = i === wkSlides.length - 1;
+  var week = i + 1, diff = week - wkCurrent, hint;
+  if (diff === 0) hint = 'This week';
+  else if (diff < 0) hint = (-diff) + (diff === -1 ? ' week ago' : ' weeks ago');
+  else hint = 'In ' + diff + (diff === 1 ? ' week' : ' weeks');
+  document.getElementById('wk-hint').textContent = hint;
+}
+
+if (wkSlides.length) {
+  // Which week is showing follows the swipe (and the buttons, which just scroll the same track).
+  wkTrack.addEventListener('scroll', function () {
+    var step = wkSlides.length > 1 ? wkSlides[1].offsetLeft - wkSlides[0].offsetLeft : 1;
+    wkSetActive(Math.max(0, Math.min(wkSlides.length - 1, Math.round(wkTrack.scrollLeft / step))));
+  }, {passive: true});
+  document.getElementById('wk-prev').addEventListener('click', function () { wkGoTo(wkActive - 1, true); });
+  document.getElementById('wk-next').addEventListener('click', function () { wkGoTo(wkActive + 1, true); });
+  wkGoTo(wkCurrent - 1, false);
+}
+
+function wkRevealCarousel(smooth) {
+  // Bring the carousel itself into view under the sticky header.
+  if (!wkCarousel) return;
   var nav = document.querySelector('.app-nav');
   var navHeight = nav ? nav.offsetHeight : 0;
-  var targetTop = target.getBoundingClientRect().top + window.pageYOffset - navHeight - 16;
-  window.scrollTo({top: Math.max(targetTop, 0), behavior: smooth ? 'smooth' : 'auto'});
+  var top = wkCarousel.getBoundingClientRect().top + window.pageYOffset - navHeight - 16;
+  window.scrollTo({top: Math.max(top, 0), behavior: smooth ? 'smooth' : 'auto'});
+}
 
-  card.classList.remove('jump-highlight');
-  void card.offsetWidth; // restart the animation if it's already been triggered once
-  card.classList.add('jump-highlight');
-  setTimeout(function () { card.classList.remove('jump-highlight'); }, 2000);
+function wkFlash(el) {
+  el.classList.remove('jump-highlight');
+  void el.offsetWidth; // restart the animation if it's already been triggered once
+  el.classList.add('jump-highlight');
+  setTimeout(function () { el.classList.remove('jump-highlight'); }, 2000);
+}
+
+function jumpToWorkout(workoutId, smooth) {
+  var row = document.getElementById('workout-' + workoutId);
+  if (!row) return;
+  var slide = row.closest('.wk-slide');
+  if (slide) wkGoTo(wkSlides.indexOf(slide), false);
+  wkRevealCarousel(smooth);
+  wkFlash(row);
 }
 
 function jumpToWeek(weekIndex, smooth) {
-  var week = document.getElementById('week-' + weekIndex);
-  if (!week) return;
-
-  var nav = document.querySelector('.app-nav');
-  var navHeight = nav ? nav.offsetHeight : 0;
-  var targetTop = week.getBoundingClientRect().top + window.pageYOffset - navHeight - 16;
-  window.scrollTo({top: Math.max(targetTop, 0), behavior: smooth ? 'smooth' : 'auto'});
-
-  week.classList.remove('jump-highlight');
-  void week.offsetWidth;
-  week.classList.add('jump-highlight');
-  setTimeout(function () { week.classList.remove('jump-highlight'); }, 2000);
+  var slide = document.getElementById('week-' + weekIndex);
+  if (!slide) return;
+  wkGoTo(wkSlides.indexOf(slide), false);
+  wkRevealCarousel(smooth);
+  wkFlash(slide.querySelector('.wk-card'));
 }
 
 // Coming from the full calendar page (a #workout-N link) or Today's "View full week"
-// (a #week-N link): scroll to it and highlight it. Deferred to 'load' so it runs after
-// the browser's own (top-aligned) fragment scroll, otherwise that native jump fires
-// afterwards and undoes this one.
+// (a #week-N link): show that week and highlight it. Deferred to 'load' so it runs after
+// the browser's own fragment scroll, otherwise that native jump fires afterwards and undoes this one.
 if (location.hash.startsWith('#workout-')) {
   var hashWorkoutId = location.hash.replace('#workout-', '');
   window.addEventListener('load', function () {
