@@ -1074,3 +1074,46 @@ hr { border-color: var(--border); opacity: 1; }
 .sv-felt-box.is-tough .sv-felt-n { color: var(--warning); }
 .sv-empty { text-align: center; border-radius: 18px; padding: 2rem 1.25rem; background: var(--surface); border: 1px solid var(--border); }
 .sv-empty-icon { font-size: 2.4rem; color: var(--text-faint); }
+
+/* ---------- estimated race times card ---------- */
+.rt-card { border-radius: 22px; overflow: hidden; background: var(--surface); border: 1px solid var(--border); margin-bottom: 1rem; }
+.rt-head { display: flex; align-items: center; justify-content: space-between; padding: .8rem 1.1rem; color: #fff; background: var(--race-grad, var(--progress)); }
+.rt-head-title { display: inline-flex; align-items: center; gap: .55rem; font-size: .95rem; font-weight: 800; }
+.rt-head-title i { font-size: 1.2rem; }
+.rt-info-btn { background: none; border: none; color: #fff; font-size: 1.3rem; line-height: 1; padding: 0; cursor: pointer; opacity: .9; }
+.rt-info { display: none; padding: .8rem 1.1rem; font-size: .75rem; line-height: 1.5; color: var(--text-dim); background: var(--inverse-wash); border-bottom: 1px solid var(--border); }
+.rt-info.is-open { display: block; }
+.rt-marathon { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.1rem .4rem; }
+.rt-marathon-main { text-align: right; }
+.rt-range { font-size: 1.7rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+.rt-range span { font-size: 1.05rem; color: var(--text-dim); }
+.rt-basis { font-size: .75rem; font-weight: 600; color: var(--text-dim); margin-top: .25rem; }
+.rt-meta { padding: .2rem 1.1rem 1rem; }
+.rt-goal { display: inline-flex; align-items: center; gap: .45rem; margin-top: .6rem; padding: .35rem .8rem .35rem .6rem; border-radius: 999px; font-size: .75rem; font-weight: 800; }
+.rt-goal-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; background: currentColor; }
+.rt-goal.is-good { background: var(--success-bg); color: var(--success); }
+.rt-goal.is-warn { background: var(--warning-bg); color: var(--warning); }
+.rt-card.collapsed .rt-body { display: none; }
+.rt-body { padding: 0 1.1rem .4rem; border-top: 1px solid var(--border); }
+.rt-cols, .rt-row { display: grid; grid-template-columns: 3.2rem 1fr 1fr auto; gap: .5rem .75rem; align-items: center; }
+.rt-cols.is-single, .rt-row.is-single { grid-template-columns: 3.2rem 1fr; }
+.rt-cols { padding: .85rem 0 .5rem; font-size: .62rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--text-faint); }
+.rt-cols span:last-child:not(:first-child) { text-align: right; }
+.rt-row { padding: .8rem 0; border-top: 1px solid var(--border); }
+.rt-badge { width: 3.2rem; padding: .4rem 0; border-radius: 10px; text-align: center; font-size: .7rem; font-weight: 800; }
+.rt-badge-5k { background: rgba(91, 156, 246, .18); color: #5b9cf6; }
+.rt-badge-10k { background: rgba(233, 104, 199, .16); color: #e968c7; }
+.rt-badge-half { background: rgba(62, 207, 142, .16); color: #2fbf80; }
+.rt-badge-full { background: rgba(255, 106, 85, .18); color: var(--accent); }
+.rt-current { font-size: 1.05rem; font-weight: 700; color: var(--text-dim); }
+.rt-track { display: flex; align-items: center; justify-content: center; gap: .35rem; color: var(--text-faint); }
+.rt-track i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: .55; }
+.rt-track i.ti { width: auto; height: auto; background: none; font-size: 1.05rem; opacity: .85; }
+.rt-projected { font-size: 1.15rem; font-weight: 800; text-align: right; }
+.rt-projected small { display: block; font-size: .68rem; font-weight: 700; color: var(--success); }
+.rt-form-title { font-size: .78rem; font-weight: 700; color: var(--text); margin: .9rem 0 .5rem; padding-top: .9rem; border-top: 1px solid var(--border); }
+.rt-form-title span { font-weight: 600; color: var(--text-faint); }
+.rt-form { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; padding-bottom: .8rem; }
+.rt-toggle { width: 100%; border: none; border-top: 1px solid var(--border); background: transparent; color: var(--text); font-family: inherit; font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: .85rem 0; cursor: pointer; }
+.rt-toggle i { margin-left: .25rem; }
+.rt-card.collapsed .rt-toggle-less, .rt-card:not(.collapsed) .rt-toggle-more { display: none; }

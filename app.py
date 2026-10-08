@@ -778,52 +778,99 @@ def _plan_months(workouts):
     return months
 
 
-RACE_ESTIMATE_DISTANCES = [("5K", 3.107), ("10K", 6.214), ("Half", 13.11), ("Full", 26.2)]
-
-
-def _format_race_time(total_minutes):
-    total_seconds = round(total_minutes * 60)
-    h, rem = divmod(total_seconds, 3600)
-    m, s = divmod(rem, 60)
-    return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
-
-
 REF_DISTANCE_LABELS = {"5k": "5K", "10k": "10K", "half": "half marathon", "marathon": "marathon"}
 RACE_ESTIMATE_ROWS = [("5K", "5k"), ("10K", "10k"), ("Half", "half"), ("Full", "marathon")]
+# What a normal training block adds: 0.3% off every race time per week left, capped at 3.5%.
+# Deliberately modest and flat - it isn't a trend model, just a sensible "if training goes to plan".
+IMPROVEMENT_PER_WEEK = 0.003
+IMPROVEMENT_CAP = 0.035
+# The slow end of the headline marathon range: a race-day wobble allowance on the projected time.
+RANGE_SLOWER_BY = 0.04
+_GOAL_TIME = re.compile(r"(\d{1,2}:\d{2}(?::\d{2})?)")
 
 
-def _race_result_estimates(plan):
-    """Predicted times from the race result the coach set on the plan (Daniels-Gilbert VDOT,
-    the same maths as the training paces). None when there's no usable result."""
+def _delta_text(seconds):
+    return f"-{seconds}s" if seconds < 60 else f"-{seconds // 60}m {seconds % 60}s"
+
+
+def _goal_seconds(plan):
+    """The marathon goal time written in the plan's goal text (e.g. '... goal 3:20:00'), or None."""
+    match = _GOAL_TIME.search(plan.goal_race or "")
+    if not match:
+        return None
+    text = match.group(1)
+    seconds = pacing.parse_time(text)
+    if seconds and text.count(":") == 1 and seconds < 600:
+        seconds *= 60  # '3:20' means 3h20, not 3m20s
+    return seconds if seconds and 2 * 3600 <= seconds <= 8 * 3600 else None
+
+
+def _goal_note(plan, low_sec, high_sec):
+    goal = _goal_seconds(plan)
+    if not goal:
+        return None
+    label = pacing.fmt_time(goal)
+    if high_sec <= goal:
+        return {"tone": "good", "text": f"Inside your {label} goal"}
+    if low_sec <= goal:
+        return {"tone": "good", "text": f"Your {label} goal is within range"}
+    minutes = max(1, round((low_sec - goal) / 60))
+    return {"tone": "warn", "text": f"About {minutes} min off your {label} goal"}
+
+
+def _estimate_payload(plan, current_secs, weeks_remaining, basis, mode):
+    """Rows (current vs race-day time per distance), the headline marathon range and the goal note."""
+    factor = min(IMPROVEMENT_CAP, IMPROVEMENT_PER_WEEK * weeks_remaining) if weeks_remaining else 0
+    rows = []
+    for label, key in RACE_ESTIMATE_ROWS:
+        current = current_secs[key]
+        projected = current * (1 - factor)
+        rows.append({
+            "label": label,
+            "current": pacing.fmt_time(current),
+            "projected": pacing.fmt_time(projected),
+            "delta": _delta_text(round(current - projected)) if factor else None,
+            "anchor": key == plan.ref_distance,
+        })
+    low = current_secs["marathon"] * (1 - factor)
+    high = low * (1 + RANGE_SLOWER_BY)
+    return {
+        "mode": mode,
+        "basis": basis,
+        "weeks_remaining": weeks_remaining,
+        "rows": rows,
+        "range_low": pacing.fmt_time(low),
+        "range_high": pacing.fmt_time(high),
+        "goal": _goal_note(plan, low, high),
+    }
+
+
+def _race_result_estimates(plan, weeks_remaining):
+    """Predictions from the race result set on the plan (Daniels-Gilbert VDOT, the same maths as
+    the training paces). None when there's no usable result."""
     distance_m = pacing.RACE_DISTANCES_M.get(plan.ref_distance or "")
     if not (distance_m and plan.ref_time_sec):
         return None
     v_dot = pacing.vdot(distance_m, plan.ref_time_sec)
-    rows = []
-    for label, key in RACE_ESTIMATE_ROWS:
-        meters = pacing.RACE_DISTANCES_M[key]
-        seconds = pacing.predict_time_sec(v_dot, meters)
-        rows.append({
-            "label": label,
-            "current": pacing.fmt_time(seconds),
-            "pace": pacing.fmt_pace(seconds / (meters / pacing.METRES_PER_MILE)) + "/mi",
-            "anchor": key == plan.ref_distance,
-        })
-    basis = f"{pacing.fmt_time(plan.ref_time_sec)} {REF_DISTANCE_LABELS.get(plan.ref_distance, plan.ref_distance)}"
+    current_secs = {key: pacing.predict_time_sec(v_dot, pacing.RACE_DISTANCES_M[key]) for _, key in RACE_ESTIMATE_ROWS}
+    basis = f"Based on your {pacing.fmt_time(plan.ref_time_sec)} {REF_DISTANCE_LABELS.get(plan.ref_distance, plan.ref_distance)}"
     if plan.ref_date:
         basis += f", {plan.ref_date.strftime('%d %b')}"
-    return {"mode": "result", "basis": basis, "rows": rows}
+    return _estimate_payload(plan, current_secs, weeks_remaining, basis, "result")
 
 
-def _estimate_race_times(workouts, race_date, today, plan=None):
-    """Predicted 5K/10K/Half/Full times. Anchored on the plan's race result when the coach has
-    set one; otherwise a rough guess from the athlete's single best recent logged pace, via
-    Riegel's formula (T2 = T1 * (D2/D1)^1.06). In that fallback the "in N weeks" column is a
-    flat, optimistic 3% pace improvement - not a real trend model."""
-    if plan is not None:
-        from_result = _race_result_estimates(plan)
-        if from_result:
-            return from_result
+def _estimate_race_times(workouts, race_date, today, plan):
+    """Current and race-day time for each distance, plus a headline marathon range. Anchored on
+    the plan's race result when one is set; otherwise a rough guess from the athlete's single
+    best recent logged pace, via Riegel's formula (T2 = T1 * (D2/D1)^1.06)."""
+    weeks_remaining = 0
+    if race_date and race_date > today:
+        weeks_remaining = max(1, round((race_date - today).days / 7))
+
+    from_result = _race_result_estimates(plan, weeks_remaining)
+    if from_result:
+        return from_result
+
     candidates = [
         w for w in workouts
         if w.completed and w.actual_distance_km and w.actual_duration_min and w.actual_distance_km >= 1.5
@@ -831,23 +878,11 @@ def _estimate_race_times(workouts, race_date, today, plan=None):
     if not candidates:
         return None
     best = min(candidates, key=lambda w: w.actual_duration_min / w.actual_distance_km)
-
-    weeks_remaining = 0
-    if race_date and race_date > today:
-        weeks_remaining = max(1, round((race_date - today).days / 7))
-
-    rows = []
-    for label, distance in RACE_ESTIMATE_DISTANCES:
-        current_min = best.actual_duration_min * (distance / best.actual_distance_km) ** 1.06
-        projected_min = current_min * 0.97 if weeks_remaining else current_min
-        delta_sec = round((current_min - projected_min) * 60)
-        rows.append({
-            "label": label,
-            "current": _format_race_time(current_min),
-            "projected": _format_race_time(projected_min),
-            "delta": f"-{delta_sec}s" if delta_sec < 60 else f"-{delta_sec // 60}m {delta_sec % 60}s",
-        })
-    return {"mode": "logged", "weeks_remaining": weeks_remaining, "rows": rows}
+    current_secs = {
+        key: best.actual_duration_min * 60 * (pacing.RACE_DISTANCES_M[key] / 1609.34 / best.actual_distance_km) ** 1.06
+        for _, key in RACE_ESTIMATE_ROWS
+    }
+    return _estimate_payload(plan, current_secs, weeks_remaining, "Rough estimate from your best recent pace", "logged")
 
 
 def _sync_strava_completions(workouts, strava_token):

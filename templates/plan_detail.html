@@ -78,56 +78,68 @@
   </div>
 {% endif %}
 
-  <div class="card-surface race-times-card mb-3 collapsed" data-race-times>
-    <div class="race-times-header" data-race-times-toggle>
-      <div>
-        <div class="fw-bold" style="font-size:.92rem;">Estimated Race Times</div>
-        <div class="small text-muted">
-          {% if race_time_estimates and race_time_estimates.mode == 'result' %}Based on {{ race_time_estimates.basis }}
-          {% elif race_time_estimates %}Rough estimate from your best recent pace
-          {% else %}Add a recent race result to see estimates{% endif %}
+  {% set est = race_time_estimates %}
+  <div class="rt-card collapsed" data-race-times {% if race_grad %}style="--race-grad: {{ race_grad }};"{% endif %}>
+    <div class="rt-head">
+      <span class="rt-head-title"><i class="ti ti-stopwatch"></i> Estimated race times</span>
+      <button type="button" class="rt-info-btn" aria-label="How this is worked out" onclick="this.closest('[data-race-times]').querySelector('.rt-info').classList.toggle('is-open')"><i class="ti ti-info-circle"></i></button>
+    </div>
+    <div class="rt-info">
+      {% if est and est.mode == 'result' %}Predicted from your race result with the same maths as your training paces. The race-day column assumes the training block goes to plan, and the marathon figures assume marathon-specific training.{% else %}A rough guess from your fastest logged run. Add a recent race result for a better estimate.{% endif %}
+    </div>
+
+    {% if est %}
+      <div class="rt-marathon">
+        <span class="rt-badge rt-badge-full">26.2</span>
+        <div class="rt-marathon-main">
+          <div class="rt-range">{{ est.range_low }}<span> &ndash; {{ est.range_high }}</span></div>
+          <div class="rt-basis">{% if est.weeks_remaining %}Race day estimate &middot; now {{ est.rows[3].current }}{% else %}Current estimate{% endif %}</div>
         </div>
       </div>
-      <span class="chevron">&#9660;</span>
-    </div>
-    <div class="race-times-body">
-      {% if race_time_estimates and race_time_estimates.mode == 'result' %}
-        <div class="race-times-cols">
-          <span></span><span>Predicted</span><span>Pace</span>
+      <div class="rt-meta">
+        <div class="rt-basis">{{ est.basis }}</div>
+        {% if est.goal %}<div class="rt-goal is-{{ est.goal.tone }}"><i class="rt-goal-dot"></i>{{ est.goal.text }}</div>{% endif %}
+      </div>
+    {% else %}
+      <div class="rt-meta"><div class="rt-basis">Add a recent race result to see your estimated times.</div></div>
+    {% endif %}
+
+    <div class="rt-body">
+      {% if est %}
+        <div class="rt-cols {{ '' if est.weeks_remaining else 'is-single' }}">
+          <span></span>
+          <span>Current est.</span>
+          {% if est.weeks_remaining %}<span class="rt-cols-track"></span><span>In {{ est.weeks_remaining }} {{ 'week' if est.weeks_remaining == 1 else 'weeks' }}</span>{% endif %}
         </div>
-        {% for row in race_time_estimates.rows %}
-          <div class="race-times-row">
-            <span class="race-times-label">{{ row.label }}</span>
-            <span><strong>{{ row.current }}</strong></span>
-            <span class="text-muted">{{ row.pace }}</span>
-          </div>
-        {% endfor %}
-        <div class="small text-muted mt-2">Predicted from the race result using the same maths as your training paces. The marathon figure assumes marathon-specific training.</div>
-      {% elif race_time_estimates %}
-        <div class="race-times-cols">
-          <span></span><span>Current</span><span>In {{ race_time_estimates.weeks_remaining }} weeks</span>
-        </div>
-        {% for row in race_time_estimates.rows %}
-          <div class="race-times-row">
-            <span class="race-times-label">{{ row.label }}</span>
-            <span>{{ row.current }}</span>
-            <span>{{ row.projected }}<span class="race-times-delta">{{ row.delta }}</span></span>
+        {% for row in est.rows[:3] %}
+          <div class="rt-row {{ '' if est.weeks_remaining else 'is-single' }}">
+            <span class="rt-badge rt-badge-{{ row.label|lower }}">{{ row.label }}</span>
+            <span class="rt-current">{{ row.current }}</span>
+            {% if est.weeks_remaining %}
+              <span class="rt-track" aria-hidden="true"><i></i><i></i><i class="ti ti-run"></i><i></i><i></i></span>
+              <span class="rt-projected">{{ row.projected }}{% if row.delta %}<small>{{ row.delta }}</small>{% endif %}</span>
+            {% endif %}
           </div>
         {% endfor %}
       {% endif %}
 
-        <div class="small text-muted mt-3 mb-1">Your recent race result <span class="text-muted">(a race or time trial in the last couple of months)</span></div>
-        <form method="post" action="{{ url_for('set_race_result', plan_id=plan.id) }}" class="d-flex flex-wrap gap-2 align-items-center">
-          <select name="race_distance" class="form-select form-select-sm" style="width:auto;" aria-label="Race distance">
-            {% for key, label in ref_distances %}<option value="{{ key }}" {{ 'selected' if (plan.ref_distance or '5k') == key else '' }}>{{ label }}</option>{% endfor %}
-          </select>
-          <input type="text" name="race_time" class="form-control form-control-sm" style="width:7rem;" placeholder="19:20" aria-label="Race time" required>
-          <button class="btn btn-sm btn-accent" type="submit">{{ 'Update result' if plan.ref_time_sec else 'Save result' }}</button>
-          {% if plan.ref_time_sec %}
-            <button class="btn btn-sm btn-outline-secondary" type="submit" name="action" value="clear" formnovalidate>Clear</button>
-          {% endif %}
-        </form>
+      <div class="rt-form-title">Your recent race result <span>(a race or time trial in the last couple of months)</span></div>
+      <form method="post" action="{{ url_for('set_race_result', plan_id=plan.id) }}" class="rt-form">
+        <select name="race_distance" class="form-select form-select-sm" style="width:auto;" aria-label="Race distance">
+          {% for key, label in ref_distances %}<option value="{{ key }}" {{ 'selected' if (plan.ref_distance or '5k') == key else '' }}>{{ label }}</option>{% endfor %}
+        </select>
+        <input type="text" name="race_time" class="form-control form-control-sm" style="width:7rem;" placeholder="19:20" aria-label="Race time" required>
+        <button class="btn btn-sm btn-accent" type="submit">{{ 'Update result' if plan.ref_time_sec else 'Save result' }}</button>
+        {% if plan.ref_time_sec %}
+          <button class="btn btn-sm btn-outline-secondary" type="submit" name="action" value="clear" formnovalidate>Clear</button>
+        {% endif %}
+      </form>
     </div>
+
+    <button type="button" class="rt-toggle" data-race-times-toggle>
+      <span class="rt-toggle-more">See more <i class="ti ti-chevron-down"></i></span>
+      <span class="rt-toggle-less">See less <i class="ti ti-chevron-up"></i></span>
+    </button>
   </div>
 
 {% if not weeks %}
