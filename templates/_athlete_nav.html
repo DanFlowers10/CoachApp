@@ -5,7 +5,7 @@
   </a>
   {% if nav_plan_id %}
     <a href="{{ url_for('plan_detail', plan_id=nav_plan_id) }}" class="bottom-nav-item {{ 'active' if request.endpoint == 'plan_detail' else '' }}">
-      <i class="ti ti-list"></i>Plan
+      <i class="ti ti-clipboard-list"></i>Plan
     </a>
     <a href="{{ url_for('plan_calendar', plan_id=nav_plan_id) }}" class="bottom-nav-item {{ 'active' if request.endpoint == 'plan_calendar' else '' }}">
       <i class="ti ti-calendar"></i>Calendar
