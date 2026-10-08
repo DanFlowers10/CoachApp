@@ -83,6 +83,9 @@ class Workout(db.Model):
     # Optional second range for a long run's marathon-pace section.
     mp_low_sec = db.Column(db.Integer)
     mp_high_sec = db.Column(db.Integer)
+    # The session's step-by-step breakdown (warm-up, reps, recoveries...) as the short text
+    # the coach writes - see steps.py. Parsed whenever it's shown or sent to a watch.
+    steps_text = db.Column(db.Text)
     # Compact JSON of the matched Strava run's mile splits and laps, fetched once
     # so the "how it went" card doesn't hit Strava on every view.
     splits_json = db.Column(db.Text)

@@ -568,6 +568,23 @@ button.week-workout-card-check:active { transform: scale(.92); }
 .workout-hero-date { font-size: .78rem; font-weight: 700; color: var(--text-dim); }
 .workout-hero-duration { display: flex; align-items: center; gap: .35rem; font-size: .85rem; font-weight: 700; color: var(--text-dim); margin-top: .5rem; }
 
+/* ---------- workout steps (warm-up / reps / recoveries / cool-down) ---------- */
+.st-card { border-radius: var(--radius); padding: .5rem 1.1rem .7rem; }
+.st-row { display: flex; align-items: baseline; gap: .6rem; padding: .55rem 0; border-bottom: 1px solid var(--border); font-size: .88rem; }
+.st-row:last-of-type { border-bottom: none; }
+.st-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; align-self: center; background: var(--accent); }
+.st-row.kind-warmup .st-dot, .st-row.kind-cooldown .st-dot, .st-row.kind-recover .st-dot { background: var(--text-faint); }
+.st-amount { font-weight: 800; min-width: 3.6rem; }
+.st-title { color: var(--text-dim); font-weight: 600; flex: 1; }
+.st-pace { font-weight: 800; font-size: .82rem; white-space: nowrap; }
+.st-repeat {
+  margin: .4rem 0; padding: .1rem .75rem .1rem .75rem; border-left: 3px solid var(--progress);
+  background: color-mix(in srgb, var(--text) 4%, transparent); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.st-repeat .st-row:last-child { border-bottom: none; }
+.st-repeat-head { font-size: .7rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--text-faint); padding-top: .5rem; }
+.st-total { font-size: .72rem; font-weight: 700; color: var(--text-faint); padding-top: .55rem; }
+
 /* ---------- post-run feedback ("How it went") ---------- */
 .pr-label { font-size: .7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text-faint); margin: 1.5rem 0 .5rem; }
 .pr-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.1rem; margin-bottom: .75rem; }

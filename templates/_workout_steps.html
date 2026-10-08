@@ -1,0 +1,26 @@
+{# The step-by-step breakdown of a session. Needs `steps_view` (see _steps_view in app.py). #}
+{% macro step_row(s) %}
+  <div class="st-row kind-{{ s.kind }}">
+    <span class="st-dot"></span>
+    <span class="st-amount">{{ s.amount }}</span>
+    <span class="st-title">{{ s.title }}</span>
+    {% if s.pace %}<span class="st-pace">{{ s.pace }}</span>{% endif %}
+  </div>
+{% endmacro %}
+
+{% if steps_view %}
+  <div class="text-uppercase small fw-bold text-muted mt-4 mb-2" style="letter-spacing:.04em;">{{ steps_heading or 'Steps' }}</div>
+  <div class="card-surface st-card">
+    {% for r in steps_view.rows %}
+      {% if r.type == 'repeat' %}
+        <div class="st-repeat">
+          <div class="st-repeat-head">{{ r.count }}&times; repeat</div>
+          {% for s in r.steps %}{{ step_row(s) }}{% endfor %}
+        </div>
+      {% else %}
+        {{ step_row(r) }}
+      {% endif %}
+    {% endfor %}
+    <div class="st-total">{{ '%g' % steps_view.total_mi }} mi in total</div>
+  </div>
+{% endif %}

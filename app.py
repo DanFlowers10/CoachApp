@@ -16,6 +16,7 @@ from models import db, User, TrainingPlan, Workout, StravaToken
 import strava
 import pacing
 import feedback
+import steps as stepslib
 
 load_dotenv()
 
@@ -352,6 +353,7 @@ def duplicate_plan(plan_id):
                 pace_high_sec=w.pace_high_sec,
                 mp_low_sec=w.mp_low_sec,
                 mp_high_sec=w.mp_high_sec,
+                steps_text=w.steps_text,
             ))
         db.session.commit()
         flash(f'Duplicated "{plan.title}" to {target.name}.', "success")
@@ -479,6 +481,40 @@ def _pace_display(workout):
         "mp_range": pacing.fmt_pace_range(eff["mp_low"], eff["mp_high"]) if eff["mp_low"] and eff["mp_high"] else None,
         "source": eff["source"],
     }
+
+
+def _easy_range_for(workout):
+    """The plan's easy pace range near this session: its own if it's an easy run, else the nearest easy run's."""
+    if workout.workout_type == "Easy Run":
+        eff = _effective_paces(workout)
+        return (eff["low"], eff["high"]) if eff else None
+    easy = [w for w in workout.plan.workouts if w.workout_type == "Easy Run" and w.pace_low_sec and w.pace_high_sec]
+    if not easy:
+        return None
+    nearest = min(easy, key=lambda w: abs((w.date - workout.date).days))
+    return nearest.pace_low_sec, nearest.pace_high_sec
+
+
+def _steps_context(workout, steps_text):
+    """Display rows for a steps text (the saved one or a draft), or (None, errors) if it doesn't parse."""
+    parsed, errors = stepslib.parse(steps_text)
+    if errors or not parsed:
+        return None, errors
+    eff = _effective_paces(workout)
+    key = (eff["low"], eff["high"]) if eff else None
+    mp = (eff["mp_low"], eff["mp_high"]) if eff and eff["mp_low"] and eff["mp_high"] else None
+    return {
+        "rows": stepslib.describe(parsed, key, _easy_range_for(workout), mp, workout.workout_type),
+        "total_mi": round(stepslib.total_distance_mi(parsed), 1),
+    }, []
+
+
+def _steps_view(workout):
+    """What the workout page shows for a saved steps text (None when there isn't a usable one)."""
+    if not workout.steps_text:
+        return None
+    view, _ = _steps_context(workout, workout.steps_text)
+    return view
 
 
 def _post_run_feedback(workout, athlete):
@@ -991,7 +1027,7 @@ def workout_detail(workout_id):
     return render_template(
         "workout_detail.html", workout=workout, plan=workout.plan,
         can_swap=can_swap, swap_candidates=swap_candidates, post_run=post_run,
-        paces=_pace_display(workout),
+        paces=_pace_display(workout), steps_view=_steps_view(workout),
     )
 
 
@@ -1181,6 +1217,37 @@ def edit_workout(workout_id):
         abort(404)
 
     if request.method == "POST":
+        action = request.form.get("action", "save")
+
+        # Draft / Preview re-draw the form with the steps laid out; nothing is saved.
+        if action in ("draft", "preview"):
+            values = dict(request.form.items())
+            steps_text = request.form.get("steps_text", "")
+            planned_raw = request.form.get("target_distance_km", "")
+            try:
+                planned_mi = float(planned_raw) if planned_raw.strip() else None
+            except ValueError:
+                planned_mi = None
+
+            warnings = []
+            if action == "draft":
+                drafted, warnings = stepslib.draft_from_notes(
+                    request.form.get("workout_type"), planned_mi, request.form.get("description"))
+                if drafted is None:
+                    flash("Couldn't draft steps from the notes - write them in the Steps box instead.", "error")
+                else:
+                    steps_text = values["steps_text"] = drafted
+
+            preview, step_errors = (None, [])
+            if steps_text.strip():
+                preview, step_errors = _steps_context(workout, steps_text)
+                if preview and planned_mi and abs(preview["total_mi"] - planned_mi) > 0.3:
+                    warnings.append(
+                        f"These steps add up to {preview['total_mi']:g} mi, but the session is planned for "
+                        f"{planned_mi:g} mi (reps and jogs all count).")
+            return render_template("edit_workout.html", workout=workout, types=WORKOUT_TYPES, values=values,
+                                   steps_preview=preview, steps_errors=step_errors, steps_warnings=warnings)
+
         errors = []
 
         try:
@@ -1192,6 +1259,13 @@ def edit_workout(workout_id):
         workout_type = request.form.get("workout_type")
         if workout_type not in WORKOUT_TYPES:
             errors.append("Pick a workout type.")
+
+        steps_text = request.form.get("steps_text", "").strip()
+        if steps_text:
+            parsed_steps, step_errors = stepslib.parse(steps_text)
+            errors.extend(step_errors)
+            if not step_errors and not parsed_steps:
+                errors.append("The steps box has no steps in it.")
 
         def optional_number(field, cast, label):
             raw = request.form.get(field, "").strip()
@@ -1246,8 +1320,14 @@ def edit_workout(workout_id):
         workout.pace_high_sec = pace_high
         workout.mp_low_sec = mp_low
         workout.mp_high_sec = mp_high
+        workout.steps_text = steps_text or None
         db.session.commit()
-        flash("Workout updated.", "success")
+
+        message = "Workout updated."
+        if steps_text and distance and abs(stepslib.total_distance_mi(parsed_steps) - distance) > 0.3:
+            message += (f" Note: the steps add up to {stepslib.total_distance_mi(parsed_steps):.1f} mi, "
+                        f"but the session says {distance:g} mi.")
+        flash(message, "success")
         return redirect(url_for("workout_detail", workout_id=workout.id))
 
     values = {
@@ -1260,8 +1340,10 @@ def edit_workout(workout_id):
         "pace_high": pacing.fmt_pace(workout.pace_high_sec) if workout.pace_high_sec else "",
         "mp_low": pacing.fmt_pace(workout.mp_low_sec) if workout.mp_low_sec else "",
         "mp_high": pacing.fmt_pace(workout.mp_high_sec) if workout.mp_high_sec else "",
+        "steps_text": workout.steps_text or "",
     }
-    return render_template("edit_workout.html", workout=workout, types=WORKOUT_TYPES, values=values)
+    return render_template("edit_workout.html", workout=workout, types=WORKOUT_TYPES, values=values,
+                           steps_preview=_steps_view(workout), steps_errors=[], steps_warnings=[])
 
 
 # Which training zone each workout type is paced from when re-pacing a plan.
@@ -1346,6 +1428,55 @@ def repace_plan(plan_id):
     return render_template("repace_plan.html", **context)
 
 
+STEPS_TYPES = ("Easy Run", "Long Run", "Tempo", "Intervals")
+
+
+def _steps_rows(plan, today):
+    """Upcoming sessions and where each stands on having a step-by-step breakdown."""
+    rows = []
+    for w in plan.workouts:
+        if w.completed or w.date < today or w.workout_type not in STEPS_TYPES:
+            continue
+        existing = _steps_view(w) if w.steps_text else None
+        if existing:
+            rows.append({"workout": w, "status": "has", "view": existing})
+            continue
+        draft, warnings = stepslib.draft_from_notes(w.workout_type, w.target_distance_km, w.description)
+        if not draft:
+            rows.append({"workout": w, "status": "none"})
+            continue
+        view, _ = _steps_context(w, draft)
+        if view and w.target_distance_km and abs(view["total_mi"] - w.target_distance_km) > 0.3:
+            warnings = warnings + [
+                f"Adds up to {view['total_mi']:g} mi; the session says {w.target_distance_km:g} mi."]
+        rows.append({"workout": w, "status": "draft", "draft": draft, "view": view, "warnings": warnings})
+    return rows
+
+
+@app.route("/plan/<int:plan_id>/steps", methods=["GET", "POST"])
+@login_required
+@coach_required
+def plan_steps(plan_id):
+    plan = db.session.get(TrainingPlan, plan_id)
+    if plan is None or plan.coach_id != current_user.id:
+        abort(404)
+
+    rows = _steps_rows(plan, date.today())
+    if request.method == "POST":
+        chosen = set(request.form.getlist("workout_ids"))
+        saved = 0
+        for row in rows:
+            # Only ever fills in sessions that have no steps yet - never overwrites what you've written.
+            if row["status"] == "draft" and str(row["workout"].id) in chosen:
+                row["workout"].steps_text = row["draft"]
+                saved += 1
+        db.session.commit()
+        flash(f"Saved steps on {saved} {'session' if saved == 1 else 'sessions'}.", "success")
+        return redirect(url_for("plan_steps", plan_id=plan.id))
+
+    return render_template("plan_steps.html", plan=plan, rows=rows)
+
+
 @app.route("/plan/<int:plan_id>/delete", methods=["POST"])
 @login_required
 @coach_required
@@ -1425,6 +1556,7 @@ def client_dashboard():
         "today.html",
         post_run=post_run,
         paces=_pace_display(selected_workout) if selected_workout else None,
+        steps_view=_steps_view(selected_workout) if selected_workout else None,
         plan=plan,
         today=today,
         weeks=weeks,
@@ -1638,6 +1770,7 @@ with app.app_context():
             "pace_low_sec": "INTEGER", "pace_high_sec": "INTEGER",
             "mp_low_sec": "INTEGER", "mp_high_sec": "INTEGER",
             "splits_json": "TEXT", "feel": "VARCHAR(10)", "feel_reason": "VARCHAR(40)",
+            "steps_text": "TEXT",
         }
         for column_name, column_type in new_workout_columns.items():
             if column_name not in existing_columns:

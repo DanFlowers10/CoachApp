@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Workout steps{% endblock %}
+{% block content %}
+<a href="{{ url_for('plan_detail', plan_id=plan.id) }}" class="small d-block mb-2">&larr; Back to {{ plan.title }}</a>
+<h2 class="mb-1">Workout steps</h2>
+<p class="text-muted mb-3">The warm-up, reps and cool-down that {{ plan.client.name }}'s watch will follow. Steps drafted from your notes are shown below for you to check &mdash; nothing is saved until you press the button, and sessions that already have steps are never overwritten.</p>
+
+{% if not rows %}
+  <p class="text-muted">There are no upcoming easy, long, tempo or interval sessions.</p>
+{% else %}
+<form method="post">
+  <div class="d-flex flex-column gap-2 mb-3" style="max-width: 560px;">
+    {% for row in rows %}
+      {% set w = row.workout %}
+      <label class="card-surface d-flex gap-3 align-items-start" style="border-radius: var(--radius-sm); padding: .8rem .95rem; {{ 'cursor:pointer;' if row.status == 'draft' else '' }}">
+        {% if row.status == 'draft' %}
+          <input type="checkbox" name="workout_ids" value="{{ w.id }}" class="mt-1" checked>
+        {% else %}
+          <span style="width:13px;"></span>
+        {% endif %}
+        <div class="flex-grow-1">
+          <div class="d-flex justify-content-between align-items-baseline gap-2">
+            <div class="fw-bold small">{{ w.date.strftime('%a %d %b') }} &middot; {% if w.target_distance_km %}{{ w.target_distance_km }}mi {% endif %}{{ w.workout_type }}</div>
+            <a href="{{ url_for('edit_workout', workout_id=w.id) }}" class="small">Edit</a>
+          </div>
+
+          {% if row.status == 'none' %}
+            <div class="small text-muted">Couldn't draft from the notes &mdash; write the steps by hand.</div>
+          {% else %}
+            <div class="small {{ 'text-muted' if row.status == 'has' else '' }}">
+              {% if row.status == 'has' %}<strong style="color: var(--success);">Steps saved</strong> &middot; {% else %}<strong>Draft</strong> &middot; {% endif %}
+              {% for r in row.view.rows %}
+                {% if r.type == 'repeat' %}
+                  {{ r.count }}&times; ({% for s in r.steps %}{{ s.amount }}{{ ', ' if not loop.last }}{% endfor %}){{ ' + ' if not loop.last }}
+                {% else %}
+                  {{ r.amount }} {{ r.title|lower }}{{ ' + ' if not loop.last }}
+                {% endif %}
+              {% endfor %}
+            </div>
+            {% for warning in row.warnings or [] %}
+              <div class="small" style="color: var(--warning);"><i class="ti ti-alert-triangle"></i> {{ warning }}</div>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </label>
+    {% endfor %}
+  </div>
+  {% if rows|selectattr('status', 'equalto', 'draft')|list %}
+    <button class="btn btn-accent" onclick="return confirm('Save the drafted steps on the selected sessions?');">Save steps on selected sessions</button>
+  {% endif %}
+</form>
+{% endif %}
+{% endblock %}
