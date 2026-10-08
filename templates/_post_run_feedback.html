@@ -1,27 +1,41 @@
 {# "How it went" + "How did it feel?" for a completed run. Athlete-only: built from Strava data. #}
+{% macro splits_chart(title, c, color, band_label, others_label, has_others) %}
+  <div class="pr-card" style="--bar-color: {{ color }};">
+    <div class="pr-card-title">{{ title }}</div>
+    <div class="pr-chart" style="gap: {{ c.gap }}px;">
+      {% if c.band_bottom is not none %}
+        <div class="pr-band" style="bottom: {{ c.band_bottom }}%; height: {{ c.band_height }}%;"></div>
+      {% endif %}
+      {% for b in c.bars %}<div class="pr-bar {{ b.cls }}" style="height: {{ b.h }}%;"></div>{% endfor %}
+    </div>
+    <div class="pr-labels" style="gap: {{ c.gap }}px;">
+      {% for b in c.bars %}<span style="font-size: {{ c.label_size }}px;">{{ b.label }}</span>{% endfor %}
+    </div>
+    {% if band_label or has_others %}
+      <div class="pr-legend">
+        {% if band_label %}<span><i class="pr-legend-band"></i>{{ band_label }}</span>{% endif %}
+        {% if has_others %}<span><i class="pr-legend-dot"></i>{{ others_label }}</span>{% endif %}
+      </div>
+    {% endif %}
+  </div>
+{% endmacro %}
+
 {% if post_run %}
 <div class="pr-label">How it went</div>
 
 {% if post_run.state == 'ok' %}
   <div class="pr-card">
-    <div class="pr-verdict tone-{{ post_run.tone }}">{{ post_run.verdict }}</div>
+    {% if post_run.verdict %}<div class="pr-verdict tone-{{ post_run.tone }}">{{ post_run.verdict }}</div>{% endif %}
     <div class="pr-headline">{{ post_run.headline }}</div>
+    {% if post_run.source_note %}<div class="pr-note">{{ post_run.source_note }}</div>{% endif %}
+    {% if post_run.note %}<div class="pr-note">{{ post_run.note }}</div>{% endif %}
   </div>
 
-  <div class="pr-card" style="--bar-color: {{ post_run.color }};">
-    <div class="pr-card-title">{{ post_run.chart_title }}</div>
-    <div class="pr-chart" style="gap: {{ post_run.gap }}px;">
-      <div class="pr-band" style="bottom: {{ post_run.band_bottom }}%; height: {{ post_run.band_height }}%;"></div>
-      {% for b in post_run.bars %}<div class="pr-bar {{ b.cls }}" style="height: {{ b.h }}%;"></div>{% endfor %}
-    </div>
-    <div class="pr-labels" style="gap: {{ post_run.gap }}px;">
-      {% for b in post_run.bars %}<span style="font-size: {{ post_run.label_size }}px;">{{ b.label }}</span>{% endfor %}
-    </div>
-    <div class="pr-legend">
-      <span><i class="pr-legend-band"></i>{{ post_run.band_label }}</span>
-      {% if post_run.has_others %}<span><i class="pr-legend-dot"></i>{{ post_run.others_label }}</span>{% endif %}
-    </div>
-  </div>
+  {{ splits_chart(post_run.chart_title, post_run, post_run.color, post_run.band_label, post_run.others_label, post_run.has_others) }}
+
+  {% if post_run.mile_chart %}
+    {{ splits_chart(post_run.mile_chart.title, post_run.mile_chart, post_run.color, '', '', false) }}
+  {% endif %}
 
   <div class="pr-stats">
     {% for s in post_run.stats %}

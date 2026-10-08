@@ -436,6 +436,51 @@ def _load_splits(workout, athlete):
     return data
 
 
+def _effective_paces(workout):
+    """The pace targets to use for a session: its own, else the plan's current ones.
+
+    Re-pace only sets paces on upcoming sessions, so a run that's already been done (or one
+    not re-paced yet) would otherwise have nothing to be judged against. It borrows the
+    nearest session of the same type that does have a target. A marathon-pace range is only
+    borrowed by a long run whose notes actually mention marathon pace.
+    Returns {low, high, mp_low, mp_high, source: 'workout'|'plan'} or None."""
+    def nearest(candidates):
+        return min(candidates, key=lambda w: abs((w.date - workout.date).days))
+
+    siblings = [
+        w for w in workout.plan.workouts
+        if w.id != workout.id and w.workout_type == workout.workout_type
+    ]
+    low, high, source = workout.pace_low_sec, workout.pace_high_sec, "workout"
+    if not (low and high):
+        with_pace = [w for w in siblings if w.pace_low_sec and w.pace_high_sec]
+        if not with_pace:
+            return None
+        donor = nearest(with_pace)
+        low, high, source = donor.pace_low_sec, donor.pace_high_sec, "plan"
+
+    mp_low, mp_high = workout.mp_low_sec, workout.mp_high_sec
+    if not (mp_low and mp_high) and workout.workout_type == "Long Run" and _MARATHON_PACE_NOTE.search(workout.description or ""):
+        with_mp = [w for w in siblings if w.mp_low_sec and w.mp_high_sec]
+        if with_mp:
+            donor = nearest(with_mp)
+            mp_low, mp_high = donor.mp_low_sec, donor.mp_high_sec
+            source = "plan"
+    return {"low": low, "high": high, "mp_low": mp_low, "mp_high": mp_high, "source": source}
+
+
+def _pace_display(workout):
+    """What the Session card shows as the target pace, e.g. {'range': '6:35-6:43/mi', 'source': 'plan'}."""
+    eff = _effective_paces(workout)
+    if not eff:
+        return None
+    return {
+        "range": pacing.fmt_pace_range(eff["low"], eff["high"]),
+        "mp_range": pacing.fmt_pace_range(eff["mp_low"], eff["mp_high"]) if eff["mp_low"] and eff["mp_high"] else None,
+        "source": eff["source"],
+    }
+
+
 def _post_run_feedback(workout, athlete):
     """Context for the athlete's 'How it went' card, or None when there's nothing to show.
     Athlete-only on purpose: it is built from Strava data, which we only show to its owner."""
@@ -451,16 +496,17 @@ def _post_run_feedback(workout, athlete):
     if data is None:
         return {"state": "unavailable", "message": "We couldn't load this run's details from Strava just now. Try again in a little while."}
 
-    if not workout.pace_low_sec or not workout.pace_high_sec:
-        return {"state": "no_target", "message": "No target pace is set for this session yet, so there's nothing to compare it with."}
-
+    eff = _effective_paces(workout)
     result = feedback.build_feedback(
-        workout.workout_type, workout.pace_low_sec, workout.pace_high_sec,
-        workout.mp_low_sec, workout.mp_high_sec,
+        workout.workout_type,
+        eff["low"] if eff else None, eff["high"] if eff else None,
+        eff["mp_low"] if eff else None, eff["mp_high"] if eff else None,
         data.get("splits"), data.get("laps"),
         workout.target_distance_km, workout.target_duration_min,
     )
     result["color"] = FEEDBACK_COLORS.get(workout.workout_type, "#ff6a55")
+    if eff and eff["source"] == "plan" and result.get("state") == "ok" and result.get("verdict"):
+        result["source_note"] = "This session had no target of its own, so it's compared with your plan's current pace for this type of run."
     return result
 
 
@@ -945,6 +991,7 @@ def workout_detail(workout_id):
     return render_template(
         "workout_detail.html", workout=workout, plan=workout.plan,
         can_swap=can_swap, swap_candidates=swap_candidates, post_run=post_run,
+        paces=_pace_display(workout),
     )
 
 
@@ -1377,6 +1424,7 @@ def client_dashboard():
     return render_template(
         "today.html",
         post_run=post_run,
+        paces=_pace_display(selected_workout) if selected_workout else None,
         plan=plan,
         today=today,
         weeks=weeks,

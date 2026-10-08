@@ -574,6 +574,7 @@ button.week-workout-card-check:active { transform: scale(.92); }
 .pr-card-title { font-size: .85rem; font-weight: 800; margin-bottom: .75rem; }
 .pr-headline { font-size: .88rem; line-height: 1.5; color: var(--text); }
 .pr-muted { color: var(--text-dim); }
+.pr-note { margin-top: .6rem; font-size: .74rem; line-height: 1.45; color: var(--text-faint); }
 .pr-verdict {
   display: inline-flex; align-items: center; gap: .45rem; padding: .3rem .7rem .3rem .55rem; margin-bottom: .6rem;
   border-radius: 999px; font-size: .78rem; font-weight: 800;

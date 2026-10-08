@@ -70,9 +70,10 @@ def _bar_class(pace, low, high, tol, is_key):
     return {"on": "is-key", "fast": "is-fast", "slow": "is-slow"}[kind]
 
 
-def _chart(bars, low, high, labels_for=None):
-    """Heights as % (faster = taller) and where the target band sits."""
-    paces = [b["pace"] for b in bars] + [low, high]
+def _chart(bars, low=None, high=None):
+    """Heights as % (faster = taller) and where the target band sits (None when there's no target)."""
+    has_band = low is not None and high is not None
+    paces = [b["pace"] for b in bars] + ([low, high] if has_band else [])
     lo, hi = min(paces) - 10, max(paces) + 10
     span = hi - lo
 
@@ -82,11 +83,43 @@ def _chart(bars, low, high, labels_for=None):
     n = len(bars)
     return {
         "bars": [{"h": round(height(b["pace"]), 1), "cls": b["cls"], "label": fmt(b["pace"])} for b in bars],
-        "band_bottom": round((hi - high) / span * 100, 1),
-        "band_height": round((high - low) / span * 100, 1),
+        "band_bottom": round((hi - high) / span * 100, 1) if has_band else None,
+        "band_height": round((high - low) / span * 100, 1) if has_band else None,
         "gap": 8 if n <= 6 else (6 if n <= 8 else 3),
         "label_size": 10 if n <= 6 else (9 if n <= 8 else 8),
     }
+
+
+NO_TARGET_NOTE = "No target pace is set for this session, so there's no verdict - just your splits."
+NO_BLOCK_NOTE = "We couldn't find a tempo block in the mile splits - nothing was close to the target pace."
+NO_REPS_NOTE = ("We can't see individual reps in this run. Press lap at the start and end of each rep, "
+                "or use a structured workout on your watch, to get a rep-by-rep breakdown.")
+
+
+def _splits_only(splits, totals, note):
+    """The card when we can't (or shouldn't) judge the run: just the mile splits and the basics."""
+    paces = [s[0] for s in splits]
+    avg = _avg_pace(splits)
+    n = len(splits)
+    if n > 1:
+        text = f"{n} {_plural(n, 'mile')} at an average of {fmt(avg)}/mi, from {fmt(min(paces))} to {fmt(max(paces))}."
+    else:
+        text = f"One mile at {fmt(avg)}/mi."
+    bars = [{"pace": p, "cls": "is-key"} for p in paces]
+    dist_mi, time_s = totals
+    return {"state": "ok", "verdict": "", "tone": "", "headline": text, "chart_title": "Mile splits",
+            "band_label": "", "others_label": "", "has_others": False, "callout": "", "note": note,
+            "stats": [_stat("Average pace", fmt(avg), "/mi"), _stat("Distance", f"{dist_mi:.1f}", "mi"),
+                      _stat("Time", _clock(time_s))],
+            **_chart(bars)}
+
+
+def _mile_chart(splits):
+    """A plain mile-splits chart to sit under an interval session's rep chart."""
+    if not splits:
+        return None
+    bars = [{"pace": s[0], "cls": "is-key"} for s in splits]
+    return {"title": "Mile splits", **_chart(bars)}
 
 
 def _stat(label, value, unit="", sub="", tone=""):
@@ -132,26 +165,41 @@ def _difference_text(kind, off, noun):
 
 
 def build_feedback(workout_type, low, high, mp_low, mp_high, splits, laps, planned_mi, planned_min):
-    """Return the card data, or a dict with state='no_detail'/'no_block'/'no_reps' and a message."""
+    """Return the card data (state='ok'), or state='no_detail' with a message when Strava gave us nothing to show.
+
+    Mile splits are always shown. With no target pace, or when the session's structure can't be
+    found (no tempo block, no laps for intervals), the card falls back to splits plus a note
+    instead of a verdict."""
     full_splits = _paced(splits, MIN_FULL_SPLIT_M)
+    lap_entries = _paced(laps, MIN_LAP_M) if laps and len(laps) >= 3 else []
+    if not full_splits and not lap_entries:
+        return {"state": "no_detail", "message": "Strava didn't return splits for this run, so we can't break it down."}
+
+    # Totals use every split (including a short final one) so distance matches the run.
+    totals = _totals(_paced(splits, 1)) if splits else _totals(lap_entries)
+    has_target = low is not None and high is not None
 
     if workout_type == "Intervals":
         # Reps can only be told apart from laps. Mile splits blur short reps and
         # their recoveries together, so without laps we say so rather than guess.
-        lap_entries = _paced(laps, MIN_LAP_M) if laps and len(laps) >= 3 else []
-        return _intervals(low, high, lap_entries, planned_mi)
-
-    if not full_splits:
+        if not has_target:
+            result = _splits_only(full_splits or lap_entries, totals, NO_TARGET_NOTE)
+        else:
+            result = _intervals(low, high, lap_entries, full_splits, totals)
+    elif not full_splits:
         return {"state": "no_detail", "message": "Strava didn't return mile splits for this run, so we can't break it down."}
+    elif not has_target:
+        result = _splits_only(full_splits, totals, NO_TARGET_NOTE)
+    elif workout_type == "Tempo":
+        result = _tempo(low, high, full_splits, totals)
+    elif workout_type == "Long Run" and mp_low and mp_high:
+        result = _long_with_marathon_pace(low, high, mp_low, mp_high, full_splits, totals)
+    else:
+        result = _easy(low, high, full_splits, totals)
 
-    # Totals use every split (including a short final one) so distance matches the run.
-    totals = _totals(_paced(splits, 1))
-
-    if workout_type == "Tempo":
-        return _tempo(low, high, full_splits, totals)
-    if workout_type == "Long Run" and mp_low and mp_high:
-        return _long_with_marathon_pace(low, high, mp_low, mp_high, full_splits, totals)
-    return _easy(low, high, full_splits, totals)
+    result.setdefault("note", "")
+    result.setdefault("mile_chart", None)
+    return result
 
 
 # ------------------------------------------------------------------ easy / plain long run
@@ -199,7 +247,7 @@ def _tempo(low, high, splits, totals):
     key = [s for s in splits if s[0] <= threshold]
     others = [s for s in splits if s[0] > threshold]
     if not key:
-        return {"state": "no_block", "message": "We couldn't find a tempo block in the mile splits - nothing was close to the target pace."}
+        return _splits_only(splits, totals, NO_BLOCK_NOTE)
 
     n = len(key)
     avg = _avg_pace([k for k in key])
@@ -246,11 +294,12 @@ def _tempo(low, high, splits, totals):
 
 # ------------------------------------------------------------------ intervals
 
-def _intervals(low, high, source, planned_mi):
+def _intervals(low, high, laps, splits, totals):
     threshold = high + KEY_MARGIN
-    reps = [e for e in source if e[0] <= threshold]
-    if len(reps) < 2 or len(reps) == len(source):
-        return {"state": "no_reps", "message": "We can't see individual reps in this run. Press lap at the start and end of each rep, or use a structured workout on your watch, to get a rep-by-rep breakdown."}
+    reps = [e for e in laps if e[0] <= threshold]
+    if len(reps) < 2 or len(reps) == len(laps):
+        # No usable laps (or no clear reps among them): show the mile splits and say why.
+        return _splits_only(splits or laps, totals, NO_REPS_NOTE)
 
     n = len(reps)
     avg = _avg_pace(reps)
@@ -276,7 +325,7 @@ def _intervals(low, high, source, planned_mi):
     ]
     return {"state": "ok", "verdict": chip, "tone": tone, "headline": text, "chart_title": "Rep pace",
             "band_label": f"Target {fmt(low)}–{fmt(high)}", "others_label": "", "has_others": False,
-            "stats": stats, "callout": callout, **_chart(bars, low, high)}
+            "stats": stats, "callout": callout, "mile_chart": _mile_chart(splits), **_chart(bars, low, high)}
 
 
 def _difference_short(kind, off):
