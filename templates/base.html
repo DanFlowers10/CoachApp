@@ -260,8 +260,20 @@
       var pulling = false;
       var ready = false;
 
+      // True when a downward drag from here should scroll, not refresh: inside an
+      // open full-screen overlay or bottom sheet (they scroll internally, so
+      // window.scrollY stays 0 however far down you are), or inside any element
+      // that's already scrolled down.
+      function shouldIgnorePull(target) {
+        if (document.querySelector('.page-overlay.is-open, .bottom-sheet-backdrop.is-open')) return true;
+        for (var el = target; el && el !== document.body && el !== document.documentElement; el = el.parentElement) {
+          if (el.scrollTop > 0) return true;
+        }
+        return false;
+      }
+
       document.addEventListener('touchstart', function (e) {
-        if (window.scrollY > 0) { startY = null; return; }
+        if (window.scrollY > 0 || shouldIgnorePull(e.target)) { startY = null; pulling = false; return; }
         startY = e.touches[0].clientY;
         pulling = true;
         ready = false;
