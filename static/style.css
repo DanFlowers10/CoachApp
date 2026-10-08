@@ -1077,10 +1077,10 @@ hr { border-color: var(--border); opacity: 1; }
 
 /* ---------- estimated race times card ---------- */
 .rt-card { border-radius: 22px; overflow: hidden; background: var(--surface); border: 1px solid var(--border); margin-bottom: 1rem; }
-.rt-head { display: flex; align-items: center; justify-content: space-between; padding: .8rem 1.1rem; color: #fff; background: var(--progress); }
-.rt-head-title { display: inline-flex; align-items: center; gap: .55rem; font-size: .95rem; font-weight: 800; }
-.rt-head-title i { font-size: 1.2rem; }
-.rt-info-btn { background: none; border: none; color: #fff; font-size: 1.3rem; line-height: 1; padding: 0; cursor: pointer; opacity: .9; }
+.rt-head { display: flex; align-items: center; justify-content: space-between; padding: .9rem 1.1rem .2rem; color: var(--text); }
+.rt-head-title { display: inline-flex; align-items: center; gap: .65rem; font-size: .95rem; font-weight: 800; }
+.rt-head-title i { width: 30px; height: 30px; border-radius: 9px; background: var(--progress); color: #fff; font-size: 1.1rem; display: inline-flex; align-items: center; justify-content: center; }
+.rt-info-btn { background: none; border: none; color: var(--text-faint); font-size: 1.3rem; line-height: 1; padding: 0; cursor: pointer; }
 .rt-info { display: none; padding: .8rem 1.1rem; font-size: .75rem; line-height: 1.5; color: var(--text-dim); background: var(--inverse-wash); border-bottom: 1px solid var(--border); }
 .rt-info.is-open { display: block; }
 .rt-marathon { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.1rem .4rem; }
