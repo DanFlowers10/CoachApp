@@ -50,7 +50,7 @@
               <div class="fw-bold small">Week {{ wk.index }}</div>
               <div class="small text-muted">{{ wk.start.strftime('%d %b') }} &ndash; {{ wk.end.strftime('%d %b') }}</div>
             </div>
-            <div class="small text-muted">{{ wk.done }}/{{ wk.total }} done</div>
+            <div class="small text-muted">{{ wk.sessions_done }}/{{ wk.sessions_total }} done</div>
           </a>
         {% endfor %}
       </div>
@@ -267,12 +267,12 @@
       </div>
     {% endif %}
 
-    {% set week_pct = (current_week.done / current_week.total) if current_week.total else 0 %}
+    {% set week_pct = (current_week.sessions_done / current_week.sessions_total) if current_week.sessions_total else 0 %}
     {% set ring_offset = 163.36 * (1 - week_pct) %}
     <div class="d-flex gap-2 mb-3">
       <button type="button" class="card-surface today-week-stat-card text-start" onclick="document.getElementById('week-overview-sheet').classList.add('is-open')">
         <div class="today-week-stat-label">This week</div>
-        <div class="today-week-stat-value">{{ current_week.done }}<span>/{{ current_week.total }}</span></div>
+        <div class="today-week-stat-value">{{ current_week.sessions_done }}<span>/{{ current_week.sessions_total }}</span></div>
         <div class="today-week-stat-sub">workouts done</div>
       </button>
       <button type="button" class="card-surface today-week-ring-card" onclick="document.getElementById('week-overview-sheet').classList.add('is-open')" aria-label="Week {{ current_week.index }} overview">
@@ -314,12 +314,12 @@
         </div>
         <div class="bottom-sheet-body">
           <div class="week-mini-bars mb-2">
-            {% for w in current_week.workouts %}
+            {% for w in current_week.workouts if w.workout_type != 'Rest' %}
               <div class="week-mini-bar {{ 'is-done' if w.completed else '' }}"></div>
             {% endfor %}
           </div>
           <div class="d-flex justify-content-between small text-muted mb-3">
-            <span>Workouts: <strong class="text-reset">{{ current_week.done }}/{{ current_week.total }}</strong></span>
+            <span>Workouts: <strong class="text-reset">{{ current_week.sessions_done }}/{{ current_week.sessions_total }}</strong></span>
             <span>Distance: <strong class="text-reset">{{ current_week.actual_mi or 0 }}/{{ current_week.planned_mi }}mi</strong></span>
           </div>
           {% for w in current_week.workouts %}
@@ -334,7 +334,11 @@
                 <div class="fw-bold small">{% if w.target_distance_km %}{{ w.target_distance_km }}mi {% endif %}{{ w.workout_type }}</div>
                 <div class="small text-muted">{{ w.date.strftime('%a %d %b') }}{% if w.target_duration_min %} &middot; {{ w.target_duration_min|duration }}{% endif %}</div>
               </div>
-              <div class="sheet-check {{ 'is-done' if w.completed else '' }}"></div>
+              {% if is_rest and not w.completed %}
+                <i class="ti ti-moon text-muted" title="Rest day"></i>
+              {% else %}
+                <div class="sheet-check {{ 'is-done' if w.completed else '' }}"></div>
+              {% endif %}
             </a>
           {% endfor %}
         </div>

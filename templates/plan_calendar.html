@@ -57,7 +57,8 @@
           {% set is_rest = w.workout_type == 'Rest' %}
           {% set icon = 'ti-flag' if is_race else ('ti-mountain' if is_long else ('ti-bolt' if (is_tempo or is_intervals) else ('ti-moon' if is_rest else 'ti-run'))) %}
           {% set icon_color = 'cal-icon-long' if is_long else ('cal-icon-tempo' if is_tempo else ('cal-icon-intervals' if is_intervals else ('cal-icon-rest' if is_rest else ('cal-icon-easy' if not is_race else '')))) %}
-          {% set status = 'done' if w.completed else ('today' if w.date == today else ('missed' if w.date < today else 'upcoming')) %}
+          {# A rest day can't be missed: it stays neutral rather than turning red once the day has passed. #}
+          {% set status = 'done' if w.completed else ('today' if w.date == today else ('rest' if is_rest else ('missed' if w.date < today else 'upcoming'))) %}
           <a class="cal-cell cal-status-{{ status }} {{ 'cal-race' if is_race else '' }}"
              href="{{ url_for('plan_detail', plan_id=plan.id) }}#workout-{{ w.id }}"
              title="{{ w.workout_type }}{% if w.target_distance_km %} - {{ w.target_distance_km }}mi{% endif %}{% if w.description %} - {{ w.description }}{% endif %}">

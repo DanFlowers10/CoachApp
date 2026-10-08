@@ -615,8 +615,13 @@ def _plan_weeks(workouts):
             "workouts": wk_workouts,
             "start": start + timedelta(days=idx * 7),
             "end": start + timedelta(days=idx * 7 + 6),
+            # done/total count every day including rest days - used for working out which week
+            # is "current". For anything an athlete reads, use sessions_*: rest days aren't
+            # something you complete, so counting them made a week read "3/7" with 3 runs left.
             "done": sum(1 for w in wk_workouts if w.completed),
             "total": len(wk_workouts),
+            "sessions_done": sum(1 for w in wk_workouts if w.completed and w.workout_type != "Rest"),
+            "sessions_total": sum(1 for w in wk_workouts if w.workout_type != "Rest"),
             "planned_mi": planned_mi,
             "actual_mi": actual_mi,
         })

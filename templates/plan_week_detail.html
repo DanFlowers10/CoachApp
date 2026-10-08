@@ -81,7 +81,7 @@
             <div class="fw-bold small">Week {{ w2.index }}</div>
             <div class="small text-muted">{{ w2.start.strftime('%d %b') }} &ndash; {{ w2.end.strftime('%d %b') }}</div>
           </div>
-          <div class="small text-muted">{{ w2.done }}/{{ w2.total }} done</div>
+          <div class="small text-muted">{{ w2.sessions_done }}/{{ w2.sessions_total }} done</div>
         </a>
       {% endfor %}
     </div>
