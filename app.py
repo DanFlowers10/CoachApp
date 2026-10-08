@@ -689,6 +689,53 @@ def _done_week_indices(weeks):
     return done
 
 
+def _steps_summary(rows):
+    """One line for the calendar's day card, e.g. '1.5 mi Warm-up · 8 × (600 m Rep, 400 m Recovery) · 1 mi Cool-down'."""
+    parts = []
+    for r in rows:
+        if r["type"] == "repeat":
+            inner = ", ".join(f"{s['amount']} {s['title']}" for s in r["steps"])
+            parts.append(f"{r['count']} × ({inner})")
+        else:
+            parts.append(f"{r['amount']} {r['title']}")
+    return " · ".join(parts)
+
+
+def _calendar_day_info(w, today):
+    """What the calendar's day card shows for one planned day."""
+    is_rest = w.workout_type == "Rest"
+    if is_rest:
+        status = "rest"
+    elif w.completed:
+        status = "done"
+    elif w.date == today:
+        status = "today"
+    elif w.workout_type == "Race":
+        status = "race"
+    elif w.date < today:
+        status = "missed"
+    else:
+        status = "upcoming"
+
+    pace = _pace_display(w) if not is_rest and w.workout_type != "Race" else None
+    view = _steps_view(w) if w.steps_text else None
+    return {
+        "id": w.id,
+        "type": w.workout_type,
+        "status": status,
+        "label": f"{w.date.strftime('%A')} {w.date.day} {w.date.strftime('%B')}",
+        "dist": w.target_distance_km,
+        "duration": format_duration(w.target_duration_min) if w.target_duration_min else None,
+        "pace": pace["range"] if pace else None,
+        "mp": pace["mp_range"] if pace else None,
+        "steps": _steps_summary(view["rows"]) if view else None,
+        "notes": w.description or None,
+        "actual": w.actual_distance_km if w.completed else None,
+        "feel": w.feel,
+        "url": url_for("workout_detail", workout_id=w.id),
+    }
+
+
 def _plan_months(workouts):
     """One Mon-Sun grid per calendar month the plan spans, using stdlib calendar for correct padding."""
     months = []
@@ -712,7 +759,18 @@ def _plan_months(workouts):
             wk_workouts = [c["workout"] for c in days if c["workout"] is not None]
             planned_mi, actual_mi = _week_mileage(wk_workouts)
             month_weeks.append({"days": days, "planned_mi": planned_mi, "actual_mi": actual_mi})
-        months.append({"label": date(y, m, 1).strftime("%B %Y"), "weeks": month_weeks})
+        month_workouts = [w for w in workouts if w.date.year == y and w.date.month == m]
+        sessions = [w for w in month_workouts if w.workout_type != "Rest"]
+        planned_mi, actual_mi = _week_mileage(month_workouts)
+        months.append({
+            "key": f"{y}-{m:02d}",
+            "label": date(y, m, 1).strftime("%B %Y"),
+            "weeks": month_weeks,
+            "sessions_total": len(sessions),
+            "sessions_done": sum(1 for w in sessions if w.completed),
+            "planned_mi": planned_mi,
+            "actual_mi": actual_mi or 0,
+        })
         m += 1
         if m > 12:
             m = 1
@@ -942,8 +1000,16 @@ def plan_calendar(plan_id):
         _sync_strava_completions(workouts, current_user.strava_token)
 
     months = _plan_months(workouts)
+    day_info = {w.date.isoformat(): _calendar_day_info(w, today) for w in workouts}
 
-    return render_template("plan_calendar.html", plan=plan, months=months, today=today)
+    # Open on the month that holds today, or the nearest end of the plan if today is outside it.
+    start_key = f"{today.year}-{today.month:02d}"
+    keys = [m["key"] for m in months]
+    if keys and start_key not in keys:
+        start_key = keys[0] if start_key < keys[0] else keys[-1]
+
+    return render_template("plan_calendar.html", plan=plan, months=months, today=today,
+                           day_info=day_info, start_key=start_key)
 
 
 @app.route("/plan/<int:plan_id>/workouts/new", methods=["POST"])
@@ -1653,31 +1719,42 @@ def strava_activities():
     return render_template("strava_activities.html", activities=activities)
 
 
+METRES_PER_MILE = 1609.34
+EVEREST_FT = 29032
+FILM_HOURS = 1.9
+STATS_CACHE_MINUTES = 15
+
+
+def _run_date(r):
+    return date.fromisoformat(r["start_date_local"][:10])
+
+
 def _build_strava_stats(runs):
-    """Fun/motivational rollup of a client's recent runs - streaks, weekly trend, personal bests."""
+    """Fun rollup of a client's recent runs: week-on-week change, streaks, bests, climbing."""
     if not runs:
         return None
 
-    total_mi = sum(r["distance"] for r in runs) / 1609.34
+    total_m = sum(r["distance"] for r in runs)
+    total_mi = total_m / METRES_PER_MILE
     total_sec = sum(r["moving_time"] for r in runs)
-    avg_pace = (total_sec / 60) / total_mi if total_mi else None  # min per mile
-    longest_mi = max(r["distance"] for r in runs) / 1609.34
+    longest = max(runs, key=lambda r: r["distance"])
 
-    run_dates_set = {date.fromisoformat(r["start_date_local"][:10]) for r in runs}
+    run_dates_set = {_run_date(r) for r in runs}
     run_dates = sorted(run_dates_set)
 
     today = date.today()
     this_monday = today - timedelta(days=today.weekday())
     last_monday = this_monday - timedelta(days=7)
 
-    this_week_mi = sum(
-        r["distance"] for r in runs
-        if date.fromisoformat(r["start_date_local"][:10]) >= this_monday
-    ) / 1609.34
-    last_week_mi = sum(
-        r["distance"] for r in runs
-        if last_monday <= date.fromisoformat(r["start_date_local"][:10]) < this_monday
-    ) / 1609.34
+    def miles_between(start, end):
+        return sum(r["distance"] for r in runs if start <= _run_date(r) <= end) / METRES_PER_MILE
+
+    this_week_mi = miles_between(this_monday, today)
+    # Compare with the same point last week (Mon..today's weekday), not the whole of it - otherwise
+    # every Tuesday looks like a collapse next to last week's finished total.
+    last_week_mi = miles_between(last_monday, last_monday + timedelta(days=today.weekday()))
+    delta_mi = round(this_week_mi, 1) - round(last_week_mi, 1)
+    delta_pct = round(delta_mi / last_week_mi * 100) if last_week_mi else None
 
     streak_days = 0
     if run_dates and (today - run_dates[-1]).days <= 1:
@@ -1686,34 +1763,161 @@ def _build_strava_stats(runs):
             streak_days += 1
             cursor -= timedelta(days=1)
 
+    best_streak = run_len = 0
+    prev = None
+    for d in run_dates:
+        run_len = run_len + 1 if prev and (d - prev).days == 1 else 1
+        best_streak = max(best_streak, run_len)
+        prev = d
+
     weekly_bars = []
     for i in range(7, -1, -1):
         wk_start = this_monday - timedelta(days=7 * i)
-        wk_end = wk_start + timedelta(days=6)
-        mi = sum(
-            r["distance"] for r in runs
-            if wk_start <= date.fromisoformat(r["start_date_local"][:10]) <= wk_end
-        ) / 1609.34
-        weekly_bars.append({"label": wk_start.strftime("%d %b"), "mi": round(mi, 1)})
+        mi = miles_between(wk_start, wk_start + timedelta(days=6))
+        weekly_bars.append({"label": "This wk" if i == 0 else wk_start.strftime("%d %b"), "mi": round(mi, 1)})
     max_weekly_mi = max((b["mi"] for b in weekly_bars), default=0)
+    # Weeks with no running at all (before the athlete started, say) shouldn't drag the average down.
+    active_weeks = [b["mi"] for b in weekly_bars[:-1] if b["mi"] > 0]
+    avg_weekly_mi = round(sum(active_weeks) / len(active_weeks), 1) if active_weeks else 0
+    ups = sum(1 for a, b in zip(weekly_bars[-7:-1], weekly_bars[-6:]) if b["mi"] > a["mi"])
 
-    avg_pace_str = None
-    if avg_pace:
-        avg_pace_str = f"{int(avg_pace)}:{round((avg_pace % 1) * 60):02d}"
+    climb_ft = sum(r.get("total_elevation_gain") or 0 for r in runs) * 3.28084
 
+    # Quickest run, ignoring anything under 2 miles (a 400 m dash isn't a pace to brag about).
+    pace_runs = [r for r in runs if r["distance"] >= 2 * METRES_PER_MILE and r["moving_time"] > 0]
+    fastest = min(pace_runs, key=lambda r: r["moving_time"] / r["distance"]) if pace_runs else None
+    fastest_pace = None
+    if fastest:
+        sec_per_mi = round(fastest["moving_time"] / (fastest["distance"] / METRES_PER_MILE))
+        fastest_pace = f"{sec_per_mi // 60}:{sec_per_mi % 60:02d}"
+
+    hours = sorted(int(r["start_date_local"][11:13]) for r in runs if len(r.get("start_date_local", "")) >= 13)
+    usual_hour = hours[len(hours) // 2] if hours else None
+
+    long_secs = longest["moving_time"]
     return {
         "total_runs": len(runs),
         "total_mi": round(total_mi, 1),
         "total_hours": round(total_sec / 3600, 1),
-        "avg_pace_str": avg_pace_str,
-        "longest_mi": round(longest_mi, 1),
+        "longest_mi": round(longest["distance"] / METRES_PER_MILE, 1),
+        "longest_label": _run_date(longest).strftime("%a %d %b") + f", {long_secs // 3600}h {long_secs % 3600 // 60:02d}m",
         "this_week_mi": round(this_week_mi, 1),
         "last_week_mi": round(last_week_mi, 1),
-        "week_trend_mi": round(this_week_mi - last_week_mi, 1),
+        "delta_mi": round(delta_mi, 1),
+        "delta_pct": delta_pct,
         "streak_days": streak_days,
+        "best_streak": best_streak,
         "weekly_bars": weekly_bars,
         "max_weekly_mi": max_weekly_mi,
+        "avg_weekly_mi": avg_weekly_mi,
+        "weeks_up": ups,
         "marathons_equivalent": round(total_mi / 26.2, 1),
+        "climb_ft": round(climb_ft),
+        "everest_pct": round(climb_ft / EVEREST_FT * 100),
+        "fastest_pace": fastest_pace,
+        "fastest_label": _run_date(fastest).strftime("%a %d %b") if fastest else None,
+        "films": round(total_sec / 3600 / FILM_HOURS),
+        "usual_start": (f"{usual_hour % 12 or 12}{'am' if usual_hour < 12 else 'pm'}") if usual_hour is not None else None,
+    }
+
+
+def _cached_strava_stats(token_row):
+    """(stats, error). Uses the saved numbers while they're fresh so the page doesn't wait on Strava."""
+    now = datetime.utcnow()
+    if token_row.stats_json and token_row.stats_at and now - token_row.stats_at < timedelta(minutes=STATS_CACHE_MINUTES):
+        try:
+            return json.loads(token_row.stats_json), None
+        except ValueError:
+            pass
+    try:
+        access_token = strava.get_valid_access_token(token_row, STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, db)
+        since_epoch = int(datetime.combine(date.today() - timedelta(days=90), datetime.min.time()).timestamp())
+        activities = strava.fetch_activities_since(access_token, since_epoch)
+        runs = [a for a in activities if a.get("type") in ("Run", "TrailRun")]
+        stats = _build_strava_stats(runs)
+        token_row.stats_json = json.dumps(stats)
+        token_row.stats_at = now
+        db.session.commit()
+        return stats, None
+    except Exception:
+        db.session.rollback()
+        # A slightly old copy beats an error message.
+        if token_row.stats_json:
+            try:
+                return json.loads(token_row.stats_json), None
+            except ValueError:
+                pass
+        return None, "Couldn't load your Strava stats right now."
+
+
+def _build_plan_stats(plan, today):
+    """Stats that come from the training plan itself, so they work without Strava."""
+    workouts = plan.workouts
+    sessions = [w for w in workouts if w.workout_type != "Rest"]
+    if not sessions:
+        return None
+
+    def miles(w):
+        return (w.actual_distance_km if w.completed and w.actual_distance_km else w.target_distance_km) or 0
+
+    done = [w for w in sessions if w.completed]
+    due = [w for w in sessions if w.date < today or w.completed]
+    past = [w for w in sessions if w.date < today]
+    planned_to_date = sum(w.target_distance_km or 0 for w in due)
+    actual_to_date = sum(miles(w) for w in due if w.completed)
+
+    weeks = _plan_weeks(workouts)
+    current_index = _current_week_index(weeks, today)
+    race = next((w for w in workouts if w.workout_type == "Race"), None)
+    days_to_race = (race.date - today).days if race and race.date >= today else None
+
+    long_runs = [w for w in sessions if w.workout_type == "Long Run"]
+    peak_long = max((w.target_distance_km or 0 for w in long_runs), default=0)
+    done_long = [miles(w) for w in long_runs if w.completed]
+    longest_so_far = max(done_long, default=0)
+
+    long_build = []
+    for wk in weeks:
+        wk_long = next((w for w in wk["workouts"] if w.workout_type == "Long Run"), None)
+        if wk_long:
+            long_build.append({
+                "label": f"W{wk['index']}",
+                "mi": round(miles(wk_long), 1),
+                "done": wk_long.completed,
+                "current": wk["index"] == current_index,
+            })
+
+    type_miles = {}
+    for w in done:
+        type_miles[w.workout_type] = type_miles.get(w.workout_type, 0) + miles(w)
+    mix_total = sum(type_miles.values())
+    mix = [
+        {"type": t, "mi": round(m, 1), "pct": round(m / mix_total * 100)}
+        for t, m in sorted(type_miles.items(), key=lambda kv: -kv[1])
+    ] if mix_total else []
+
+    return {
+        "plan_title": plan.title,
+        "race_date": race.date.strftime("%a %d %b") if race else None,
+        "days_to_race": days_to_race,
+        "week_index": current_index,
+        "week_total": len(weeks),
+        "sessions_done": len(done),
+        "sessions_total": len(sessions),
+        "pct_done": round(len(done) / len(sessions) * 100),
+        "delta_mi": round(actual_to_date - planned_to_date, 1),
+        "planned_to_date": round(planned_to_date, 1),
+        "actual_to_date": round(actual_to_date, 1),
+        "has_history": bool(due),
+        "longest_so_far": round(longest_so_far, 1),
+        "peak_long": round(peak_long, 1),
+        "consistency": round(sum(1 for w in past if w.completed) / len(past) * 100) if past else None,
+        "long_build": long_build,
+        "long_build_max": max((b["mi"] for b in long_build), default=0),
+        "felt_good": sum(1 for w in done if w.feel == "good"),
+        "felt_tough": sum(1 for w in done if w.feel == "tough"),
+        "mix": mix,
+        "total_done_mi": round(sum(miles(w) for w in done), 1),
     }
 
 
@@ -1721,23 +1925,26 @@ def _build_strava_stats(runs):
 @login_required
 @client_required
 def strava_overview():
+    plan = (
+        TrainingPlan.query.filter_by(client_id=current_user.id)
+        .order_by(TrainingPlan.created_at.desc())
+        .first()
+    )
+    if plan:
+        g.nav_plan_id = plan.id
+    plan_stats = _build_plan_stats(plan, date.today()) if plan else None
+
     token_row = current_user.strava_token
-    if token_row is None:
-        flash("Connect Strava first.", "error")
-        return redirect(url_for("index"))
+    stats, error = (None, None)
+    if token_row is not None:
+        stats, error = _cached_strava_stats(token_row)
 
-    stats = None
-    error = None
-    try:
-        access_token = strava.get_valid_access_token(token_row, STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, db)
-        since_epoch = int(datetime.combine(date.today() - timedelta(days=90), datetime.min.time()).timestamp())
-        activities = strava.fetch_activities_since(access_token, since_epoch)
-        runs = [a for a in activities if a.get("type") in ("Run", "TrailRun")]
-        stats = _build_strava_stats(runs)
-    except Exception:
-        error = "Couldn't load your Strava stats right now."
-
-    return render_template("strava_overview.html", stats=stats, error=error)
+    return render_template(
+        "strava_overview.html",
+        stats=stats, error=error, plan_stats=plan_stats,
+        strava_connected=token_row is not None,
+        start_tab="running" if token_row is not None else "plan",
+    )
 
 
 # ------------------------------------------------------------------- misc --
@@ -1761,10 +1968,11 @@ with app.app_context():
     inspector = sa_inspect(db.engine)
     if "strava_token" in inspector.get_table_names():
         existing_columns = {col["name"] for col in inspector.get_columns("strava_token")}
-        if "last_synced_at" not in existing_columns:
-            with db.engine.connect() as conn:
-                conn.execute(sa_text("ALTER TABLE strava_token ADD COLUMN last_synced_at TIMESTAMP"))
-                conn.commit()
+        for column_name, column_type in {"last_synced_at": "TIMESTAMP", "stats_json": "TEXT", "stats_at": "TIMESTAMP"}.items():
+            if column_name not in existing_columns:
+                with db.engine.connect() as conn:
+                    conn.execute(sa_text(f"ALTER TABLE strava_token ADD COLUMN {column_name} {column_type}"))
+                    conn.commit()
     if "workout" in inspector.get_table_names():
         existing_columns = {col["name"] for col in inspector.get_columns("workout")}
         if "swapped_at" not in existing_columns:

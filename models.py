@@ -112,3 +112,6 @@ class StravaToken(db.Model):
     expires_at = db.Column(db.Integer)  # unix timestamp
     athlete_id = db.Column(db.String(50))
     last_synced_at = db.Column(db.DateTime)  # throttles the auto-sync on page load
+    # The Stats page's rolled-up numbers, so it doesn't call Strava on every view.
+    stats_json = db.Column(db.Text)
+    stats_at = db.Column(db.DateTime)

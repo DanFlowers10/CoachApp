@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}My Strava Stats{% endblock %}
+{% block title %}My Stats{% endblock %}
 
 {% block header %}
 <nav class="app-nav mb-4">
@@ -15,88 +15,249 @@
 {% endblock %}
 
 {% block content %}
-<a href="{{ url_for('client_dashboard') }}" class="small">&larr; Today</a>
-<h2 class="mt-2 mb-1"><i class="ti ti-flame" style="color: var(--accent);"></i> Your running, last 90 days</h2>
-<p class="text-muted mb-4">Pulled live from Strava every time you check.</p>
+<div class="sv" id="sv" data-start="{{ start_tab }}">
 
-{% if error %}
-  <div class="connect-prompt mb-3">{{ error }}</div>
-{% endif %}
+  <div class="sv-toggle" role="tablist">
+    <button type="button" class="sv-toggle-btn" data-tab="running" role="tab">Running</button>
+    <button type="button" class="sv-toggle-btn" data-tab="plan" role="tab">Training plan</button>
+  </div>
 
-{% if not stats %}
-  <div class="auth-card text-center" style="max-width: 480px;">
-    <div style="font-size: 2.5rem; color: var(--text-faint);"><i class="ti ti-shoe"></i></div>
-    <h5 class="mt-2">No runs in the last 90 days yet</h5>
-    <p class="text-muted mb-0">Get a run logged on Strava and this page comes alive.</p>
-  </div>
-{% else %}
+  {# ---------------------------------------------------------------- running #}
+  <div class="sv-pane" data-pane="running" hidden>
+    {% if error %}
+      <div class="connect-prompt mb-3">{{ error }}</div>
+    {% endif %}
 
-<div class="streak-banner mb-4">
-  <div class="streak-flame"><i class="ti {{ 'ti-flame' if stats.streak_days >= 3 else 'ti-shoe' }}"></i></div>
-  <div>
-    <div class="streak-days">{{ stats.streak_days }}-day streak</div>
-    <div class="streak-sub">
-      {% if stats.streak_days == 0 %}Get out there today to start one!
-      {% elif stats.streak_days < 3 %}Keep it going!
-      {% elif stats.streak_days < 7 %}You're on fire!
-      {% else %}Unstoppable. Seriously impressive.{% endif %}
-    </div>
-  </div>
-</div>
-
-<div class="stat-row">
-  <div class="stat-tile card-surface">
-    <div class="stat-label">Total distance</div>
-    <div class="stat-value accent">{{ stats.total_mi }}<span class="text-muted" style="font-size:1rem;"> mi</span></div>
-  </div>
-  <div class="stat-tile card-surface">
-    <div class="stat-label">Runs logged</div>
-    <div class="stat-value">{{ stats.total_runs }}</div>
-  </div>
-  <div class="stat-tile card-surface">
-    <div class="stat-label">Longest run</div>
-    <div class="stat-value">{{ stats.longest_mi }}<span class="text-muted" style="font-size:1rem;"> mi</span></div>
-  </div>
-  <div class="stat-tile card-surface">
-    <div class="stat-label">Avg pace</div>
-    <div class="stat-value">{% if stats.avg_pace_str %}{{ stats.avg_pace_str }}<span class="text-muted" style="font-size:1rem;">/mi</span>{% else %}&mdash;{% endif %}</div>
-  </div>
-</div>
-
-<div class="card-surface mb-4" style="border-radius: var(--radius); padding: 1.25rem;">
-  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-    <h5 class="mb-0">Last 8 weeks</h5>
-    <span class="week-trend {{ 'up' if stats.week_trend_mi >= 0 else 'down' }}">
-      {{ stats.this_week_mi }} mi this week
-      {% if stats.last_week_mi %}
-        ({{ '+' if stats.week_trend_mi >= 0 else '' }}{{ stats.week_trend_mi }} mi vs last week)
-      {% endif %}
-    </span>
-  </div>
-  <div class="overview-bars">
-    {% for bar in stats.weekly_bars %}
-      <div class="overview-bar-group" title="{{ bar.label }}: {{ bar.mi }} mi">
-        <div class="overview-bar-stack">
-          <div class="overview-bar" style="height: {{ ((bar.mi / stats.max_weekly_mi * 100) if stats.max_weekly_mi else 0)|round(0) }}%;"></div>
-        </div>
-        <div class="overview-bar-label">{{ bar.label }}</div>
+    {% if not strava_connected %}
+      <div class="sv-empty">
+        <div class="sv-empty-icon"><i class="ti ti-brand-strava"></i></div>
+        <h5>Connect Strava to see your running stats</h5>
+        <p class="text-muted">Weekly mileage, streaks, climbing and more, pulled from your runs.</p>
+        <a href="{{ url_for('strava_connect') }}" class="btn btn-accent">Connect Strava</a>
       </div>
-    {% endfor %}
-  </div>
-</div>
-
-<div class="fun-fact-card mb-4">
-  <div style="font-size: 1.6rem;">🏅</div>
-  <div>
-    {% if stats.marathons_equivalent >= 1 %}
-      That's <strong>{{ stats.marathons_equivalent }} marathons'</strong> worth of running in the last 90 days.
+    {% elif not stats %}
+      <div class="sv-empty">
+        <div class="sv-empty-icon"><i class="ti ti-shoe"></i></div>
+        <h5>No runs in the last 90 days yet</h5>
+        <p class="text-muted mb-0">Get a run logged on Strava and this page comes alive.</p>
+      </div>
     {% else %}
-      Every mile counts &mdash; keep stacking them up.
+      {% set up = stats.delta_mi >= 0 %}
+      <div class="sv-hero">
+        <div class="sv-hero-label">This week</div>
+        <div class="sv-hero-value">{{ stats.this_week_mi }}<span> mi</span></div>
+        {% if stats.last_week_mi %}
+          <div class="sv-delta {{ 'is-up' if up else 'is-down' }}">
+            <i class="ti {{ 'ti-arrow-up' if up else 'ti-arrow-down' }}"></i>
+            <strong>{{ '+' if up else '' }}{{ stats.delta_mi }} mi{% if stats.delta_pct is not none %} ({{ '+' if up else '' }}{{ stats.delta_pct }}%){% endif %}</strong>
+            <span>vs this time last week ({{ stats.last_week_mi }} mi)</span>
+          </div>
+        {% else %}
+          <div class="sv-delta"><span>No runs at this point last week to compare with</span></div>
+        {% endif %}
+      </div>
+
+      <div class="sv-card">
+        <div class="sv-card-head">
+          <h5>Last 8 weeks</h5>
+          {% if stats.weeks_up %}<span class="sv-card-note">Up {{ stats.weeks_up }} of the last 7 weeks</span>{% endif %}
+        </div>
+        <div class="sv-bars">
+          {% for bar in stats.weekly_bars %}
+            <div class="sv-bar-col" title="{{ bar.label }}: {{ bar.mi }} mi">
+              <span class="sv-bar-mi {{ 'is-current' if loop.last else '' }}">{{ bar.mi|round(0)|int }}</span>
+              <div class="sv-bar {{ 'is-current' if loop.last else '' }}" style="height: {{ [((bar.mi / stats.max_weekly_mi * 84) if stats.max_weekly_mi else 0)|round(0), 4]|max }}px;"></div>
+            </div>
+          {% endfor %}
+        </div>
+        <div class="sv-bar-labels">
+          {% for bar in stats.weekly_bars %}<span>{{ bar.label|replace(' ', ' ')|safe }}</span>{% endfor %}
+        </div>
+        <div class="sv-chips">
+          <span class="sv-chip">Biggest week <b>{{ stats.max_weekly_mi }} mi</b></span>
+          {% if stats.avg_weekly_mi %}<span class="sv-chip">Weekly average <b>{{ stats.avg_weekly_mi }} mi</b></span>{% endif %}
+        </div>
+      </div>
+
+      <div class="sv-streak">
+        <div class="sv-streak-icon"><i class="ti {{ 'ti-flame' if stats.streak_days >= 3 else 'ti-shoe' }}"></i></div>
+        <div>
+          <div class="sv-streak-days">{{ stats.streak_days }}-day streak</div>
+          <div class="sv-streak-sub">
+            {% if stats.streak_days == 0 %}Get out there today to start one. Best so far: {{ stats.best_streak }} days.
+            {% elif stats.streak_days >= stats.best_streak %}That's your longest in the last 90 days.
+            {% else %}Longest in the last 90 days: {{ stats.best_streak }} days.{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="sv-section-title">Fun facts &middot; last 90 days</div>
+      <div class="sv-facts">
+        <div class="sv-fact">
+          <div class="sv-fact-icon is-purple"><i class="ti ti-run"></i></div>
+          <div class="sv-fact-value">{{ stats.total_mi }} mi</div>
+          <div class="sv-fact-label">Total distance</div>
+          <div class="sv-fact-sub">{% if stats.marathons_equivalent >= 1 %}That is {{ stats.marathons_equivalent }} marathons{% else %}{{ stats.total_runs }} runs so far{% endif %}</div>
+        </div>
+        <div class="sv-fact">
+          <div class="sv-fact-icon is-blue"><i class="ti ti-mountain"></i></div>
+          <div class="sv-fact-value">{{ '{:,}'.format(stats.climb_ft) }} ft</div>
+          <div class="sv-fact-label">Total climbing</div>
+          <div class="sv-fact-sub">{% if stats.everest_pct >= 1 %}{{ stats.everest_pct }}% of Everest{% else %}Mostly flat so far{% endif %}</div>
+        </div>
+        {% if stats.fastest_pace %}
+        <div class="sv-fact">
+          <div class="sv-fact-icon is-pink"><i class="ti ti-bolt"></i></div>
+          <div class="sv-fact-value">{{ stats.fastest_pace }}<small>/mi</small></div>
+          <div class="sv-fact-label">Quickest run</div>
+          <div class="sv-fact-sub">{{ stats.fastest_label }} (runs of 2+ mi)</div>
+        </div>
+        {% endif %}
+        <div class="sv-fact">
+          <div class="sv-fact-icon is-green"><i class="ti ti-ruler-2"></i></div>
+          <div class="sv-fact-value">{{ stats.longest_mi }} mi</div>
+          <div class="sv-fact-label">Longest run</div>
+          <div class="sv-fact-sub">{{ stats.longest_label }}</div>
+        </div>
+        <div class="sv-fact">
+          <div class="sv-fact-icon is-amber"><i class="ti ti-clock"></i></div>
+          <div class="sv-fact-value">{{ stats.total_hours|round(0)|int }} h</div>
+          <div class="sv-fact-label">Time on your feet</div>
+          <div class="sv-fact-sub">{% if stats.films >= 2 %}About {{ stats.films }} films back to back{% else %}Every hour counts{% endif %}</div>
+        </div>
+        {% if stats.usual_start %}
+        <div class="sv-fact">
+          <div class="sv-fact-icon is-coral"><i class="ti ti-sunrise"></i></div>
+          <div class="sv-fact-value">{{ stats.usual_start }}</div>
+          <div class="sv-fact-label">Usual start time</div>
+          <div class="sv-fact-sub">Your typical run start</div>
+        </div>
+        {% endif %}
+      </div>
+
+      <a href="{{ url_for('strava_activities') }}" class="btn btn-outline-success btn-sm mt-3">View raw activity list &rarr;</a>
+    {% endif %}
+  </div>
+
+  {# ------------------------------------------------------------ training plan #}
+  <div class="sv-pane" data-pane="plan" hidden>
+    {% if not plan_stats %}
+      <div class="sv-empty">
+        <div class="sv-empty-icon"><i class="ti ti-list-check"></i></div>
+        <h5>No plan stats yet</h5>
+        <p class="text-muted mb-0">Once your coach adds sessions to your plan, your progress shows up here.</p>
+      </div>
+    {% else %}
+      {% set p = plan_stats %}
+      <div class="sv-hero sv-hero-race">
+        {% if p.days_to_race is not none %}
+          <div class="sv-hero-label">{{ p.plan_title }}{% if p.race_date %} &middot; {{ p.race_date }}{% endif %}</div>
+          <div class="sv-hero-value">{{ p.days_to_race }}<span> {{ 'day' if p.days_to_race == 1 else 'days' }} to go</span></div>
+        {% else %}
+          <div class="sv-hero-label">{{ p.plan_title }}</div>
+          <div class="sv-hero-value">{{ p.pct_done }}%<span> complete</span></div>
+        {% endif %}
+        <div class="sv-hero-track"><div class="sv-hero-fill" style="width: {{ p.pct_done }}%;"></div></div>
+        <div class="sv-hero-foot">
+          <span>{% if p.week_index %}Week {{ p.week_index }} of {{ p.week_total }}{% endif %}</span>
+          <span>{{ p.sessions_done }} of {{ p.sessions_total }} sessions</span>
+        </div>
+      </div>
+
+      <div class="sv-tiles">
+        <div class="sv-tile">
+          <div class="sv-tile-title">Plan complete</div>
+          <div class="sv-tile-value">{{ p.sessions_done }} / {{ p.sessions_total }}</div>
+          <div class="sv-tile-sub">{{ p.pct_done }}% of sessions done</div>
+        </div>
+        <div class="sv-tile">
+          <div class="sv-tile-title">Miles vs plan</div>
+          {% if p.has_history %}
+            <div class="sv-tile-value">{{ '+' if p.delta_mi >= 0 else '' }}{{ p.delta_mi }} mi</div>
+            <div class="sv-tile-sub {{ 'is-good' if p.delta_mi >= 0 else '' }}">{{ p.actual_to_date }} of {{ p.planned_to_date }} planned so far</div>
+          {% else %}
+            <div class="sv-tile-value">&mdash;</div>
+            <div class="sv-tile-sub">Shows once you start</div>
+          {% endif %}
+        </div>
+        <div class="sv-tile">
+          <div class="sv-tile-title">Longest run</div>
+          <div class="sv-tile-value">{{ p.longest_so_far }} mi</div>
+          <div class="sv-tile-sub">{% if p.peak_long and p.longest_so_far < p.peak_long %}{{ (p.peak_long - p.longest_so_far)|round(1) }} mi to the {{ p.peak_long|round(0)|int }} mi peak{% elif p.peak_long %}Peak long run reached{% else %}No long runs planned{% endif %}</div>
+        </div>
+        <div class="sv-tile">
+          <div class="sv-tile-title">Consistency</div>
+          {% if p.consistency is not none %}
+            <div class="sv-tile-value">{{ p.consistency }}%</div>
+            <div class="sv-tile-sub {{ 'is-good' if p.consistency >= 85 else '' }}">Of past sessions done</div>
+          {% else %}
+            <div class="sv-tile-value">&mdash;</div>
+            <div class="sv-tile-sub">Shows once you start</div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if p.long_build|length > 1 %}
+      <div class="sv-card">
+        <h5>Long run build-up</h5>
+        <div class="sv-card-sub">{% if p.peak_long %}Climbing to a {{ p.peak_long|round(0)|int }} mi peak{% endif %}</div>
+        <div class="sv-bars sv-bars-short">
+          {% for b in p.long_build %}
+            <div class="sv-bar-col">
+              <span class="sv-bar-mi {{ 'is-current' if b.current else '' }}">{{ b.mi|round(0)|int }}</span>
+              <div class="sv-bar sv-bar-blue {{ 'is-done' if b.done else '' }} {{ 'is-current' if b.current else '' }}" style="height: {{ [((b.mi / p.long_build_max * 70) if p.long_build_max else 0)|round(0), 4]|max }}px;"></div>
+            </div>
+          {% endfor %}
+        </div>
+        <div class="sv-bar-labels">{% for b in p.long_build %}<span>{{ b.label }}</span>{% endfor %}</div>
+      </div>
+      {% endif %}
+
+      {% if p.mix %}
+      <div class="sv-card">
+        <h5>Where your miles went</h5>
+        <div class="sv-card-sub">{{ p.total_done_mi }} mi across completed sessions</div>
+        <div class="sv-mix-bar">
+          {% for m in p.mix %}<div class="sv-mix-seg sv-mix-{{ m.type|lower|replace(' ', '-') }}" style="flex: {{ m.mi }};"></div>{% endfor %}
+        </div>
+        <div class="sv-mix-list">
+          {% for m in p.mix %}
+            <div class="sv-mix-row"><i class="sv-mix-dot sv-mix-{{ m.type|lower|replace(' ', '-') }}"></i><span>{{ m.type }}</span><strong>{{ m.mi }} mi</strong></div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if p.felt_good or p.felt_tough %}
+      <div class="sv-card">
+        <h5>How it felt</h5>
+        <div class="sv-felt">
+          <div class="sv-felt-box is-good"><div class="sv-felt-n">{{ p.felt_good }}</div><div>Felt good</div></div>
+          <div class="sv-felt-box is-tough"><div class="sv-felt-n">{{ p.felt_tough }}</div><div>Felt tough</div></div>
+        </div>
+      </div>
+      {% endif %}
     {% endif %}
   </div>
 </div>
 
-<a href="{{ url_for('strava_activities') }}" class="btn btn-outline-success btn-sm">View raw activity list &rarr;</a>
-
-{% endif %}
+<script>
+(function () {
+  var root = document.getElementById('sv');
+  if (!root) return;
+  var buttons = root.querySelectorAll('.sv-toggle-btn');
+  var panes = root.querySelectorAll('.sv-pane');
+  function show(tab) {
+    Array.prototype.forEach.call(buttons, function (b) { b.classList.toggle('is-on', b.getAttribute('data-tab') === tab); });
+    Array.prototype.forEach.call(panes, function (p) { p.hidden = p.getAttribute('data-pane') !== tab; });
+    try { sessionStorage.setItem('stats-tab', tab); } catch (e) {}
+  }
+  var start = root.getAttribute('data-start');
+  try { start = sessionStorage.getItem('stats-tab') || start; } catch (e) {}
+  show(start);
+  Array.prototype.forEach.call(buttons, function (b) {
+    b.addEventListener('click', function () { show(b.getAttribute('data-tab')); });
+  });
+})();
+</script>
 {% endblock %}
