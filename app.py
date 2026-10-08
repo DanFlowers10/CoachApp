@@ -272,6 +272,22 @@ def client_detail(client_id):
     return render_template("client_detail.html", client=client, plans=plans)
 
 
+@app.route("/coach/clients/<int:client_id>/reset-password", methods=["POST"])
+@login_required
+@coach_required
+def reset_client_password(client_id):
+    # Scoped to this coach's own athletes, so one coach can never reset another's.
+    client = User.query.filter_by(id=client_id, coach_id=current_user.id).first_or_404()
+    new_password = request.form.get("new_password", "")
+    if len(new_password) < 6:
+        flash("The temporary password must be at least 6 characters.", "error")
+    else:
+        client.password_hash = generate_password_hash(new_password)
+        db.session.commit()
+        flash(f"Password reset for {client.name}. Give them the new temporary password - they can change it from their account menu.", "success")
+    return redirect(url_for("client_detail", client_id=client.id))
+
+
 @app.route("/coach/clients/<int:client_id>/plans/new", methods=["GET", "POST"])
 @login_required
 @coach_required
