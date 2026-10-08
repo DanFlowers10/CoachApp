@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import calendar as cal_module
 from datetime import datetime, date, timedelta
 
@@ -14,6 +15,7 @@ from sqlalchemy import inspect as sa_inspect, text as sa_text
 from models import db, User, TrainingPlan, Workout, StravaToken
 import strava
 import pacing
+import feedback
 
 load_dotenv()
 
@@ -348,6 +350,8 @@ def duplicate_plan(plan_id):
                 description=w.description,
                 pace_low_sec=w.pace_low_sec,
                 pace_high_sec=w.pace_high_sec,
+                mp_low_sec=w.mp_low_sec,
+                mp_high_sec=w.mp_high_sec,
             ))
         db.session.commit()
         flash(f'Duplicated "{plan.title}" to {target.name}.', "success")
@@ -377,6 +381,87 @@ def _strava_sync_due(user):
         return False
     last = user.strava_token.last_synced_at
     return not last or datetime.utcnow() - last >= STRAVA_SYNC_THROTTLE
+
+
+# ---------------------------------------------------------- post-run feedback --
+
+SPLITS_RETRY = timedelta(hours=6)  # after a failed Strava fetch, wait this long before asking again
+FEEDBACK_COLORS = {"Easy Run": "#3ecf8e", "Tempo": "#e968c7", "Intervals": "#9a8cf9", "Long Run": "#5b9cf6"}
+FEEL_VALUES = ("good", "tough")
+FEEL_REASONS = ("Paces too tough", "Felt too long", "Not feeling 100%")
+
+
+def _compact_splits(activity):
+    """Just what the feedback card needs from a Strava activity: per-mile splits and laps."""
+    def pick(items):
+        return [
+            {"d": it.get("distance"), "t": it.get("moving_time") or it.get("elapsed_time"), "hr": it.get("average_heartrate")}
+            for it in (items or [])
+        ]
+    return {"splits": pick(activity.get("splits_standard")), "laps": pick(activity.get("laps"))}
+
+
+def _load_splits(workout, athlete):
+    """The matched Strava run's splits/laps - from the stored copy, else fetched once and saved.
+    Returns None if they can't be had (the card then shows a calm 'try again later' note)."""
+    if workout.splits_json:
+        try:
+            stored = json.loads(workout.splits_json)
+        except ValueError:
+            stored = None
+        if stored and not stored.get("unavailable"):
+            return stored
+        if stored and stored.get("unavailable"):
+            try:
+                failed_at = datetime.fromisoformat(stored["at"])
+            except (KeyError, ValueError):
+                failed_at = None
+            if failed_at and datetime.utcnow() - failed_at < SPLITS_RETRY:
+                return None
+
+    token = athlete.strava_token
+    if token is None:
+        return None
+    try:
+        access_token = strava.get_valid_access_token(token, STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, db)
+        activity = strava.fetch_activity(access_token, workout.strava_activity_id)
+    except Exception:
+        workout.splits_json = json.dumps({"unavailable": True, "at": datetime.utcnow().isoformat()})
+        db.session.commit()
+        return None
+
+    data = _compact_splits(activity)
+    workout.splits_json = json.dumps(data)
+    db.session.commit()
+    return data
+
+
+def _post_run_feedback(workout, athlete):
+    """Context for the athlete's 'How it went' card, or None when there's nothing to show.
+    Athlete-only on purpose: it is built from Strava data, which we only show to its owner."""
+    if not workout.completed or workout.workout_type not in feedback.SUPPORTED_TYPES:
+        return None
+
+    if not workout.strava_activity_id:
+        if athlete.strava_token:
+            return {"state": "unlinked", "message": "This one was marked done without a Strava run. Link a run to see how it went."}
+        return {"state": "no_strava", "message": "Connect Strava to see how your pace compared with your target."}
+
+    data = _load_splits(workout, athlete)
+    if data is None:
+        return {"state": "unavailable", "message": "We couldn't load this run's details from Strava just now. Try again in a little while."}
+
+    if not workout.pace_low_sec or not workout.pace_high_sec:
+        return {"state": "no_target", "message": "No target pace is set for this session yet, so there's nothing to compare it with."}
+
+    result = feedback.build_feedback(
+        workout.workout_type, workout.pace_low_sec, workout.pace_high_sec,
+        workout.mp_low_sec, workout.mp_high_sec,
+        data.get("splits"), data.get("laps"),
+        workout.target_distance_km, workout.target_duration_min,
+    )
+    result["color"] = FEEDBACK_COLORS.get(workout.workout_type, "#ff6a55")
+    return result
 
 
 @app.template_filter("duration")
@@ -851,13 +936,15 @@ def workout_detail(workout_id):
     _attach_comparisons([workout])
 
     can_swap, swap_candidates = (False, [])
+    post_run = None
     if not current_user.is_coach():
         weeks = _plan_weeks(workout.plan.workouts)
         can_swap, swap_candidates = _swap_eligibility(workout, weeks, date.today())
+        post_run = _post_run_feedback(workout, current_user)
 
     return render_template(
         "workout_detail.html", workout=workout, plan=workout.plan,
-        can_swap=can_swap, swap_candidates=swap_candidates,
+        can_swap=can_swap, swap_candidates=swap_candidates, post_run=post_run,
     )
 
 
@@ -932,6 +1019,7 @@ def link_strava_activity(workout_id, activity_id):
     workout.actual_distance_km = round(activity["distance"] / 1609.34, 1)
     workout.actual_duration_min = round(activity["moving_time"] / 60)
     workout.strava_activity_id = str(activity["id"])
+    workout.splits_json = json.dumps(_compact_splits(activity))  # already fetched in full, so keep it
     db.session.commit()
     flash("Activity linked.", "success")
     return redirect(url_for("workout_detail", workout_id=workout_id))
@@ -945,6 +1033,7 @@ def unlink_strava_activity(workout_id):
     if workout is None or workout.plan.client_id != current_user.id:
         abort(404)
     workout.strava_activity_id = None
+    workout.splits_json = None
     db.session.commit()
     flash("Strava activity unlinked.", "success")
     return redirect(url_for("workout_detail", workout_id=workout_id))
@@ -990,11 +1079,34 @@ def uncomplete_workout(workout_id):
     workout.actual_distance_km = None
     workout.actual_duration_min = None
     workout.strava_activity_id = None
+    workout.splits_json = None
+    workout.feel = None
+    workout.feel_reason = None
     db.session.commit()
 
     if _is_fetch_request():
         return {"ok": True}
     return redirect(request.referrer or url_for("plan_detail", plan_id=workout.plan_id))
+
+
+@app.route("/workout/<int:workout_id>/feel", methods=["POST"])
+@login_required
+@client_required
+def set_feel(workout_id):
+    workout = db.session.get(Workout, workout_id)
+    if workout is None or workout.plan.client_id != current_user.id:
+        abort(404)
+    feel = request.form.get("feel")
+    if not workout.completed or feel not in FEEL_VALUES:
+        abort(400)
+    reason = request.form.get("reason")
+    workout.feel = feel
+    workout.feel_reason = reason if (feel == "tough" and reason in FEEL_REASONS) else None
+    db.session.commit()
+
+    if _is_fetch_request():
+        return {"ok": True}
+    return redirect(request.referrer or url_for("workout_detail", workout_id=workout.id))
 
 
 @app.route("/workout/<int:workout_id>/delete", methods=["POST"])
@@ -1060,14 +1172,18 @@ def edit_workout(workout_id):
                 errors.append(f"{label} should look like 6:45 (min:sec per mile).")
             return seconds
 
-        pace_low = optional_pace("pace_low", "Fast pace")
-        pace_high = optional_pace("pace_high", "Slow pace")
-        if pace_low and not pace_high:
-            pace_high = pace_low
-        elif pace_high and not pace_low:
-            pace_low = pace_high
-        if pace_low and pace_high and pace_low > pace_high:
-            pace_low, pace_high = pace_high, pace_low
+        def pace_range(low_field, high_field, low_label, high_label):
+            low, high = optional_pace(low_field, low_label), optional_pace(high_field, high_label)
+            if low and not high:
+                high = low
+            elif high and not low:
+                low = high
+            if low and high and low > high:
+                low, high = high, low
+            return low, high
+
+        pace_low, pace_high = pace_range("pace_low", "pace_high", "Fast pace", "Slow pace")
+        mp_low, mp_high = pace_range("mp_low", "mp_high", "Marathon-pace fast end", "Marathon-pace slow end")
 
         if errors:
             for message in errors:
@@ -1081,6 +1197,8 @@ def edit_workout(workout_id):
         workout.description = request.form.get("description", "").strip()
         workout.pace_low_sec = pace_low
         workout.pace_high_sec = pace_high
+        workout.mp_low_sec = mp_low
+        workout.mp_high_sec = mp_high
         db.session.commit()
         flash("Workout updated.", "success")
         return redirect(url_for("workout_detail", workout_id=workout.id))
@@ -1093,6 +1211,8 @@ def edit_workout(workout_id):
         "description": workout.description or "",
         "pace_low": pacing.fmt_pace(workout.pace_low_sec) if workout.pace_low_sec else "",
         "pace_high": pacing.fmt_pace(workout.pace_high_sec) if workout.pace_high_sec else "",
+        "mp_low": pacing.fmt_pace(workout.mp_low_sec) if workout.mp_low_sec else "",
+        "mp_high": pacing.fmt_pace(workout.mp_high_sec) if workout.mp_high_sec else "",
     }
     return render_template("edit_workout.html", workout=workout, types=WORKOUT_TYPES, values=values)
 
@@ -1249,11 +1369,14 @@ def client_dashboard():
     done_week_indices = _done_week_indices(weeks)
 
     can_swap, swap_candidates = (False, [])
+    post_run = None
     if selected_workout:
         can_swap, swap_candidates = _swap_eligibility(selected_workout, weeks, today)
+        post_run = _post_run_feedback(selected_workout, current_user)
 
     return render_template(
         "today.html",
+        post_run=post_run,
         plan=plan,
         today=today,
         weeks=weeks,
@@ -1463,10 +1586,15 @@ with app.app_context():
             with db.engine.connect() as conn:
                 conn.execute(sa_text("ALTER TABLE workout ADD COLUMN swapped_at TIMESTAMP"))
                 conn.commit()
-        for pace_column in ("pace_low_sec", "pace_high_sec"):
-            if pace_column not in existing_columns:
+        new_workout_columns = {
+            "pace_low_sec": "INTEGER", "pace_high_sec": "INTEGER",
+            "mp_low_sec": "INTEGER", "mp_high_sec": "INTEGER",
+            "splits_json": "TEXT", "feel": "VARCHAR(10)", "feel_reason": "VARCHAR(40)",
+        }
+        for column_name, column_type in new_workout_columns.items():
+            if column_name not in existing_columns:
                 with db.engine.connect() as conn:
-                    conn.execute(sa_text(f"ALTER TABLE workout ADD COLUMN {pace_column} INTEGER"))
+                    conn.execute(sa_text(f"ALTER TABLE workout ADD COLUMN {column_name} {column_type}"))
                     conn.commit()
 
 

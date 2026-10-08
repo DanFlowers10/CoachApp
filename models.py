@@ -80,11 +80,25 @@ class Workout(db.Model):
     # block, the rep pace, or the easy pace for an easy day. low = faster bound.
     pace_low_sec = db.Column(db.Integer)
     pace_high_sec = db.Column(db.Integer)
+    # Optional second range for a long run's marathon-pace section.
+    mp_low_sec = db.Column(db.Integer)
+    mp_high_sec = db.Column(db.Integer)
+    # Compact JSON of the matched Strava run's mile splits and laps, fetched once
+    # so the "how it went" card doesn't hit Strava on every view.
+    splits_json = db.Column(db.Text)
+    # The athlete's own "how did it feel" tap: 'good' or 'tough' (+ optional reason).
+    feel = db.Column(db.String(10))
+    feel_reason = db.Column(db.String(40))
 
     @property
     def pace_range_str(self):
         from pacing import fmt_pace_range
         return fmt_pace_range(self.pace_low_sec, self.pace_high_sec)
+
+    @property
+    def mp_range_str(self):
+        from pacing import fmt_pace_range
+        return fmt_pace_range(self.mp_low_sec, self.mp_high_sec)
 
 
 class StravaToken(db.Model):

@@ -44,13 +44,19 @@
   {% endif %}
 </div>
 
-{% if workout.description or workout.pace_range_str %}
+{% if workout.description or workout.pace_range_str or workout.mp_range_str %}
   <div class="text-uppercase small fw-bold text-muted mt-4 mb-2" style="letter-spacing:.04em;">Session</div>
   <div class="card-surface" style="border-radius: var(--radius); padding: 1rem 1.1rem;">
     {% if workout.pace_range_str %}
-      <div class="d-flex align-items-baseline gap-2 {{ 'mb-2' if workout.description else '' }}">
+      <div class="d-flex align-items-baseline gap-2 {{ 'mb-2' if (workout.description or workout.mp_range_str) else '' }}">
         <span class="small text-muted fw-bold" style="text-transform:uppercase; letter-spacing:.04em;">Target pace</span>
         <span class="fw-bold">{{ workout.pace_range_str }}</span>
+      </div>
+    {% endif %}
+    {% if workout.mp_range_str %}
+      <div class="d-flex align-items-baseline gap-2 {{ 'mb-2' if workout.description else '' }}">
+        <span class="small text-muted fw-bold" style="text-transform:uppercase; letter-spacing:.04em;">Marathon pace</span>
+        <span class="fw-bold">{{ workout.mp_range_str }}</span>
       </div>
     {% endif %}
     {{ workout.description }}
@@ -65,10 +71,20 @@
     {% if workout.distance_badge or workout.pace_badge %}
       <div class="w-badges mt-2">
         {% if workout.distance_badge %}<span class="compare-badge {{ 'ok' if workout.distance_badge == 'on target distance' else 'note' }}">{{ workout.distance_badge }}</span>{% endif %}
-        {% if workout.pace_badge %}<span class="compare-badge {{ 'ok' if workout.pace_badge == 'on target pace' else 'note' }}">{{ workout.pace_badge }}</span>{% endif %}
+        {% if workout.pace_badge and not (post_run and post_run.state == 'ok') %}<span class="compare-badge {{ 'ok' if workout.pace_badge == 'on target pace' else 'note' }}">{{ workout.pace_badge }}</span>{% endif %}
+      </div>
+    {% endif %}
+    {% if current_user.is_coach() and workout.feel %}
+      <div class="mt-2 small">
+        <span class="text-muted fw-bold" style="text-transform:uppercase; letter-spacing:.04em;">Felt</span>
+        <strong>{{ 'Good' if workout.feel == 'good' else 'Tough' }}</strong>{% if workout.feel_reason %} <span class="text-muted">&middot; {{ workout.feel_reason }}</span>{% endif %}
       </div>
     {% endif %}
   </div>
+{% endif %}
+
+{% if post_run %}
+  {% with workout=workout %}{% include "_post_run_feedback.html" %}{% endwith %}
 {% endif %}
 
 {% if not current_user.is_coach() %}

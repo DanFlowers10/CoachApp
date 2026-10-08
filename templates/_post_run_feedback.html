@@ -1,0 +1,112 @@
+{# "How it went" + "How did it feel?" for a completed run. Athlete-only: built from Strava data. #}
+{% if post_run %}
+<div class="pr-label">How it went</div>
+
+{% if post_run.state == 'ok' %}
+  <div class="pr-card">
+    <div class="pr-verdict tone-{{ post_run.tone }}">{{ post_run.verdict }}</div>
+    <div class="pr-headline">{{ post_run.headline }}</div>
+  </div>
+
+  <div class="pr-card" style="--bar-color: {{ post_run.color }};">
+    <div class="pr-card-title">{{ post_run.chart_title }}</div>
+    <div class="pr-chart" style="gap: {{ post_run.gap }}px;">
+      <div class="pr-band" style="bottom: {{ post_run.band_bottom }}%; height: {{ post_run.band_height }}%;"></div>
+      {% for b in post_run.bars %}<div class="pr-bar {{ b.cls }}" style="height: {{ b.h }}%;"></div>{% endfor %}
+    </div>
+    <div class="pr-labels" style="gap: {{ post_run.gap }}px;">
+      {% for b in post_run.bars %}<span style="font-size: {{ post_run.label_size }}px;">{{ b.label }}</span>{% endfor %}
+    </div>
+    <div class="pr-legend">
+      <span><i class="pr-legend-band"></i>{{ post_run.band_label }}</span>
+      {% if post_run.has_others %}<span><i class="pr-legend-dot"></i>{{ post_run.others_label }}</span>{% endif %}
+    </div>
+  </div>
+
+  <div class="pr-stats">
+    {% for s in post_run.stats %}
+      <div class="pr-stat">
+        <div class="pr-stat-label">{{ s.label }}</div>
+        <div class="pr-stat-value">{{ s.value }}{% if s.unit %}<small>{{ s.unit }}</small>{% endif %}</div>
+        {% if s.sub %}<div class="pr-stat-sub tone-{{ s.tone }}">{{ s.sub }}</div>{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if post_run.callout %}<div class="pr-callout">{{ post_run.callout }}</div>{% endif %}
+
+{% else %}
+  <div class="pr-card">
+    <div class="pr-headline pr-muted">{{ post_run.message }}</div>
+    {% if post_run.state == 'no_strava' %}
+      <a href="{{ url_for('strava_connect') }}" class="btn btn-sm btn-accent mt-3">Connect Strava</a>
+    {% elif post_run.state == 'unlinked' %}
+      <a href="{{ url_for('link_strava_picker', workout_id=workout.id) }}" class="btn btn-sm btn-accent mt-3">Link a run</a>
+    {% endif %}
+  </div>
+{% endif %}
+
+<div class="pr-card" data-feel-card data-workout-id="{{ workout.id }}" data-feel="{{ workout.feel or '' }}" data-reason="{{ workout.feel_reason or '' }}">
+  <div class="pr-card-title">How did it feel?</div>
+  <div class="pr-feel-row">
+    <button type="button" class="pr-feel-btn good" data-feel="good">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"></path><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"></path></svg>
+      Good
+    </button>
+    <button type="button" class="pr-feel-btn tough" data-feel="tough">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14V2"></path><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"></path></svg>
+      Tough
+    </button>
+  </div>
+  <div class="pr-reasons" hidden>
+    {% for r in ['Paces too tough', 'Felt too long', 'Not feeling 100%'] %}
+      <button type="button" class="pr-reason" data-reason="{{ r }}">{{ r }}</button>
+    {% endfor %}
+  </div>
+  <div class="pr-feel-note" hidden>Shared with your coach.</div>
+</div>
+
+<script>
+(function () {
+  var card = document.querySelector('[data-feel-card]');
+  if (!card) return;
+  var id = card.getAttribute('data-workout-id');
+  var buttons = card.querySelectorAll('.pr-feel-btn');
+  var chips = card.querySelectorAll('.pr-reason');
+  var reasons = card.querySelector('.pr-reasons');
+  var note = card.querySelector('.pr-feel-note');
+  var state = {feel: card.getAttribute('data-feel') || '', reason: card.getAttribute('data-reason') || ''};
+
+  function paint() {
+    buttons.forEach(function (b) { b.classList.toggle('is-selected', b.getAttribute('data-feel') === state.feel); });
+    chips.forEach(function (c) { c.classList.toggle('is-selected', c.getAttribute('data-reason') === state.reason); });
+    reasons.hidden = state.feel !== 'tough';
+    note.hidden = state.feel !== 'good';
+  }
+
+  function save(next) {
+    var previous = {feel: state.feel, reason: state.reason};
+    state = next;
+    paint();
+    if (navigator.vibrate) navigator.vibrate(10);
+    var body = new URLSearchParams({feel: next.feel});
+    if (next.reason) body.set('reason', next.reason);
+    fetch('/workout/' + id + '/feel', {method: 'POST', headers: {'X-Requested-With': 'fetch'}, body: body, credentials: 'same-origin'})
+      .then(function (r) { if (!r.ok) throw new Error('bad status'); })
+      .catch(function () {
+        state = previous;
+        paint();
+        showToast("Couldn't save - check your connection.", 'error');
+      });
+  }
+
+  buttons.forEach(function (b) {
+    b.addEventListener('click', function () { save({feel: b.getAttribute('data-feel'), reason: ''}); });
+  });
+  chips.forEach(function (c) {
+    c.addEventListener('click', function () { save({feel: 'tough', reason: c.getAttribute('data-reason')}); });
+  });
+  paint();
+})();
+</script>
+{% endif %}

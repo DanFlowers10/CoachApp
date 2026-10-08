@@ -568,6 +568,75 @@ button.week-workout-card-check:active { transform: scale(.92); }
 .workout-hero-date { font-size: .78rem; font-weight: 700; color: var(--text-dim); }
 .workout-hero-duration { display: flex; align-items: center; gap: .35rem; font-size: .85rem; font-weight: 700; color: var(--text-dim); margin-top: .5rem; }
 
+/* ---------- post-run feedback ("How it went") ---------- */
+.pr-label { font-size: .7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text-faint); margin: 1.5rem 0 .5rem; }
+.pr-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.1rem; margin-bottom: .75rem; }
+.pr-card-title { font-size: .85rem; font-weight: 800; margin-bottom: .75rem; }
+.pr-headline { font-size: .88rem; line-height: 1.5; color: var(--text); }
+.pr-muted { color: var(--text-dim); }
+.pr-verdict {
+  display: inline-flex; align-items: center; gap: .45rem; padding: .3rem .7rem .3rem .55rem; margin-bottom: .6rem;
+  border-radius: 999px; font-size: .78rem; font-weight: 800;
+}
+.pr-verdict::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pr-verdict.tone-good { color: var(--success); background: var(--success-bg); }
+.pr-verdict.tone-ahead { color: #9a8cf9; background: color-mix(in srgb, #7000ff 18%, transparent); }
+.pr-verdict.tone-warn { color: var(--warning); background: var(--warning-bg); }
+
+.pr-chart { position: relative; height: 118px; display: flex; align-items: flex-end; margin-bottom: .4rem; }
+.pr-band {
+  position: absolute; left: 0; right: 0; pointer-events: none;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  border-top: 1px dashed color-mix(in srgb, var(--text) 35%, transparent);
+  border-bottom: 1px dashed color-mix(in srgb, var(--text) 35%, transparent);
+}
+.pr-bar { position: relative; flex: 1; min-width: 0; border-radius: 4px 4px 2px 2px; background: var(--bar-color, var(--accent)); }
+.pr-bar.is-fast { background: var(--progress); }
+.pr-bar.is-slow { background: var(--warning); }
+.pr-bar.is-other { background: color-mix(in srgb, var(--text) 18%, transparent); }
+.pr-labels { display: flex; margin-bottom: .7rem; }
+.pr-labels span { flex: 1; min-width: 0; text-align: center; font-weight: 700; letter-spacing: -.03em; color: var(--text-faint); }
+.pr-legend { display: flex; flex-wrap: wrap; gap: .35rem .9rem; font-size: .68rem; font-weight: 700; color: var(--text-faint); }
+.pr-legend span { display: inline-flex; align-items: center; gap: .35rem; }
+.pr-legend-band {
+  width: 14px; height: 8px; display: inline-block; background: color-mix(in srgb, var(--text) 8%, transparent);
+  border-top: 1px dashed color-mix(in srgb, var(--text) 40%, transparent); border-bottom: 1px dashed color-mix(in srgb, var(--text) 40%, transparent);
+}
+.pr-legend-dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; background: color-mix(in srgb, var(--text) 18%, transparent); }
+
+.pr-stats { display: flex; gap: .5rem; margin-bottom: .75rem; }
+.pr-stat { flex: 1; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .75rem .75rem .7rem; }
+.pr-stat-label { font-size: .6rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--text-faint); margin-bottom: .35rem; }
+.pr-stat-value { font-size: 1.25rem; font-weight: 800; letter-spacing: -.02em; }
+.pr-stat-value small { font-size: .7rem; font-weight: 700; color: var(--text-faint); }
+.pr-stat-sub { font-size: .66rem; font-weight: 700; margin-top: .2rem; color: var(--text-dim); }
+.pr-stat-sub.tone-ok { color: var(--success); }
+.pr-stat-sub.tone-ahead { color: #9a8cf9; }
+.pr-stat-sub.tone-warn { color: var(--warning); }
+[data-theme="light"] .pr-verdict.tone-ahead, [data-theme="light"] .pr-stat-sub.tone-ahead { color: #5b21d6; }
+.pr-callout {
+  border-radius: var(--radius-sm); padding: .8rem .95rem; margin-bottom: .75rem; font-size: .8rem; line-height: 1.5;
+  background: color-mix(in srgb, #7000ff 12%, transparent); border: 1px solid color-mix(in srgb, #7000ff 35%, transparent); color: var(--text);
+}
+
+.pr-feel-row { display: flex; gap: .65rem; }
+.pr-feel-btn {
+  flex: 1; height: 46px; display: flex; align-items: center; justify-content: center; gap: .5rem;
+  border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: transparent; color: var(--text);
+  font-size: .85rem; font-weight: 800; cursor: pointer; transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.pr-feel-btn:active { transform: scale(.97); }
+.pr-feel-btn.good.is-selected { border-color: var(--success); background: var(--success-bg); color: var(--success); }
+.pr-feel-btn.tough.is-selected { border-color: var(--warning); background: var(--warning-bg); color: var(--warning); }
+.pr-reasons { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
+.pr-reasons[hidden], .pr-feel-note[hidden] { display: none; }
+.pr-reason {
+  border-radius: 999px; padding: .4rem .8rem; border: 1px solid var(--border); background: transparent; color: var(--text);
+  font-size: .76rem; font-weight: 700; cursor: pointer;
+}
+.pr-reason.is-selected { border-color: var(--warning); background: var(--warning-bg); color: var(--warning); }
+.pr-feel-note { margin-top: .65rem; font-size: .74rem; font-weight: 600; color: var(--text-faint); }
+
 .strava-link-icon {
   width: 34px; height: 34px; border-radius: 999px; flex: none;
   background: rgba(252,76,2,.14); color: #fc4c02;

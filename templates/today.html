@@ -153,13 +153,19 @@
             {% endif %}
           </div>
 
-          {% if w.description or w.pace_range_str %}
+          {% if w.description or w.pace_range_str or w.mp_range_str %}
             <div class="text-uppercase small fw-bold text-muted mt-4 mb-2" style="letter-spacing:.04em;">Session</div>
             <div class="card-surface" style="border-radius: var(--radius); padding: 1rem 1.1rem;">
               {% if w.pace_range_str %}
-                <div class="d-flex align-items-baseline gap-2 {{ 'mb-2' if w.description else '' }}">
+                <div class="d-flex align-items-baseline gap-2 {{ 'mb-2' if (w.description or w.mp_range_str) else '' }}">
                   <span class="small text-muted fw-bold" style="text-transform:uppercase; letter-spacing:.04em;">Target pace</span>
                   <span class="fw-bold">{{ w.pace_range_str }}</span>
+                </div>
+              {% endif %}
+              {% if w.mp_range_str %}
+                <div class="d-flex align-items-baseline gap-2 {{ 'mb-2' if w.description else '' }}">
+                  <span class="small text-muted fw-bold" style="text-transform:uppercase; letter-spacing:.04em;">Marathon pace</span>
+                  <span class="fw-bold">{{ w.mp_range_str }}</span>
                 </div>
               {% endif %}
               {{ w.description }}
@@ -174,10 +180,14 @@
               {% if w.distance_badge or w.pace_badge %}
                 <div class="w-badges mt-2">
                   {% if w.distance_badge %}<span class="compare-badge {{ 'ok' if w.distance_badge == 'on target distance' else 'note' }}">{{ w.distance_badge }}</span>{% endif %}
-                  {% if w.pace_badge %}<span class="compare-badge {{ 'ok' if w.pace_badge == 'on target pace' else 'note' }}">{{ w.pace_badge }}</span>{% endif %}
+                  {% if w.pace_badge and not (post_run and post_run.state == 'ok') %}<span class="compare-badge {{ 'ok' if w.pace_badge == 'on target pace' else 'note' }}">{{ w.pace_badge }}</span>{% endif %}
                 </div>
               {% endif %}
             </div>
+          {% endif %}
+
+          {% if post_run %}
+            {% with workout=w %}{% include "_post_run_feedback.html" %}{% endwith %}
           {% endif %}
 
           {% if not current_user.is_coach() %}

@@ -40,6 +40,14 @@
           <div class="form-text">For the key effort - the tempo block, rep pace, or easy pace. Leave both blank for none; one value means a single target.</div>
         </div>
         <div class="mb-3">
+          <label class="form-label">Marathon-pace section (optional)</label>
+          <div class="row g-2">
+            <div class="col-6"><input type="text" name="mp_low" class="form-control" placeholder="Fast end, e.g. 6:59" value="{{ values.get('mp_low', '') }}" inputmode="numeric"></div>
+            <div class="col-6"><input type="text" name="mp_high" class="form-control" placeholder="Slow end, e.g. 7:07" value="{{ values.get('mp_high', '') }}" inputmode="numeric"></div>
+          </div>
+          <div class="form-text">For long runs that finish at marathon pace. Lets the post-run card judge that section separately from the easy miles.</div>
+        </div>
+        <div class="mb-3">
           <label class="form-label">Notes</label>
           <textarea name="description" rows="4" class="form-control">{{ values.get('description', '') }}</textarea>
         </div>
