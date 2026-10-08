@@ -271,6 +271,7 @@ button.card-surface { color: inherit; font: inherit; text-align: inherit; cursor
 
 /* bottom nav (athlete) */
 body.has-bottom-nav .container { padding-bottom: 88px; }
+body.has-bottom-nav #page-content { padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px)) !important; }
 .bottom-nav {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
   display: flex; background: var(--bg-elevated); border-top: 1px solid var(--border);
@@ -719,7 +720,8 @@ button.sheet-workout-row { border-top: none; border-right: none; border-bottom: 
   display: none; position: fixed; inset: 0; z-index: 70; background: var(--bg); overflow-y: auto;
 }
 .page-overlay.is-open { display: block; }
-.page-overlay-inner { max-width: 720px; margin: 0 auto; padding: 1.25rem 1.25rem 2rem; }
+.page-overlay-inner { max-width: 720px; margin: 0 auto; padding: 1.25rem 1.25rem calc(3rem + env(safe-area-inset-bottom, 0px)); }
+.cv-overlay-loading { padding: 3rem 0; text-align: center; color: var(--text-faint); font-weight: 700; font-size: .85rem; }
 .btn-icon-back {
   background: none; border: none; color: var(--text); font-weight: 800; font-size: .85rem;
   display: flex; align-items: center; gap: .15rem; padding: 0; margin-bottom: 1rem;
@@ -961,7 +963,10 @@ hr { border-color: var(--border); opacity: 1; }
 .cv-key-dot { background: var(--text-faint); }
 .cv-key-today { border-radius: 3px; border: 2px solid var(--progress); }
 
-.cv-day { border-radius: 20px; padding: 1.1rem 1.1rem 1.1rem; background: var(--surface); border: 1px solid var(--border); margin-bottom: 1rem; }
+.cv-day {
+  border-radius: 20px; padding: 1.1rem; margin-bottom: 1rem; border: 1px solid var(--border);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--hero-color, var(--text-faint)) 35%, var(--bg-elevated)) 0%, var(--bg-elevated) 75%);
+}
 .cv-day-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: .6rem; gap: .5rem; }
 .cv-day-date { font-size: .78rem; font-weight: 700; color: var(--text-dim); }
 .cv-day-status { display: inline-flex; align-items: center; gap: .4rem; padding: .25rem .65rem .25rem .5rem; border-radius: 999px; background: var(--inverse-wash); font-size: .7rem; font-weight: 800; }

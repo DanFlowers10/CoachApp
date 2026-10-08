@@ -95,6 +95,13 @@
     <div class="cv-day-note" id="cv-day-note"></div>
     <a class="btn btn-accent cv-day-open" id="cv-day-open" href="#">Open session</a>
   </div>
+
+  <div class="page-overlay" id="cv-overlay">
+    <div class="page-overlay-inner">
+      <button type="button" class="btn-icon-back" id="cv-overlay-back"><i class="ti ti-chevron-left"></i> Back</button>
+      <div id="cv-overlay-body"></div>
+    </div>
+  </div>
 </div>
 
 <script type="application/json" id="cv-data">{{ day_info|tojson }}</script>
@@ -113,6 +120,10 @@
   var STATUS = {
     done: 'Done', missed: 'Not logged', today: 'Today', upcoming: 'Planned', rest: 'Rest day', race: 'Race day'
   };
+  var HERO_COLORS = {
+    'Easy Run': '#3ecf8e', 'Tempo': '#e968c7', 'Intervals': '#9a8cf9', 'Long Run': '#5b9cf6',
+    'Race': '#ff6a55', 'Rest': 'var(--text-faint)'
+  };
   var $ = function (id) { return document.getElementById(id); };
 
   function fmtMi(n) { return (Math.round(n * 10) / 10) + ' mi'; }
@@ -127,6 +138,7 @@
     if (cell) cell.classList.add('is-selected');
 
     var isRest = info.type === 'Rest';
+    card.style.setProperty('--hero-color', HERO_COLORS[info.type] || 'var(--text-faint)');
     $('cv-day-date').textContent = info.label;
     var st = $('cv-day-status');
     st.className = 'cv-day-status cv-t-' + ({'Easy Run': 'easy', 'Tempo': 'tempo', 'Intervals': 'intervals', 'Long Run': 'long', 'Race': 'race', 'Rest': 'rest'}[info.type] || 'easy');
@@ -198,7 +210,73 @@
     showMonth(idx, data[today] ? today : null);
   });
 
+  // The session opens over the calendar (like Today's pop-over) instead of navigating away.
+  var overlay = $('cv-overlay');
+  var overlayBody = $('cv-overlay-body');
+  var changed = false;
+  var loadToken = 0;
+
+  function runScripts(container) {
+    Array.prototype.forEach.call(container.querySelectorAll('script'), function (old) {
+      var fresh = document.createElement('script');
+      fresh.text = old.textContent;
+      old.parentNode.replaceChild(fresh, old);
+    });
+  }
+
+  function closeOverlay() {
+    overlay.classList.remove('is-open');
+    overlayBody.textContent = '';
+    if (changed) {
+      // Something was ticked off or rated: reload so the calendar reflects it, back on the same day.
+      try { sessionStorage.setItem('cv-restore', selected || ''); } catch (e) {}
+      location.reload();
+    }
+  }
+
+  function openOverlay(url) {
+    changed = false;
+    var token = ++loadToken;
+    overlayBody.innerHTML = '<div class="cv-overlay-loading">Loading&hellip;</div>';
+    overlay.scrollTop = 0;
+    overlay.classList.add('is-open');
+    fetch(url + (url.indexOf('?') < 0 ? '?partial=1' : '&partial=1'), {credentials: 'same-origin', headers: {'X-Requested-With': 'fetch'}})
+      .then(function (r) {
+        if (!r.ok || r.redirected) throw new Error('bad response');
+        return r.text();
+      })
+      .then(function (html) {
+        if (token !== loadToken) return;
+        overlayBody.innerHTML = html;
+        runScripts(overlayBody);
+      })
+      .catch(function () {
+        if (token === loadToken) window.location.href = url;
+      });
+  }
+
+  $('cv-day-open').addEventListener('click', function (e) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+    e.preventDefault();
+    openOverlay(this.getAttribute('href'));
+  });
+  $('cv-overlay-back').addEventListener('click', closeOverlay);
+  overlay.addEventListener('submit', function (e) {
+    if (e.target.matches && e.target.matches('[data-done-form]')) changed = true;
+  });
+  overlay.addEventListener('click', function (e) {
+    if (e.target.closest && e.target.closest('.pr-feel-btn, .pr-reason')) changed = true;
+  });
+
   showMonth(current);
+  try {
+    var restore = sessionStorage.getItem('cv-restore');
+    sessionStorage.removeItem('cv-restore');
+    if (restore && data[restore]) {
+      var idx = keys.indexOf(restore.slice(0, 7));
+      if (idx >= 0) showMonth(idx, restore);
+    }
+  } catch (e) {}
 })();
 </script>
 {% endif %}

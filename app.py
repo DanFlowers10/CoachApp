@@ -1095,8 +1095,10 @@ def workout_detail(workout_id):
         can_swap, swap_candidates = _swap_eligibility(workout, weeks, date.today())
         post_run = _post_run_feedback(workout, current_user)
 
+    # ?partial=1 returns just the session content, for the calendar's pop-over to drop in.
+    template = "_workout_detail_body.html" if request.args.get("partial") else "workout_detail.html"
     return render_template(
-        "workout_detail.html", workout=workout, plan=workout.plan,
+        template, workout=workout, plan=workout.plan,
         can_swap=can_swap, swap_candidates=swap_candidates, post_run=post_run,
         paces=_pace_display(workout), steps_view=_steps_view(workout),
     )
